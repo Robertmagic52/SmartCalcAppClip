@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Calculator</title>
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#000000">
+<style>
+  :root{
+    --bg:#000;
+    --digit:#333333;
+    --fn:#878787;
+    --op:#ff9f0a;
+    --fg:#fff;
+    --gray:#9e9e9e;
+    --hint:#6b6b6b;
+    --icon-bg:#292929;
+    --gap:2.5vw;
+    --pad:4.33vw;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{
+    margin:0;padding:0;height:100%;background:var(--bg);
+    overscroll-behavior:none;overflow:hidden;
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",Helvetica,Arial,sans-serif;
+    -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
+    touch-action:manipulation;color:var(--fg);
+  }
+  .app{
+    position:fixed;inset:0;display:flex;flex-direction:column;
+    padding:max(4px,env(safe-area-inset-top))
+            calc(var(--pad) + env(safe-area-inset-right, 0px))
+            10px
+            calc(var(--pad) + env(safe-area-inset-left, 0px));
+  }
+  .topbar{display:flex;align-items:flex-start;justify-content:space-between;padding:6px 4px 0;}
+  .iconbtn{
+    width:44px;height:44px;border-radius:50%;background:var(--icon-bg);
+    display:flex;align-items:center;justify-content:center;color:#fff;flex:0 0 auto;
+  }
+  .iconbtn svg{width:22px;height:22px;display:block;}
+  #gridBtn .cut{fill:var(--icon-bg);}
+  #gridBtn #lockDot{transition:fill .18s ease;}
+  #gridBtn.locked #lockDot{fill:currentColor;}
+  .peek{
+    margin-top:6px;font:15px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+    color:var(--hint);height:18px;opacity:0;transition:opacity .12s ease;
+    white-space:nowrap;letter-spacing:.02em;
+  }
+  .peek.on{opacity:1;}
+  .display{flex:1;display:flex;flex-direction:column;justify-content:flex-end;
+    align-items:flex-end;padding:0 8px calc(var(--keysize,80px) * 0.34);
+    min-height:0;overflow:hidden;}
+  .secondary{color:var(--gray);font-size:calc(var(--keysize,80px) * 0.34);font-weight:400;
+    line-height:1.15;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:clip;}
+  .primary{color:var(--fg);font-size:calc(var(--keysize,80px) * 0.98);font-weight:300;
+    line-height:1.05;white-space:nowrap;max-width:100%;letter-spacing:-.02em;}
+  .keypad{
+    display:grid;grid-template-columns:repeat(4,var(--keysize,80px));
+    grid-auto-rows:var(--keysize,80px);gap:var(--gap);flex:0 0 auto;
+    justify-content:center;
+  }
+  .key{
+    width:var(--keysize,80px);height:var(--keysize,80px);
+    border-radius:50%;border:0;display:flex;align-items:center;justify-content:center;
+    font-size:calc(var(--keysize,80px) * 0.42);font-weight:400;color:#fff;background:var(--digit);
+    padding:0;font-family:inherit;position:relative;will-change:transform;
+    background-image:linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0) 62%);
+    transition:transform .34s cubic-bezier(.22,.92,.28,1.02), background-image .30s cubic-bezier(.3,.8,.3,1);
+  }
+  .key.fn{background:var(--fn);color:#fff;}
+  .key.op{background:var(--op);color:#fff;font-size:calc(var(--keysize,80px) * 0.385);}
+  .key::after{
+    content:"";position:absolute;inset:0;border-radius:50%;padding:1.1px;
+    background:linear-gradient(180deg, rgba(255,255,255,.50) 0%, rgba(255,255,255,.10) 38%, rgba(255,255,255,.05) 62%, rgba(255,255,255,.20) 100%);
+    -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite:xor; mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask-composite:exclude;
+    pointer-events:none;}
+  .key.pressed{
+    transform:scale(1.10);z-index:2;
+    background-image:linear-gradient(180deg, rgba(255,255,255,.30) 0%, rgba(255,255,255,.24) 62%);
+    transition:transform .12s cubic-bezier(.34,.9,.45,1), background-image .09s ease-out;
+  }
+  .key svg{width:.9em;height:.9em;}
+  .key[data-k="back"]{font-size:calc(var(--keysize,80px) * 0.50);}
+  @media (orientation: landscape){
+    .keypad{grid-template-columns:repeat(5,1fr);grid-auto-rows:var(--keyh,58px);}
+    .display{padding:0 10px calc(var(--keyh,58px) * 0.28);}
+    .secondary{font-size:calc(var(--keyh,58px) * 0.42);}
+    .primary{font-size:calc(var(--keyh,58px) * 1.15);}
+    .key{width:auto;height:var(--keyh,58px);border-radius:999px;font-size:calc(var(--keyh,58px) * 0.46);}
+    .key.op{font-size:calc(var(--keyh,58px) * 0.42);}
+    .key[data-k="back"]{font-size:calc(var(--keyh,58px) * 0.55);}
+    .key::after{border-radius:999px;}
+    .key[data-k="d7"]{grid-area:1/1;} .key[data-k="d8"]{grid-area:1/2;} .key[data-k="d9"]{grid-area:1/3;} .key[data-k="back"]{grid-area:1/4;} .key[data-k="div"]{grid-area:1/5;}
+    .key[data-k="d4"]{grid-area:2/1;} .key[data-k="d5"]{grid-area:2/2;} .key[data-k="d6"]{grid-area:2/3;} .key[data-k="clear"]{grid-area:2/4;} .key[data-k="mul"]{grid-area:2/5;}
+    .key[data-k="d1"]{grid-area:3/1;} .key[data-k="d2"]{grid-area:3/2;} .key[data-k="d3"]{grid-area:3/3;} .key[data-k="pct"]{grid-area:3/4;} .key[data-k="sub"]{grid-area:3/5;}
+    .key[data-k="sign"]{grid-area:4/1;} .key[data-k="d0"]{grid-area:4/2;} .key[data-k="dot"]{grid-area:4/3;} .key[data-k="eq"]{grid-area:4/4;} .key[data-k="add"]{grid-area:4/5;}
+  }
+  .key.op svg{width:1em;height:1em;}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div>
+      <div class="iconbtn" id="clockBtn" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="9.1" stroke-width="1.5"/>
+          <path d="M12,5.9 L12,12 L4.8,12" stroke-width="1.5"/>
+        </svg>
+      </div>
+      <div class="peek" id="peek">&nbsp;</div>
+    </div>
+    <div class="iconbtn" id="gridBtn" aria-hidden="true" title="Jump to Webpage">
+      <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
+        <rect x="6.2" y="2.6" width="11.6" height="18.8" rx="2.6"/>
+        <rect class="cut" x="8.1" y="4.6" width="7.8" height="3.4" rx="1"/>
+        <circle class="cut" cx="9" cy="11.2" r="1.05"/>
+        <circle class="cut" cx="12" cy="11.2" r="1.05"/>
+        <circle class="cut" cx="15" cy="11.2" r="1.05"/>
+        <circle class="cut" cx="9" cy="14.7" r="1.05"/>
+        <circle class="cut" id="lockDot" cx="12" cy="14.7" r="1.05"/>
+        <circle class="cut" cx="15" cy="14.7" r="1.05"/>
+        <circle class="cut" cx="9" cy="18.2" r="1.05"/>
+        <circle class="cut" cx="12" cy="18.2" r="1.05"/>
+        <circle class="cut" cx="15" cy="18.2" r="1.05"/>
+      </svg>
+    </div>
+  </div>
+  <div class="display" id="displayArea">
+    <div class="secondary" id="secondary"></div>
+    <div class="primary" id="primary">0</div>
+  </div>
+  <div class="keypad" id="keypad"></div>
+</div>
+
+<script>
+"use strict";
+const DEF = { mode:0, fixed:100, hold:0.5, chunk:2, offset:60, redirectUrl:"https://www.google.com" };
+let CFG = Object.assign({}, DEF);
+let targetRedirectUrl = "https://www.google.com";
+
+async function fetchCloudConfig() {
+  try {
+    let res = await fetch('https://smartcalc-backend-el0f.onrender.com/api/config');
+    let data = await res.json();
+    if (data) {
+      if (data.mode !== undefined) CFG.mode = data.mode;
+      if (data.fixed !== undefined) CFG.fixed = data.fixed;
+      if (data.chunk !== undefined) CFG.chunk = data.chunk;
+      if (data.offset !== undefined) CFG.offset = data.offset;
+      if (data.redirectUrl) targetRedirectUrl = data.redirectUrl;
+      render();
+    }
+  } catch(e) {
+    console.log("Using default fallback config");
+  }
+}
+fetchCloudConfig();
+
+const S = {
+  els: [], justEval:false, evalExpr:"",
+  gapDigits:"", gapFed:0, feedSign:"+",
+  lockedTarget:null, liveActive:false, liveBase:0, locked:false,
+};
+
+const feedStarted = () => S.gapDigits.length > 0;
+const isFeeding = () => feedStarted() && S.gapFed < S.gapDigits.length;
+const inputFrozen = () => feedStarted() && S.gapFed >= S.gapDigits.length && !S.justEval;
+
+function parseNum(s){
+  let t = s;
+  if (t.endsWith(".")) t = t.slice(0,-1);
+  if (t === "" || t === "-") return 0;
+  const v = parseFloat(t);
+  return isNaN(v) ? 0 : v;
+}
+
+function currentValue(){
+  const els = S.els.slice();
+  if (els.length && els[els.length-1].t === "o") els.pop();
+  const nums = [], ops = [];
+  for (const e of els) (e.t === "n" ? nums : ops).push(e.t === "n" ? parseNum(e.v) : e.v);
+  if (!nums.length) return 0;
+  const vals = [nums[0]], addSub = [];
+  for (let i = 0; i < ops.length; i++){
+    const rhs = (i+1 < nums.length) ? nums[i+1] : vals[vals.length-1];
+    const op = ops[i];
+    if (op === "×") vals[vals.length-1] *= rhs;
+    else if (op === "÷"){ if (rhs === 0) return NaN; vals[vals.length-1] /= rhs; }
+    else { addSub.push(op); vals.push(rhs); }
+  }
+  let r = vals[0];
+  for (let i = 0; i < addSub.length; i++) r += (addSub[i] === "+") ? vals[i+1] : -vals[i+1];
+  return roundResult(r);
+}
+
+function roundResult(v){
+  if (!isFinite(v) || v === 0) return v;
+  const p = 10 - Math.ceil(Math.log10(Math.abs(v)));
+  if (p <= 0) return Math.round(v);
+  const m = Math.pow(10, p);
+  return Math.round(v * m) / m;
+}
+
+function groupInt(raw){
+  let s = String(raw), neg = s.startsWith("-");
+  if (neg) s = s.slice(1);
+  const dot = s.indexOf(".");
+  const ip = dot < 0 ? s : s.slice(0, dot);
+  const fp = dot < 0 ? "" : s.slice(dot);
+  const grouped = (ip === "" ? "0" : ip).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return (neg ? "-" : "") + grouped + fp;
+}
+
+function fmt(v){
+  if (isNaN(v) || !isFinite(v)) return "Error";
+  if (v === 0) return "0";
+  const a = Math.abs(v);
+  if (a >= 1e15 || a < 1e-6) return v.toExponential(6).replace("e+", "e");
+  const intDigits = a >= 1 ? Math.floor(Math.log10(a)) + 1 : 1;
+  const dp = Math.max(0, Math.min(15 - intDigits, 12));
+  let s = v.toFixed(dp);
+  if (s.indexOf(".") >= 0) s = s.replace(/\.?0+$/, "");
+  return groupInt(s);
+}
+
+const expressionText = () => S.els.map(e => e.t === "n" ? groupInt(e.v) : e.v).join("");
+const primaryText = () => S.justEval ? fmt(currentValue()) : (S.els.length ? expressionText() : "0");
+const secondaryText = () => S.justEval ? S.evalExpr : "";
+const clearLabel = () => S.els.length ? "C" : "AC";
+
+function dateTimeNumber(plusSec){
+  const d = new Date(Date.now() + plusSec*1000);
+  let h = d.getHours() % 12; if (h === 0) h = 12;
+  const p2 = n => String(n).padStart(2, "0");
+  return parseInt(`${d.getMonth()+1}${p2(d.getDate())}${h}${p2(d.getMinutes())}`, 10);
+}
+
+function currentForceValue(){
+  if (CFG.mode === 0 || CFG.mode === 1) return CFG.fixed;
+  return dateTimeNumber(CFG.mode === 2 ? CFG.offset : 0);
+}
+
+const digitString = v => String(Math.abs(roundResult(v)));
+const digitCount = v => (digitString(v).match(/\d/g) || []).length;
+const feedTarget = () => S.liveActive ? currentForceValue() : (S.lockedTarget !== null ? S.lockedTarget : currentForceValue());
+
+function getSimpleHint() {
+  const target = currentForceValue();
+  const currentVal = currentValue();
+  const sign = target >= currentVal ? "+" : "−";
+  const count = digitCount(target - currentVal);
+  return `${sign}${count}`;
+}
+
+function forceHint(){
+  if (S.justEval) return null;
+  if (isFeeding()) return S.feedSign + (S.gapDigits.length - S.gapFed);
+  if (CFG.mode === 0) return "off";
+  return getSimpleHint();
+}
+
+function cancelFeed(){
+  S.gapDigits = ""; S.gapFed = 0; S.lockedTarget = null; S.liveActive = false;
+}
+
+function inputDigit(d){
+  cancelFeed();
+  if (S.justEval){ S.els = []; S.justEval = false; }
+  const last = S.els[S.els.length-1];
+  if (last && last.t === "n"){
+    if ((last.v.match(/\d/g) || []).length >= 15) return;
+    if (last.v === "0") last.v = String(d);
+    else if (last.v === "-0") last.v = "-" + d;
+    else last.v += d;
+  } else S.els.push({t:"n", v:String(d)});
+}
+
+function inputDecimal(){
+  cancelFeed();
+  if (S.justEval){ S.els = []; S.justEval = false; }
+  const last = S.els[S.els.length-1];
+  if (last && last.t === "n"){
+    if (last.v.indexOf(".") < 0) last.v += ".";
+  } else S.els.push({t:"n", v:"0."});
+}
+
+function inputOperator(op){
+  cancelFeed();
+  S.justEval = false;
+  const last = S.els[S.els.length-1];
+  if (!S.els.length) S.els = [{t:"n", v:String(currentValue())}, {t:"o", v:op}];
+  else if (last.t === "o") last.v = op;
+  else S.els.push({t:"o", v:op});
+}
+
+function inputEquals(){
+  const shown = expressionText();
+  if (feedStarted()) snapForceTerm();
+  const v = currentValue();
+  if (!isFinite(v)){
+    clearAll(); setLocked(false);
+    S.els = [{t:"n", v:"0"}];
+    return;
+  }
+  S.evalExpr = shown;
+  S.els = [{t:"n", v:String(v)}];
+  S.justEval = true;
+  cancelFeed();
+  setLocked(false);
+}
+
+function backspace(){
+  cancelFeed();
+  if (S.justEval) S.justEval = false;
+  const last = S.els[S.els.length-1];
+  if (!last) return;
+  if (last.t === "n"){
+    last.v = last.v.slice(0, -1);
+    if (last.v === "" || last.v === "-") S.els.pop();
+  } else S.els.pop();
+}
+
+function clearAll(){
+  S.els = []; S.justEval = false; S.evalExpr = "";
+  cancelFeed(); setLocked(false);
+}
+
+function toggleSign(){
+  cancelFeed();
+  const last = S.els[S.els.length-1];
+  if (last && last.t === "n"){
+    if (last.v.startsWith("-")) last.v = last.v.slice(1);
+    else if (last.v !== "0") last.v = "-" + last.v;
+  } else if (S.justEval){
+    S.els = [{t:"n", v:String(-currentValue())}];
+  }
+}
+
+function percent(){
+  cancelFeed();
+  const last = S.els[S.els.length-1];
+  if (!last || last.t !== "n") return;
+  const operand = parseNum(last.v);
+  let pct = operand / 100;
+  if (S.els.length >= 3){
+    const op = S.els[S.els.length-2];
+    if (op.t === "o" && (op.v === "+" || op.v === "−")){
+      const base = evalUpTo(S.els.length - 2);
+      if (isFinite(base)) pct = base * (operand / 100);
+    }
+  }
+  last.v = String(roundResult(pct));
+}
+
+function evalUpTo(n){
+  const keep = S.els;
+  S.els = keep.slice(0, n);
+  const v = currentValue();
+  S.els = keep;
+  return v;
+}
+
+function beginFeed(){
+  const last = S.els[S.els.length-1];
+  if (last && last.t === "o") S.els.pop();
+  const c = currentValue();
+  if (!isFinite(c)) return false;
+  if (!S.els.length) S.els.push({t:"n", v:String(c)});
+  S.liveBase = c;
+  S.liveActive = (CFG.mode === 3);
+  S.lockedTarget = currentForceValue();
+  const f = feedTarget();
+  if (!isFinite(f)) return false;
+  const op = (f >= c) ? "+" : "−";
+  S.feedSign = op;
+  S.gapDigits = digitString(f - c);
+  S.gapFed = 0;
+  S.els.push({t:"o", v:op});
+  S.justEval = false;
+  return true;
+}
+
+function feedNextChunk(){
+  if (CFG.mode === 0) return;
+  if (!feedStarted() && !beginFeed()) return;
+  if (S.gapFed >= S.gapDigits.length) return;
+  const remaining = S.gapDigits.length - S.gapFed;
+  const take = (CFG.chunk <= 0) ? remaining : Math.min(CFG.chunk, remaining);
+  const chunk = S.gapDigits.substr(S.gapFed, take);
+  S.gapFed += chunk.length;
+  const last = S.els[S.els.length-1];
+  if (last && last.t === "n") last.v += chunk;
+  else S.els.push({t:"n", v:chunk});
+  if (S.gapFed >= S.gapDigits.length) setLocked(false);
+  buzz();
+}
+
+function snapForceTerm(){
+  if (S.els.length < 2) return;
+  const n = S.els[S.els.length-1], o = S.els[S.els.length-2];
+  if (n.t !== "n" || o.t !== "o") return;
+  const f = feedTarget();
+  o.v = (f >= S.liveBase) ? "+" : "−";
+  n.v = digitString(f - S.liveBase);
+}
+
+function toggleInputLock(){
+  if (S.locked || inputFrozen()){
+    setLocked(false);
+    if (inputFrozen()) cancelFeed();
+  } else {
+    if (CFG.mode === 0) return;
+    if (!feedStarted() && !beginFeed()) return;
+    setLocked(true);
+  }
+  buzz();
+}
+
+function buzz(){ if (navigator.vibrate) try { navigator.vibrate(12); } catch(e){} }
+
+const elPrimary = document.getElementById("primary");
+const elSecondary = document.getElementById("secondary");
+const elPeek = document.getElementById("peek");
+
+function showPeek(){ elPeek.textContent = forceHint() || " "; elPeek.classList.add("on"); }
+function hidePeek(){ elPeek.classList.remove("on"); }
+const gridBtn = document.getElementById("gridBtn");
+
+function setLocked(on){
+  S.locked = on;
+  gridBtn.classList.toggle("locked", on);
+}
+
+function sizeKeypad(){
+  const W = document.documentElement.clientWidth;
+  const H = document.documentElement.clientHeight;
+  const landscape = W > H;
+  const base = Math.min(W, H);
+  const gap = Math.round(base * 0.020);
+  const pad = Math.round(base * 0.034);
+  const appEl = document.querySelector(".app");
+  const barH = document.querySelector(".topbar").offsetHeight;
+  const room = appEl.clientHeight - barH;
+  const root = document.documentElement.style;
+
+  if (landscape){
+    const keyh = Math.max(26, Math.floor((room * 0.74 - gap * 3) / 4));
+    root.setProperty("--keyh", keyh + "px");
+  } else {
+    let size = (W - pad * 2 - gap * 3) / 4;
+    const maxByHeight = (room * 0.78 - gap * 4) / 5;
+    size = Math.max(28, Math.floor(Math.min(size, maxByHeight)));
+    root.setProperty("--keysize", size + "px");
+  }
+  root.setProperty("--gap", gap + "px");
+  root.setProperty("--pad", pad + "px");
+}
+
+function fitPrimary(){
+  const el = elPrimary;
+  el.style.fontSize = "";
+  const max = el.parentElement.clientWidth - 12;
+  let size = parseFloat(getComputedStyle(el).fontSize) || 80;
+  while (el.scrollWidth > max && size > 24){ size -= 2; el.style.fontSize = size + "px"; }
+}
+
+function render(){
+  elPrimary.textContent = primaryText();
+  elSecondary.textContent = secondaryText();
+  fitPrimary();
+  const acKey = document.querySelector('[data-k="clear"]');
+  if (acKey) acKey.textContent = clearLabel();
+}
+
+const SVG_SIGN = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="1.2" y1="7.6" x2="8.8" y2="7.6"/><line x1="5.0" y1="3.8" x2="5.0" y2="11.4"/><line x1="4.9" y1="22.2" x2="18.2" y2="2.6"/><line x1="14.4" y1="17.9" x2="21.9" y2="17.9"/></svg>`;
+const SVG_DOT = `<svg viewBox="0 0 24 24"><circle cx="12" cy="19.9" r="1.5" fill="currentColor"/></svg>`;
+const OP = (body) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">${body}</svg>`;
+const SVG_DIV = OP(`<line x1="1.8" y1="12" x2="22.2" y2="12"/><circle cx="12" cy="4.9" r="1.55" fill="currentColor" stroke="none"/><circle cx="12" cy="19.1" r="1.55" fill="currentColor" stroke="none"/>`);
+const SVG_MUL = OP(`<line x1="4.9" y1="4.9" x2="19.1" y2="19.1"/><line x1="19.1" y1="4.9" x2="4.9" y2="19.1"/>`);
+const SVG_SUB = OP(`<line x1="1.8" y1="12" x2="22.2" y2="12"/>`);
+const SVG_ADD = OP(`<line x1="1.8" y1="12" x2="22.2" y2="12"/><line x1="12" y1="1.8" x2="12" y2="22.2"/>`);
+const SVG_EQ = OP(`<line x1="2.6" y1="8.3" x2="21.4" y2="8.3"/><line x1="2.6" y1="15.7" x2="21.4" y2="15.7"/>`);
+
+const KEYS = [
+  ["back","⌫","fn"], ["clear","AC","fn"], ["pct","%","fn"], ["div",SVG_DIV,"op"],
+  ["d7","7","d"], ["d8","8","d"], ["d9","9","d"], ["mul",SVG_MUL,"op"],
+  ["d4","4","d"], ["d5","5","d"], ["d6","6","d"], ["sub",SVG_SUB,"op"],
+  ["d1","1","d"], ["d2","2","d"], ["d3","3","d"], ["add",SVG_ADD,"op"],
+  ["sign",SVG_SIGN,"d"], ["d0","0","d"], ["dot",SVG_DOT,"d"], ["eq",SVG_EQ,"op"],
+];
+const keypad = document.getElementById("keypad");
+for (const [k, label, kind] of KEYS){
+  const b = document.createElement("button");
+  b.className = "key" + (kind === "fn" ? " fn" : kind === "op" ? " op" : "");
+  b.dataset.k = k;
+  if (label.startsWith("<")) b.innerHTML = label; else b.textContent = label;
+  keypad.appendChild(b);
+}
+
+const LOCK_EXEMPT = new Set(["eq"]);
+const FROZEN_EXEMPT = new Set(["eq"]);
+
+function activate(k){
+  if (inputFrozen()){
+    if (!FROZEN_EXEMPT.has(k)) return;
+  } else if (S.locked && !LOCK_EXEMPT.has(k)){
+    feedNextChunk(); render(); return;
+  }
+  switch (k){
+    case "back": backspace(); break;
+    case "clear": clearAll(); break;
+    case "pct": percent(); break;
+    case "sign": toggleSign(); break;
+    case "dot": inputDecimal(); break;
+    case "eq": inputEquals(); break;
+    case "div": inputOperator("÷"); break;
+    case "mul": inputOperator("×"); break;
+    case "sub": inputOperator("−"); break;
+    case "add": inputOperator("+"); break;
+    default:
+      if (k.startsWith("d")) inputDigit(parseInt(k.slice(1), 10));
+  }
+  render();
+}
+
+let gestureTimer = null;
+const HOLD_DELAY = 500;
+const P = new Map();
+const gapFed = new Set();
+
+function releaseHighlight(b, pressAt){
+  clearTimeout(b._hl);
+  const wait = Math.max(0, 130 - (Date.now() - pressAt));
+  b._hl = setTimeout(() => b.classList.remove("pressed"), wait);
+}
+
+keypad.addEventListener("pointerdown", e => {
+  const b = e.target.closest(".key");
+  if (!b){
+    if (S.locked && !inputFrozen()){
+      gapFed.add(e.pointerId);
+      feedNextChunk(); render();
+    }
+    return;
+  }
+  clearTimeout(b._hl);
+  const st = {b, pressAt: Date.now(), holdTimer: null, didHold: false};
+  P.set(e.pointerId, st);
+  b.classList.add("pressed");
+  b.setPointerCapture && b.setPointerCapture(e.pointerId);
+  const k = b.dataset.k;
+  if (k === "pct" || (k === "dot" && !S.locked)) showPeek();
+
+  if (k === "sign") {
+    gestureTimer = setTimeout(() => {
+      st.didHold = true;
+      CFG.mode = (CFG.mode === 1) ? 2 : 1;
+      buzz();
+      elPrimary.textContent = CFG.mode === 2 ? "MODE: TIME" : "MODE: FIXED";
+      setTimeout(() => render(), 1000);
+    }, HOLD_DELAY);
+  }
+
+  if (k === "eq") {
+    gestureTimer = setTimeout(() => {
+      st.didHold = true;
+      buzz();
+      let info = "";
+      if (CFG.mode === 0) info = "MODE: OFF";
+      else if (CFG.mode === 1) info = `FIXED: ${CFG.fixed}`;
+      else if (CFG.mode === 2) {
+        const mins = Math.floor(CFG.offset / 60);
+        const secs = CFG.offset % 60;
+        info = `TIME: +${mins}m ${secs}s`;
+      } else if (CFG.mode === 3) info = "TIME: LIVE";
+      elPrimary.textContent = info;
+      setTimeout(() => render(), 2000);
+    }, HOLD_DELAY);
+  }
+
+  if (k === "pct"){
+    st.holdTimer = setTimeout(() => {
+      if (inputFrozen()) return;
+      st.didHold = true;
+      toggleInputLock();
+      render();
+    }, CFG.hold * 1000);
+  }
+});
+
+function endPress(e, cancelled){
+  clearTimeout(gestureTimer);
+  const st = P.get(e.pointerId);
+  const fedViaGap = gapFed.delete(e.pointerId);
+  if (!st) return;
+  P.delete(e.pointerId);
+  clearTimeout(st.holdTimer);
+  releaseHighlight(st.b, st.pressAt);
+  const k = st.b.dataset.k;
+  if (k === "pct" || k === "dot") hidePeek();
+  if (cancelled || st.didHold) return;
+  if (fedViaGap) return;
+  if (k === "dot" && !S.locked && (Date.now() - st.pressAt) > 260) return;
+  activate(k);
+}
+keypad.addEventListener("pointerup", e => endPress(e, false));
+keypad.addEventListener("pointercancel", e => endPress(e, true));
+
+document.addEventListener("pointerup", () => {
+  if (P.size) return;
+  document.querySelectorAll(".key.pressed").forEach(b => b.classList.remove("pressed"));
+}, true);
+
+(() => {
+  const clock = document.getElementById("clockBtn");
+  clock.addEventListener("pointerdown", showPeek);
+  clock.addEventListener("pointerup", hidePeek);
+  clock.addEventListener("pointercancel", hidePeek);
+  clock.addEventListener("pointerleave", hidePeek);
+})();
+
+document.getElementById("displayArea").addEventListener("click", () => {
+  if (inputFrozen()) return;
+  feedNextChunk(); render();
+});
+
+document.getElementById("gridBtn").addEventListener("click", () => {
+  window.location.href = targetRedirectUrl;
+});
+
+setLocked(false);
+sizeKeypad();
+render();
+window.addEventListener("resize", () => { sizeKeypad(); fitPrimary(); });
+if (window.visualViewport)
+  window.visualViewport.addEventListener("resize", () => { sizeKeypad(); fitPrimary(); });
+</script>
+</body>
+</html>
+
