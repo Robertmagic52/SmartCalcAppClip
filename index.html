@@ -32,12 +32,12 @@
   }
   .app{
     position:fixed;inset:0;display:flex;flex-direction:column;
-    padding:max(4px,env(safe-area-inset-top))
+    padding:max(8px,env(safe-area-inset-top))
             calc(var(--pad) + env(safe-area-inset-right, 0px))
-            10px
+            max(12px, calc(env(safe-area-inset-bottom, 0px) - 6px))
             calc(var(--pad) + env(safe-area-inset-left, 0px));
   }
-  .topbar{display:flex;align-items:flex-start;justify-content:space-between;padding:6px 4px 0;}
+  .topbar{display:flex;align-items:flex-start;justify-content:space-between;padding:8px 0 0;margin:0 -4px;}
   .iconbtn{
     width:44px;height:44px;border-radius:50%;background:var(--icon-bg);
     display:flex;align-items:center;justify-content:center;color:#fff;flex:0 0 auto;
@@ -53,7 +53,7 @@
   }
   .peek.on{opacity:1;}
   .display{flex:1;display:flex;flex-direction:column;justify-content:flex-end;
-    align-items:flex-end;padding:0 8px calc(var(--keysize,80px) * 0.34);
+    align-items:flex-end;padding:0 2px calc(var(--keysize,80px) * 0.14);
     min-height:0;overflow:hidden;}
   .secondary{color:var(--gray);font-size:calc(var(--keysize,80px) * 0.34);font-weight:400;
     line-height:1.15;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:clip;}
@@ -644,4 +644,3 @@ if (window.visualViewport)
 </script>
 </body>
 </html>
-
