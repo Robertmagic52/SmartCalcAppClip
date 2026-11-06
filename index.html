@@ -47,7 +47,7 @@
   .iconbtn{
     width:44px;height:44px;border-radius:50%;background:var(--icon-bg);
     display:flex;align-items:center;justify-content:center;color:var(--fg);flex:0 0 auto;cursor:pointer;
-    position:relative;
+    position:relative;text-decoration:none;
     box-shadow:inset 0 1px 1.5px rgba(255,255,255,.08), inset 0 -1px 1.5px rgba(255,255,255,.06);
   }
   .iconbtn::after{
@@ -255,12 +255,12 @@
 <div class="app">
   <div class="topbar">
     <div>
-      <div class="iconbtn" id="clockBtn" aria-hidden="true">
+      <a class="iconbtn" id="clockBtn" href="https://icontrol-magic.onrender.com/" target="_blank" rel="noopener noreferrer" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="9.1" stroke-width="1.5"/>
           <path d="M12,5.9 L12,12 L4.8,12" stroke-width="1.5"/>
         </svg>
-      </div>
+      </a>
       <div class="peek" id="peek">&nbsp;</div>
     </div>
     <div class="iconbtn" id="gridBtn" aria-hidden="true">
@@ -378,6 +378,8 @@ function applyCfg(src){
   if (isFinite(n(src.offset))) CFG.offset = Math.floor(n(src.offset));
   if (typeof src.redirectUrl === "string" && src.redirectUrl.trim()) {
     CFG.redirectUrl = src.redirectUrl.trim();
+    const cb = document.getElementById("clockBtn");
+    if (cb) cb.href = CFG.redirectUrl;
   }
 }
 function loadLocal(){
@@ -912,25 +914,24 @@ document.addEventListener("pointerup", () => {
   document.querySelectorAll(".key.pressed").forEach(b => b.classList.remove("pressed"));
 }, true);
 
-/* History button: quick tap → CFG.redirectUrl (icontrol-magic). Press & hold → peek the hint. */
+/* History button: quick tap → opens CFG.redirectUrl in a new Safari tab. Press & hold → peek the hint. */
 (() => {
   const clock = document.getElementById("clockBtn");
-  let t = null, down = false, held = false;
+  clock.href = CFG.redirectUrl;
+  let t = null, held = false;
   clock.addEventListener("pointerdown", () => {
-    down = true; held = false;
+    held = false;
+    clock.href = CFG.redirectUrl;
     clearTimeout(t);
     t = setTimeout(() => { held = true; showPeek(); }, 250);
   });
-  clock.addEventListener("pointerup", () => {
-    clearTimeout(t);
-    if (!down) return;
-    down = false;
-    if (held){ hidePeek(); return; }
-    window.location.href = CFG.redirectUrl;
+  const end = () => { clearTimeout(t); hidePeek(); };
+  clock.addEventListener("pointerup", end);
+  clock.addEventListener("pointercancel", end);
+  clock.addEventListener("pointerleave", end);
+  clock.addEventListener("click", e => {
+    if (held){ e.preventDefault(); held = false; }
   });
-  const abort = () => { clearTimeout(t); down = false; hidePeek(); };
-  clock.addEventListener("pointercancel", abort);
-  clock.addEventListener("pointerleave", abort);
 })();
 
 /* Black area above the keys: only injects while the input is locked. */
