@@ -13,14 +13,20 @@
   :root{
     --bg:#000;
     --digit:#333333;
-    --fn:#878787;
-    --op:#ff9f0a;
-    --fg:#fff;
+    --fn:#5d5d5d;
+    --op:#f68d00;
+    --fg:#f5f5f5;
     --gray:#9e9e9e;
     --hint:#6b6b6b;
-    --icon-bg:#292929;
+    --icon-bg:#1e1e1e;
     --gap:2.5vw;
-    --pad:4.33vw;
+    --pad:4.0vw;
+    /* settings sheet */
+    --sh-bg:#1c1c1e;
+    --sh-cell:#2c2c2e;
+    --sh-fill:#3a3a3c;
+    --sh-sep:rgba(84,84,88,.55);
+    --sh-label:#8d8d93;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html,body{
@@ -32,15 +38,24 @@
   }
   .app{
     position:fixed;inset:0;display:flex;flex-direction:column;
-    padding:max(8px,env(safe-area-inset-top))
+    padding:max(8px, calc(env(safe-area-inset-top, 0px) - 16px))
             calc(var(--pad) + env(safe-area-inset-right, 0px))
-            max(12px, calc(env(safe-area-inset-bottom, 0px) - 6px))
+            max(16px, calc(env(safe-area-inset-bottom, 0px) + 27px))
             calc(var(--pad) + env(safe-area-inset-left, 0px));
   }
-  .topbar{display:flex;align-items:flex-start;justify-content:space-between;padding:8px 0 0;margin:0 -4px;}
+  .topbar{display:flex;align-items:flex-start;justify-content:space-between;padding:4px 0 0;margin:0;}
   .iconbtn{
     width:44px;height:44px;border-radius:50%;background:var(--icon-bg);
-    display:flex;align-items:center;justify-content:center;color:#fff;flex:0 0 auto;
+    display:flex;align-items:center;justify-content:center;color:var(--fg);flex:0 0 auto;cursor:pointer;
+    position:relative;
+    box-shadow:inset 0 1px 1.5px rgba(255,255,255,.08), inset 0 -1px 1.5px rgba(255,255,255,.06);
+  }
+  .iconbtn::after{
+    content:"";position:absolute;inset:0;border-radius:50%;padding:1px;
+    background:linear-gradient(180deg, rgba(255,255,255,.16) 0%, rgba(255,255,255,.03) 38%, rgba(255,255,255,.02) 62%, rgba(255,255,255,.16) 100%);
+    -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite:xor; mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask-composite:exclude;
+    pointer-events:none;
   }
   .iconbtn svg{width:22px;height:22px;display:block;}
   #gridBtn .cut{fill:var(--icon-bg);}
@@ -52,12 +67,27 @@
     white-space:nowrap;letter-spacing:.02em;
   }
   .peek.on{opacity:1;}
-  .display{flex:1;display:flex;flex-direction:column;justify-content:flex-end;
-    align-items:flex-end;padding:0 2px calc(var(--keysize,80px) * 0.14);
-    min-height:0;overflow:hidden;}
+  .display{
+    flex:1;display:flex;flex-direction:column;justify-content:flex-end;
+    align-items:flex-end;padding:0 1px calc(var(--keysize,80px) * 0.14);
+    min-height:0;overflow:hidden;position:relative;
+  }
+  .overlay{
+    position:absolute;top:14px;left:0;right:0;
+    display:flex;justify-content:center;pointer-events:none;
+    opacity:0;transition:opacity .18s ease;
+  }
+  .overlay.on{opacity:1;}
+  .overlay span{
+    background:rgba(30,30,30,.92);color:var(--gray);
+    font:500 14px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;
+    letter-spacing:.04em;padding:7px 14px;border-radius:999px;
+    border:1px solid rgba(255,255,255,.08);
+    white-space:nowrap;
+  }
   .secondary{color:var(--gray);font-size:calc(var(--keysize,80px) * 0.34);font-weight:400;
     line-height:1.15;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:clip;}
-  .primary{color:var(--fg);font-size:calc(var(--keysize,80px) * 0.98);font-weight:300;
+  .primary{color:var(--fg);font-size:calc(var(--keysize,80px) * 0.90);font-weight:300;
     line-height:1.05;white-space:nowrap;max-width:100%;letter-spacing:-.02em;}
   .keypad{
     display:grid;grid-template-columns:repeat(4,var(--keysize,80px));
@@ -67,16 +97,23 @@
   .key{
     width:var(--keysize,80px);height:var(--keysize,80px);
     border-radius:50%;border:0;display:flex;align-items:center;justify-content:center;
-    font-size:calc(var(--keysize,80px) * 0.42);font-weight:400;color:#fff;background:var(--digit);
+    font-size:calc(var(--keysize,80px) * 0.42);font-weight:300;color:var(--fg);background:var(--digit);
     padding:0;font-family:inherit;position:relative;will-change:transform;
+    box-shadow:inset 0 2px 3px rgba(255,255,255,.07), inset 0 -2px 3px rgba(255,255,255,.04);
     background-image:linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0) 62%);
     transition:transform .34s cubic-bezier(.22,.92,.28,1.02), background-image .30s cubic-bezier(.3,.8,.3,1);
   }
-  .key.fn{background:var(--fn);color:#fff;}
-  .key.op{background:var(--op);color:#fff;font-size:calc(var(--keysize,80px) * 0.385);}
+  .key.fn{
+    background:var(--fn);color:var(--fg);font-weight:300;
+    box-shadow:inset 0 2px 4px rgba(255,255,255,.10), inset 0 -2px 4px rgba(255,255,255,.08);
+  }
+  .key.op{
+    background:var(--op);color:var(--fg);font-size:calc(var(--keysize,80px) * 0.385);
+    box-shadow:inset 0 2px 4px rgba(255,230,140,.14), inset 0 -2px 3px rgba(255,220,120,.08);
+  }
   .key::after{
-    content:"";position:absolute;inset:0;border-radius:50%;padding:1.1px;
-    background:linear-gradient(180deg, rgba(255,255,255,.50) 0%, rgba(255,255,255,.10) 38%, rgba(255,255,255,.05) 62%, rgba(255,255,255,.20) 100%);
+    content:"";position:absolute;inset:0;border-radius:50%;padding:1px;
+    background:linear-gradient(180deg, rgba(255,255,255,.18) 0%, rgba(255,255,255,.04) 36%, rgba(255,255,255,.02) 64%, rgba(255,255,255,.13) 100%);
     -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
     -webkit-mask-composite:xor; mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask-composite:exclude;
     pointer-events:none;}
@@ -86,7 +123,9 @@
     transition:transform .12s cubic-bezier(.34,.9,.45,1), background-image .09s ease-out;
   }
   .key svg{width:.9em;height:.9em;}
-  .key[data-k="back"]{font-size:calc(var(--keysize,80px) * 0.50);}
+  .key[data-k="back"]{font-size:calc(var(--keysize,80px) * 0.50);font-weight:300;}
+  .key[data-k="clear"]{font-size:calc(var(--keysize,80px) * 0.39);font-weight:300;letter-spacing:-.01em;}
+  .key[data-k="pct"]{font-size:calc(var(--keysize,80px) * 0.45);font-weight:300;}
   @media (orientation: landscape){
     .keypad{grid-template-columns:repeat(5,1fr);grid-auto-rows:var(--keyh,58px);}
     .display{padding:0 10px calc(var(--keyh,58px) * 0.28);}
@@ -95,6 +134,8 @@
     .key{width:auto;height:var(--keyh,58px);border-radius:999px;font-size:calc(var(--keyh,58px) * 0.46);}
     .key.op{font-size:calc(var(--keyh,58px) * 0.42);}
     .key[data-k="back"]{font-size:calc(var(--keyh,58px) * 0.55);}
+    .key[data-k="clear"]{font-size:calc(var(--keyh,58px) * 0.43);}
+    .key[data-k="pct"]{font-size:calc(var(--keyh,58px) * 0.50);}
     .key::after{border-radius:999px;}
     .key[data-k="d7"]{grid-area:1/1;} .key[data-k="d8"]{grid-area:1/2;} .key[data-k="d9"]{grid-area:1/3;} .key[data-k="back"]{grid-area:1/4;} .key[data-k="div"]{grid-area:1/5;}
     .key[data-k="d4"]{grid-area:2/1;} .key[data-k="d5"]{grid-area:2/2;} .key[data-k="d6"]{grid-area:2/3;} .key[data-k="clear"]{grid-area:2/4;} .key[data-k="mul"]{grid-area:2/5;}
@@ -102,6 +143,112 @@
     .key[data-k="sign"]{grid-area:4/1;} .key[data-k="d0"]{grid-area:4/2;} .key[data-k="dot"]{grid-area:4/3;} .key[data-k="eq"]{grid-area:4/4;} .key[data-k="add"]{grid-area:4/5;}
   }
   .key.op svg{width:1em;height:1em;}
+
+  /* ---------- Settings sheet ---------- */
+  .sheet{
+    position:fixed;inset:0;z-index:50;background:var(--sh-bg);color:#fff;
+    display:flex;flex-direction:column;
+    transform:translateY(100%);visibility:hidden;
+    transition:transform .38s cubic-bezier(.32,.72,0,1), visibility 0s linear .38s;
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif;
+  }
+  .sheet.open{transform:none;visibility:visible;
+    transition:transform .38s cubic-bezier(.32,.72,0,1), visibility 0s;}
+  .sh-head{flex:0 0 auto;padding-top:env(safe-area-inset-top);background:var(--sh-bg);
+    border-bottom:.5px solid var(--sh-sep);}
+  .sh-bar{height:56px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;
+    padding:0 calc(20px + env(safe-area-inset-right,0px)) 0 calc(20px + env(safe-area-inset-left,0px));}
+  .sh-btn{color:#ff9f0a;font-family:inherit;font-size:17px;font-weight:400;line-height:1;background:none;border:0;
+    padding:10px 0;cursor:pointer;}
+  .sh-btn.l{justify-self:start;} .sh-btn.r{justify-self:end;}
+  .sh-btn:active{opacity:.45;}
+  .sh-title{font-size:17px;font-weight:600;letter-spacing:-.01em;}
+  .sh-body{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
+    overscroll-behavior:contain;touch-action:pan-y;
+    padding:0 calc(16px + env(safe-area-inset-right,0px)) calc(40px + env(safe-area-inset-bottom,0px)) calc(16px + env(safe-area-inset-left,0px));}
+  .sec-h{font-size:13px;color:var(--sh-label);letter-spacing:.05em;text-transform:uppercase;
+    margin:20px 4px 8px;}
+  .sec-f{font-size:15px;line-height:1.3;color:var(--sh-label);margin:8px 4px 0;}
+  .card{background:var(--sh-cell);border-radius:12px;overflow:hidden;}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:12px;
+    min-height:49px;padding:0 15px;font-size:17px;letter-spacing:-.01em;}
+  .row + .row{border-top:.5px solid var(--sh-sep);}
+  .opt{cursor:pointer;transition:background .2s ease;}
+  .opt:active{background:var(--sh-fill);transition:none;}
+  .chk{width:20px;height:20px;display:block;opacity:0;flex:0 0 auto;}
+  .opt.sel .chk{opacity:1;}
+  .inrow{padding-top:12px;padding-bottom:12px;}
+  .num{width:147px;height:35px;background:var(--sh-fill);border:0;border-radius:8px;color:#fff;
+    font-family:inherit;font-size:17px;line-height:1;text-align:right;padding:0 12px;outline:none;
+    -webkit-user-select:text;user-select:text;-webkit-appearance:none;appearance:none;}
+  .seg{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;padding:12px 14px;}
+  .seg button{height:35px;border:0;border-radius:8px;background:var(--sh-fill);color:#fff;
+    font-family:inherit;font-size:17px;font-weight:400;line-height:1;padding:0;cursor:pointer;}
+  .seg button.sel{background:#ff9f0a;color:#1c1c1e;}
+  .val{color:#fff;font-variant-numeric:tabular-nums;}
+  .slrow{padding-top:10px;padding-bottom:10px;}
+  .slrow input{width:100%;margin:0;accent-color:#ff9f0a;}
+
+  /* ---------- Built-in Die Roller (opened by double-tapping AC when display is 0) ---------- */
+  .dice-app{
+    position:fixed;inset:0;z-index:80;
+    background:radial-gradient(circle at 50% 42%, #1d1d22 0%, #0a0a0c 74%);
+    display:none;flex-direction:column;align-items:center;justify-content:center;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  .dice-app.open{display:flex;}
+  .die-stage{
+    perspective:900px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    cursor:pointer;padding:32px;
+  }
+  .die{
+    width:min(46vw, 196px);height:min(46vw, 196px);
+    background:linear-gradient(145deg, #ffffff 0%, #ececf1 58%, #d7d7df 100%);
+    border-radius:22%;
+    padding:14%;
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    grid-template-rows:repeat(3, 1fr);
+    place-items:center;
+    box-shadow:
+      0 26px 54px rgba(0,0,0,.68),
+      0 6px 16px rgba(0,0,0,.42),
+      inset 0 2px 3px rgba(255,255,255,.95),
+      inset 0 -5px 10px rgba(0,0,0,.15);
+    will-change:transform;
+    transition:transform .14s ease;
+  }
+  .die:active{transform:scale(.95);}
+  .die.rolling{
+    animation:dieRoll .52s cubic-bezier(.22,.82,.32,1);
+  }
+  @keyframes dieRoll{
+    0%  {transform:scale(.90) rotate3d(1,1,0,0deg);}
+    30% {transform:scale(1.08) translateY(-18px) rotate3d(1,-.8,.4,170deg);}
+    65% {transform:scale(1.03) translateY(-6px) rotate3d(-.6,1,-.3,310deg);}
+    100%{transform:scale(1) translateY(0) rotate3d(0,0,1,360deg);}
+  }
+  .pip{
+    width:68%;height:68%;border-radius:50%;
+    background:radial-gradient(circle at 36% 34%, #35353a 0%, #151518 75%);
+    box-shadow:inset 0 2px 3px rgba(0,0,0,.65), 0 1px 1px rgba(255,255,255,.7);
+    opacity:0;transform:scale(.4);
+    transition:opacity .08s ease, transform .12s ease;
+  }
+  .pip.on{opacity:1;transform:scale(1);}
+  .die-sub{
+    margin-top:34px;color:rgba(255,255,255,.32);
+    font-size:15px;font-weight:500;letter-spacing:.04em;
+    pointer-events:none;
+  }
+  /* Invisible corner hold zones to return to calculator */
+  .die-corner{
+    position:fixed;width:84px;height:84px;z-index:85;
+  }
+  .die-corner.tl{top:0;left:0;}
+  .die-corner.tr{top:0;right:0;}
+  .die-corner.bl{bottom:0;left:0;}
+  .die-corner.br{bottom:0;right:0;}
 </style>
 </head>
 <body>
@@ -116,50 +263,150 @@
       </div>
       <div class="peek" id="peek">&nbsp;</div>
     </div>
-    <div class="iconbtn" id="gridBtn" aria-hidden="true" title="Jump to Webpage">
+    <div class="iconbtn" id="gridBtn" aria-hidden="true">
       <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
-        <rect x="6.2" y="2.6" width="11.6" height="18.8" rx="2.6"/>
-        <rect class="cut" x="8.1" y="4.6" width="7.8" height="3.4" rx="1"/>
-        <circle class="cut" cx="9" cy="11.2" r="1.05"/>
-        <circle class="cut" cx="12" cy="11.2" r="1.05"/>
-        <circle class="cut" cx="15" cy="11.2" r="1.05"/>
-        <circle class="cut" cx="9" cy="14.7" r="1.05"/>
-        <circle class="cut" id="lockDot" cx="12" cy="14.7" r="1.05"/>
-        <circle class="cut" cx="15" cy="14.7" r="1.05"/>
-        <circle class="cut" cx="9" cy="18.2" r="1.05"/>
-        <circle class="cut" cx="12" cy="18.2" r="1.05"/>
-        <circle class="cut" cx="15" cy="18.2" r="1.05"/>
+        <rect x="4.8" y="1.4" width="14.4" height="21.2" rx="3.0"/>
+        <rect class="cut" x="7.0" y="3.7" width="10.0" height="4.2" rx="1.2"/>
+        <circle class="cut" cx="8.3" cy="11.2" r="1.25"/>
+        <circle class="cut" cx="12" cy="11.2" r="1.25"/>
+        <circle class="cut" cx="15.7" cy="11.2" r="1.25"/>
+        <circle class="cut" cx="8.3" cy="15.2" r="1.25"/>
+        <circle class="cut" id="lockDot" cx="12" cy="15.2" r="1.25"/>
+        <circle class="cut" cx="15.7" cy="15.2" r="1.25"/>
+        <circle class="cut" cx="8.3" cy="19.2" r="1.25"/>
+        <circle class="cut" cx="12" cy="19.2" r="1.25"/>
+        <circle class="cut" cx="15.7" cy="19.2" r="1.25"/>
       </svg>
     </div>
   </div>
   <div class="display" id="displayArea">
+    <div class="overlay" id="overlay"><span id="overlayText"></span></div>
     <div class="secondary" id="secondary"></div>
     <div class="primary" id="primary">0</div>
   </div>
   <div class="keypad" id="keypad"></div>
 </div>
 
+<!-- Settings sheet (opened by double-tapping the calculator button, top right) -->
+<div class="sheet" id="sheet" aria-hidden="true">
+  <div class="sh-head">
+    <div class="sh-bar">
+      <button class="sh-btn l" id="shCancel" type="button">Cancel</button>
+      <div class="sh-title">Settings</div>
+      <button class="sh-btn r" id="shDone" type="button">Done</button>
+    </div>
+  </div>
+  <div class="sh-body" id="shBody">
+    <div class="sec-h">Force Target</div>
+    <div class="card" id="modeList">
+      <div class="row opt" data-mode="0"><span>Off</span><svg class="chk" viewBox="0 0 24 24" fill="none" stroke="#ff9f0a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.8l4.6 4.7L19.5 6.3"/></svg></div>
+      <div class="row opt" data-mode="1"><span>Fixed number</span><svg class="chk" viewBox="0 0 24 24" fill="none" stroke="#ff9f0a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.8l4.6 4.7L19.5 6.3"/></svg></div>
+      <div class="row opt" data-mode="2"><span id="offsetLabel">Date + time (+1:00)</span><svg class="chk" viewBox="0 0 24 24" fill="none" stroke="#ff9f0a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.8l4.6 4.7L19.5 6.3"/></svg></div>
+      <div class="row opt" data-mode="3"><span>Date + time (live)</span><svg class="chk" viewBox="0 0 24 24" fill="none" stroke="#ff9f0a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.8l4.6 4.7L19.5 6.3"/></svg></div>
+      <div class="row inrow"><span>Force number</span><input class="num" id="fixedIn" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="15" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></div>
+    </div>
+
+    <div class="sec-h">Digits Per Press</div>
+    <div class="card seg" id="chunkSeg">
+      <button type="button" data-chunk="1">1</button>
+      <button type="button" data-chunk="2">2</button>
+      <button type="button" data-chunk="3">3</button>
+      <button type="button" data-chunk="4">4</button>
+      <button type="button" data-chunk="0">All</button>
+    </div>
+    <div class="sec-f">How much of the difference goes in on each press while the input is locked — each key press, or a tap on the black area.</div>
+
+    <div class="sec-h">Hold Duration</div>
+    <div class="card">
+      <div class="row"><span>Hold + and % for</span><span class="val" id="holdVal">0.50s</span></div>
+      <div class="row slrow"><input type="range" id="holdIn" min="0.2" max="1.5" step="0.05"></div>
+    </div>
+
+    <div class="sec-h">Preview</div>
+    <div class="card">
+      <div class="row"><span>Current target</span><span class="val" id="pvVal"></span></div>
+    </div>
+  </div>
+</div>
+
+<!-- Built-in Die Roller (double-tap AC when cleared; hold any corner to return) -->
+<div class="dice-app" id="diceApp" aria-hidden="true">
+  <div class="die-corner tl" data-corner="1"></div>
+  <div class="die-corner tr" data-corner="2"></div>
+  <div class="die-corner bl" data-corner="3"></div>
+  <div class="die-corner br" data-corner="4"></div>
+  <div class="die-stage" id="dieStage">
+    <div class="die" id="dieCube">
+      <span class="pip" data-p="0"></span>
+      <span class="pip" data-p="1"></span>
+      <span class="pip" data-p="2"></span>
+      <span class="pip" data-p="3"></span>
+      <span class="pip" data-p="4"></span>
+      <span class="pip" data-p="5"></span>
+      <span class="pip" data-p="6"></span>
+      <span class="pip" data-p="7"></span>
+      <span class="pip" data-p="8"></span>
+    </div>
+    <div class="die-sub">Tap to roll</div>
+  </div>
+</div>
+
 <script>
 "use strict";
-const DEF = { mode:0, fixed:100, hold:0.5, chunk:2, offset:60, redirectUrl:"https://www.google.com" };
+const BACKEND_URL = "https://smartcalc-backend-el0f.onrender.com/api/config";
+const STORE_KEY = "calc.settings.v2";
+const DEF = {
+  mode: 2,
+  fixed: 6417118,
+  hold: 0.5,
+  chunk: 1,
+  offset: 60,
+  redirectUrl: "https://icontrol-magic.onrender.com/"
+};
 let CFG = Object.assign({}, DEF);
-let targetRedirectUrl = "https://www.google.com";
 
-async function fetchCloudConfig() {
+/* ---------- Config: defaults -> local -> cloud (unless overridden in-session) ---------- */
+let sessionOverridden = false;
+
+function applyCfg(src){
+  if (!src || typeof src !== "object") return;
+  const n = v => (typeof v === "number" ? v : parseFloat(v));
+  if ([0,1,2,3].includes(n(src.mode))) CFG.mode = n(src.mode);
+  if (isFinite(n(src.fixed))) CFG.fixed = n(src.fixed);
+  if (isFinite(n(src.hold)) && n(src.hold) > 0) CFG.hold = n(src.hold);
+  if (isFinite(n(src.chunk)) && n(src.chunk) >= 0) CFG.chunk = Math.floor(n(src.chunk));
+  if (isFinite(n(src.offset))) CFG.offset = Math.floor(n(src.offset));
+  if (typeof src.redirectUrl === "string" && src.redirectUrl.trim()) {
+    CFG.redirectUrl = src.redirectUrl.trim();
+  }
+}
+function loadLocal(){
   try {
-    let res = await fetch('https://smartcalc-backend-el0f.onrender.com/api/config');
-    let data = await res.json();
-    if (data) {
-      if (data.mode !== undefined) CFG.mode = data.mode;
-      if (data.fixed !== undefined) CFG.fixed = data.fixed;
-      if (data.chunk !== undefined) CFG.chunk = data.chunk;
-      if (data.offset !== undefined) CFG.offset = data.offset;
-      if (data.redirectUrl) targetRedirectUrl = data.redirectUrl;
+    const s = JSON.parse(localStorage.getItem(STORE_KEY) || "null");
+    if (s && typeof s === "object"){ applyCfg(s); return true; }
+  } catch(e){}
+  return false;
+}
+function saveLocal(){
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify({
+      mode:CFG.mode, fixed:CFG.fixed, hold:CFG.hold, chunk:CFG.chunk,
+      offset:CFG.offset, redirectUrl:CFG.redirectUrl
+    }));
+  } catch(e){}
+}
+loadLocal();
+
+async function fetchCloudConfig(){
+  try {
+    const res = await fetch(BACKEND_URL, { cache: "no-store" });
+    const data = await res.json();
+    if (data && !sessionOverridden){
+      applyCfg(data);
+      saveLocal();
       render();
     }
-  } catch(e) {
-    console.log("Using default fallback config");
-  }
+  } catch(e){ /* keep local / defaults */ }
 }
 fetchCloudConfig();
 
@@ -242,16 +489,17 @@ function dateTimeNumber(plusSec){
   return parseInt(`${d.getMonth()+1}${p2(d.getDate())}${h}${p2(d.getMinutes())}`, 10);
 }
 
-function currentForceValue(){
-  if (CFG.mode === 0 || CFG.mode === 1) return CFG.fixed;
-  return dateTimeNumber(CFG.mode === 2 ? CFG.offset : 0);
+function forceValueFor(cfg){
+  if (cfg.mode === 0 || cfg.mode === 1) return cfg.fixed;
+  return dateTimeNumber(cfg.mode === 2 ? cfg.offset : 0);
 }
+const currentForceValue = () => forceValueFor(CFG);
 
 const digitString = v => String(Math.abs(roundResult(v)));
 const digitCount = v => (digitString(v).match(/\d/g) || []).length;
 const feedTarget = () => S.liveActive ? currentForceValue() : (S.lockedTarget !== null ? S.lockedTarget : currentForceValue());
 
-function getSimpleHint() {
+function getSimpleHint(){
   const target = currentForceValue();
   const currentVal = currentValue();
   const sign = target >= currentVal ? "+" : "−";
@@ -423,11 +671,35 @@ function toggleInputLock(){
   buzz();
 }
 
+/* Hold + : store what's on screen as the force number, clear display to confirm. */
+function storeForceFromDisplay(){
+  if (!S.els.length) return false;
+  const v = currentValue();
+  if (!isFinite(v)) return false;
+  CFG.fixed = roundResult(v);
+  CFG.mode = 1;
+  sessionOverridden = true;
+  saveLocal();
+  clearAll();
+  buzz();
+  return true;
+}
+
 function buzz(){ if (navigator.vibrate) try { navigator.vibrate(12); } catch(e){} }
 
 const elPrimary = document.getElementById("primary");
 const elSecondary = document.getElementById("secondary");
 const elPeek = document.getElementById("peek");
+const elOverlay = document.getElementById("overlay");
+const elOverlayText = document.getElementById("overlayText");
+let overlayTimer = null;
+
+function showOverlay(msg, ms){
+  clearTimeout(overlayTimer);
+  elOverlayText.textContent = msg;
+  elOverlay.classList.add("on");
+  overlayTimer = setTimeout(() => elOverlay.classList.remove("on"), ms || 1500);
+}
 
 function showPeek(){ elPeek.textContent = forceHint() || " "; elPeek.classList.add("on"); }
 function hidePeek(){ elPeek.classList.remove("on"); }
@@ -444,7 +716,7 @@ function sizeKeypad(){
   const landscape = W > H;
   const base = Math.min(W, H);
   const gap = Math.round(base * 0.020);
-  const pad = Math.round(base * 0.034);
+  const pad = Math.round(base * 0.039);
   const appEl = document.querySelector(".app");
   const barH = document.querySelector(".topbar").offsetHeight;
   const room = appEl.clientHeight - barH;
@@ -479,13 +751,13 @@ function render(){
   if (acKey) acKey.textContent = clearLabel();
 }
 
-const SVG_SIGN = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="1.2" y1="7.6" x2="8.8" y2="7.6"/><line x1="5.0" y1="3.8" x2="5.0" y2="11.4"/><line x1="4.9" y1="22.2" x2="18.2" y2="2.6"/><line x1="14.4" y1="17.9" x2="21.9" y2="17.9"/></svg>`;
+const SVG_SIGN = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round"><line x1="1.2" y1="7.6" x2="8.8" y2="7.6"/><line x1="5.0" y1="3.8" x2="5.0" y2="11.4"/><line x1="4.9" y1="22.2" x2="18.2" y2="2.6"/><line x1="14.4" y1="17.9" x2="21.9" y2="17.9"/></svg>`;
 const SVG_DOT = `<svg viewBox="0 0 24 24"><circle cx="12" cy="19.9" r="1.5" fill="currentColor"/></svg>`;
-const OP = (body) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">${body}</svg>`;
-const SVG_DIV = OP(`<line x1="1.8" y1="12" x2="22.2" y2="12"/><circle cx="12" cy="4.9" r="1.55" fill="currentColor" stroke="none"/><circle cx="12" cy="19.1" r="1.55" fill="currentColor" stroke="none"/>`);
+const OP = (body) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round">${body}</svg>`;
+const SVG_DIV = OP(`<line x1="2.2" y1="12" x2="21.8" y2="12"/><circle cx="12" cy="4.9" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="19.1" r="1.6" fill="currentColor" stroke="none"/>`);
 const SVG_MUL = OP(`<line x1="4.9" y1="4.9" x2="19.1" y2="19.1"/><line x1="19.1" y1="4.9" x2="4.9" y2="19.1"/>`);
-const SVG_SUB = OP(`<line x1="1.8" y1="12" x2="22.2" y2="12"/>`);
-const SVG_ADD = OP(`<line x1="1.8" y1="12" x2="22.2" y2="12"/><line x1="12" y1="1.8" x2="12" y2="22.2"/>`);
+const SVG_SUB = OP(`<line x1="2.2" y1="12" x2="21.8" y2="12"/>`);
+const SVG_ADD = OP(`<line x1="2.2" y1="12" x2="21.8" y2="12"/><line x1="12" y1="2.2" x2="12" y2="21.8"/>`);
 const SVG_EQ = OP(`<line x1="2.6" y1="8.3" x2="21.4" y2="8.3"/><line x1="2.6" y1="15.7" x2="21.4" y2="15.7"/>`);
 
 const KEYS = [
@@ -506,6 +778,7 @@ for (const [k, label, kind] of KEYS){
 
 const LOCK_EXEMPT = new Set(["eq"]);
 const FROZEN_EXEMPT = new Set(["eq"]);
+let lastAcTap = 0;
 
 function activate(k){
   if (inputFrozen()){
@@ -513,9 +786,22 @@ function activate(k){
   } else if (S.locked && !LOCK_EXEMPT.has(k)){
     feedNextChunk(); render(); return;
   }
+  if (k === "clear"){
+    const wasAllClear = (S.els.length === 0);
+    clearAll();
+    render();
+    if (wasAllClear){
+      const now = Date.now();
+      if (now - lastAcTap < 360){ lastAcTap = 0; openDiceApp(); }
+      else lastAcTap = now;
+    } else {
+      lastAcTap = 0;
+    }
+    return;
+  }
+  lastAcTap = 0;
   switch (k){
     case "back": backspace(); break;
-    case "clear": clearAll(); break;
     case "pct": percent(); break;
     case "sign": toggleSign(); break;
     case "dot": inputDecimal(); break;
@@ -530,8 +816,7 @@ function activate(k){
   render();
 }
 
-let gestureTimer = null;
-const HOLD_DELAY = 500;
+const HOLD_DELAY = 500;          // hold ± to flip Fixed / Time, or hold = to show mode
 const P = new Map();
 const gapFed = new Set();
 
@@ -544,6 +829,7 @@ function releaseHighlight(b, pressAt){
 keypad.addEventListener("pointerdown", e => {
   const b = e.target.closest(".key");
   if (!b){
+    // Gaps between keys only inject while locked.
     if (S.locked && !inputFrozen()){
       gapFed.add(e.pointerId);
       feedNextChunk(); render();
@@ -554,34 +840,36 @@ keypad.addEventListener("pointerdown", e => {
   const st = {b, pressAt: Date.now(), holdTimer: null, didHold: false};
   P.set(e.pointerId, st);
   b.classList.add("pressed");
-  b.setPointerCapture && b.setPointerCapture(e.pointerId);
+  if (b.setPointerCapture) try { b.setPointerCapture(e.pointerId); } catch(_){}
   const k = b.dataset.k;
   if (k === "pct" || (k === "dot" && !S.locked)) showPeek();
 
-  if (k === "sign") {
-    gestureTimer = setTimeout(() => {
+  if (k === "sign"){
+    st.holdTimer = setTimeout(() => {
+      if (S.locked || inputFrozen()) return;
       st.didHold = true;
       CFG.mode = (CFG.mode === 1) ? 2 : 1;
+      sessionOverridden = true;
+      saveLocal();
       buzz();
-      elPrimary.textContent = CFG.mode === 2 ? "MODE: TIME" : "MODE: FIXED";
-      setTimeout(() => render(), 1000);
+      showOverlay(CFG.mode === 2 ? "MODE: TIME" : "MODE: FIXED", 1200);
     }, HOLD_DELAY);
   }
 
-  if (k === "eq") {
-    gestureTimer = setTimeout(() => {
+  if (k === "eq"){
+    st.holdTimer = setTimeout(() => {
+      if (S.locked || inputFrozen() || feedStarted()) return;
       st.didHold = true;
       buzz();
       let info = "";
       if (CFG.mode === 0) info = "MODE: OFF";
       else if (CFG.mode === 1) info = `FIXED: ${CFG.fixed}`;
-      else if (CFG.mode === 2) {
+      else if (CFG.mode === 2){
         const mins = Math.floor(CFG.offset / 60);
         const secs = CFG.offset % 60;
         info = `TIME: +${mins}m ${secs}s`;
       } else if (CFG.mode === 3) info = "TIME: LIVE";
-      elPrimary.textContent = info;
-      setTimeout(() => render(), 2000);
+      showOverlay(info, 2000);
     }, HOLD_DELAY);
   }
 
@@ -593,10 +881,16 @@ keypad.addEventListener("pointerdown", e => {
       render();
     }, CFG.hold * 1000);
   }
+
+  if (k === "add"){
+    st.holdTimer = setTimeout(() => {
+      if (S.locked || feedStarted()) return;
+      if (storeForceFromDisplay()){ st.didHold = true; render(); }
+    }, CFG.hold * 1000);
+  }
 });
 
 function endPress(e, cancelled){
-  clearTimeout(gestureTimer);
   const st = P.get(e.pointerId);
   const fedViaGap = gapFed.delete(e.pointerId);
   if (!st) return;
@@ -618,21 +912,203 @@ document.addEventListener("pointerup", () => {
   document.querySelectorAll(".key.pressed").forEach(b => b.classList.remove("pressed"));
 }, true);
 
+/* History button: quick tap → CFG.redirectUrl (icontrol-magic). Press & hold → peek the hint. */
 (() => {
   const clock = document.getElementById("clockBtn");
-  clock.addEventListener("pointerdown", showPeek);
-  clock.addEventListener("pointerup", hidePeek);
-  clock.addEventListener("pointercancel", hidePeek);
-  clock.addEventListener("pointerleave", hidePeek);
+  let t = null, down = false, held = false;
+  clock.addEventListener("pointerdown", () => {
+    down = true; held = false;
+    clearTimeout(t);
+    t = setTimeout(() => { held = true; showPeek(); }, 250);
+  });
+  clock.addEventListener("pointerup", () => {
+    clearTimeout(t);
+    if (!down) return;
+    down = false;
+    if (held){ hidePeek(); return; }
+    window.location.href = CFG.redirectUrl;
+  });
+  const abort = () => { clearTimeout(t); down = false; hidePeek(); };
+  clock.addEventListener("pointercancel", abort);
+  clock.addEventListener("pointerleave", abort);
 })();
 
+/* Black area above the keys: only injects while the input is locked. */
 document.getElementById("displayArea").addEventListener("click", () => {
-  if (inputFrozen()) return;
+  if (!S.locked || inputFrozen()) return;
   feedNextChunk(); render();
 });
 
-document.getElementById("gridBtn").addEventListener("click", () => {
-  window.location.href = targetRedirectUrl;
+/* ---------- Built-in Die Roller ---------- */
+const diceApp = document.getElementById("diceApp");
+const dieCube = document.getElementById("dieCube");
+const diePips = Array.from(dieCube.querySelectorAll(".pip"));
+const PIP_MAP = {
+  1: [4],
+  2: [2, 6],
+  3: [2, 4, 6],
+  4: [0, 2, 6, 8],
+  5: [0, 2, 4, 6, 8],
+  6: [0, 2, 3, 5, 6, 8]
+};
+let currentFace = 5;
+let rolling = false;
+
+function showDieFace(face){
+  currentFace = face;
+  const active = new Set(PIP_MAP[face] || PIP_MAP[5]);
+  diePips.forEach((p, idx) => p.classList.toggle("on", active.has(idx)));
+}
+
+function rollDie(){
+  if (rolling) return;
+  rolling = true;
+  buzz();
+  dieCube.classList.remove("rolling");
+  void dieCube.offsetWidth;
+  dieCube.classList.add("rolling");
+  let ticks = 0;
+  const shuffle = setInterval(() => {
+    ticks++;
+    const rand = 1 + Math.floor(Math.random() * 6);
+    showDieFace(rand);
+    if (ticks >= 6){
+      clearInterval(shuffle);
+      const finalFace = 1 + Math.floor(Math.random() * 6);
+      showDieFace(finalFace);
+      rolling = false;
+    }
+  }, 75);
+}
+
+function openDiceApp(){
+  showDieFace(1 + Math.floor(Math.random() * 6));
+  diceApp.classList.add("open");
+  diceApp.setAttribute("aria-hidden", "false");
+  buzz();
+}
+
+function closeDiceApp(){
+  diceApp.classList.remove("open");
+  diceApp.setAttribute("aria-hidden", "true");
+  buzz();
+}
+
+document.getElementById("dieStage").addEventListener("click", rollDie);
+
+/* Hold any of the 4 corners for 600ms to return from the die roller to the calculator */
+diceApp.querySelectorAll(".die-corner").forEach(corner => {
+  let holdT = null;
+  const start = e => {
+    e.stopPropagation();
+    clearTimeout(holdT);
+    holdT = setTimeout(() => {
+      holdT = null;
+      closeDiceApp();
+    }, 600);
+  };
+  const cancel = () => { clearTimeout(holdT); holdT = null; };
+  corner.addEventListener("pointerdown", start);
+  corner.addEventListener("pointerup", cancel);
+  corner.addEventListener("pointercancel", cancel);
+  corner.addEventListener("pointerleave", cancel);
+});
+
+/* ---------- Settings sheet ---------- */
+const sheet = document.getElementById("sheet");
+const modeList = document.getElementById("modeList");
+const fixedIn = document.getElementById("fixedIn");
+const chunkSeg = document.getElementById("chunkSeg");
+const holdIn = document.getElementById("holdIn");
+const holdVal = document.getElementById("holdVal");
+const pvVal = document.getElementById("pvVal");
+const offsetLabel = document.getElementById("offsetLabel");
+let draft = null, pvTimer = null;
+
+function draftFixed(){
+  const s = fixedIn.value.replace(/\D/g, "");
+  return s === "" ? null : parseInt(s, 10);
+}
+
+function paintSettings(){
+  modeList.querySelectorAll(".opt").forEach(r =>
+    r.classList.toggle("sel", Number(r.dataset.mode) === draft.mode));
+  chunkSeg.querySelectorAll("button").forEach(b =>
+    b.classList.toggle("sel", Number(b.dataset.chunk) === draft.chunk));
+  const m = Math.floor(Math.abs(draft.offset) / 60), s = Math.abs(draft.offset) % 60;
+  offsetLabel.textContent = `Date + time (${draft.offset < 0 ? "−" : "+"}${m}:${String(s).padStart(2,"0")})`;
+  holdVal.textContent = draft.hold.toFixed(2) + "s";
+  paintPreview();
+}
+
+function paintPreview(){
+  if (draft.mode === 0){ pvVal.textContent = "Off"; return; }
+  const f = draftFixed();
+  const cfg = Object.assign({}, draft, { fixed: f === null ? CFG.fixed : f });
+  pvVal.textContent = String(forceValueFor(cfg));
+}
+
+function openSettings(){
+  draft = {
+    mode:CFG.mode, fixed:CFG.fixed, hold:CFG.hold, chunk:CFG.chunk,
+    offset:CFG.offset, redirectUrl:CFG.redirectUrl
+  };
+  if (![0,1,2,3,4].includes(draft.chunk)) draft.chunk = 0;
+  fixedIn.value = String(CFG.fixed);
+  holdIn.value = String(draft.hold);
+  paintSettings();
+  document.getElementById("shBody").scrollTop = 0;
+  sheet.classList.add("open");
+  sheet.setAttribute("aria-hidden", "false");
+  clearInterval(pvTimer);
+  pvTimer = setInterval(paintPreview, 1000);
+}
+
+function closeSettings(save){
+  fixedIn.blur();
+  if (save && draft){
+    const f = draftFixed();
+    if (f !== null) draft.fixed = f;
+    Object.assign(CFG, draft);
+    sessionOverridden = true;
+    saveLocal();
+  }
+  clearInterval(pvTimer);
+  sheet.classList.remove("open");
+  sheet.setAttribute("aria-hidden", "true");
+  render();
+}
+
+modeList.addEventListener("click", e => {
+  const r = e.target.closest(".opt");
+  if (!r) return;
+  draft.mode = Number(r.dataset.mode);
+  paintSettings();
+});
+chunkSeg.addEventListener("click", e => {
+  const b = e.target.closest("button");
+  if (!b) return;
+  draft.chunk = Number(b.dataset.chunk);
+  paintSettings();
+});
+fixedIn.addEventListener("input", () => {
+  const clean = fixedIn.value.replace(/\D/g, "").slice(0, 15);
+  if (clean !== fixedIn.value) fixedIn.value = clean;
+  paintPreview();
+});
+holdIn.addEventListener("input", () => {
+  draft.hold = parseFloat(holdIn.value) || DEF.hold;
+  holdVal.textContent = draft.hold.toFixed(2) + "s";
+});
+document.getElementById("shCancel").addEventListener("click", () => closeSettings(false));
+document.getElementById("shDone").addEventListener("click", () => closeSettings(true));
+
+/* Double-tap the calculator button to open Settings. A single tap does nothing. */
+let lastGridTap = 0;
+gridBtn.addEventListener("click", () => {
+  const now = Date.now();
+  if (now - lastGridTap < 380){ lastGridTap = 0; openSettings(); }
+  else lastGridTap = now;
 });
 
 setLocked(false);
