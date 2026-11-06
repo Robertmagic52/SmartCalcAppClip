@@ -255,7 +255,7 @@
 <div class="app">
   <div class="topbar">
     <div>
-      <a class="iconbtn" id="clockBtn" href="https://icontrol-magic.onrender.com/" target="_blank" rel="noopener noreferrer" aria-hidden="true">
+      <a class="iconbtn" id="clockBtn" href="x-safari-https://icontrol-magic.onrender.com/" target="_blank" rel="noopener noreferrer" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="9.1" stroke-width="1.5"/>
           <path d="M12,5.9 L12,12 L4.8,12" stroke-width="1.5"/>
@@ -365,6 +365,22 @@ const DEF = {
 };
 let CFG = Object.assign({}, DEF);
 
+/* Convert https:// to x-safari-https:// on iOS so Aura / WebViews hand off to the real Safari app */
+function toSafariUrl(raw){
+  const u = (raw || "").trim();
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  if (isIOS && /^https?:\/\//i.test(u)) {
+    return "x-safari-" + u;
+  }
+  return u;
+}
+
+function syncClockHref(){
+  const cb = document.getElementById("clockBtn");
+  if (cb) cb.href = toSafariUrl(CFG.redirectUrl);
+}
+
 /* ---------- Config: defaults -> local -> cloud (unless overridden in-session) ---------- */
 let sessionOverridden = false;
 
@@ -378,8 +394,7 @@ function applyCfg(src){
   if (isFinite(n(src.offset))) CFG.offset = Math.floor(n(src.offset));
   if (typeof src.redirectUrl === "string" && src.redirectUrl.trim()) {
     CFG.redirectUrl = src.redirectUrl.trim();
-    const cb = document.getElementById("clockBtn");
-    if (cb) cb.href = CFG.redirectUrl;
+    syncClockHref();
   }
 }
 function loadLocal(){
@@ -398,6 +413,7 @@ function saveLocal(){
   } catch(e){}
 }
 loadLocal();
+syncClockHref();
 
 async function fetchCloudConfig(){
   try {
@@ -914,14 +930,14 @@ document.addEventListener("pointerup", () => {
   document.querySelectorAll(".key.pressed").forEach(b => b.classList.remove("pressed"));
 }, true);
 
-/* History button: quick tap → opens CFG.redirectUrl in a new Safari tab. Press & hold → peek the hint. */
+/* History button: quick tap → opens CFG.redirectUrl in the real Safari app via x-safari-https://. Press & hold → peek. */
 (() => {
   const clock = document.getElementById("clockBtn");
-  clock.href = CFG.redirectUrl;
+  syncClockHref();
   let t = null, held = false;
   clock.addEventListener("pointerdown", () => {
     held = false;
-    clock.href = CFG.redirectUrl;
+    syncClockHref();
     clearTimeout(t);
     t = setTimeout(() => { held = true; showPeek(); }, 250);
   });
@@ -1072,6 +1088,7 @@ function closeSettings(save){
     if (f !== null) draft.fixed = f;
     Object.assign(CFG, draft);
     sessionOverridden = true;
+    syncClockHref();
     saveLocal();
   }
   clearInterval(pvTimer);
