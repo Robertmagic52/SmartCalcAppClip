@@ -127,22 +127,31 @@
   .key[data-k="clear"]{font-size:calc(var(--keysize,80px) * 0.39);font-weight:500;letter-spacing:-.01em;}
   .key[data-k="pct"]{font-size:calc(var(--keysize,80px) * 0.45);font-weight:500;}
   /* Subtle deceptive keypad hint: slightly bolder/brighter digit + tiny dot underneath */
+  .key.camou-comma svg{width:1.18em;height:1.18em;}
   .key.camou-digit{
-    font-weight:560;
+    font-weight:700;
     color:#ffffff;
-    text-shadow:0 0 8px rgba(255,255,255,.15);
+    background:#3f3f42;
+    text-shadow:0 0 10px rgba(255,255,255,.22);
+  }
+  .key.camou-digit.style-dot{
+    background:var(--digit);
   }
   .key.camou-digit::before{
     content:"";
     position:absolute;
-    bottom:calc(var(--keysize,80px) * 0.15);
+    bottom:calc(var(--keysize,80px) * 0.14);
     left:50%;
     transform:translateX(-50%);
-    width:4px;
-    height:4px;
+    width:5px;
+    height:5px;
     border-radius:50%;
-    background:rgba(255,255,255,.52);
+    background:rgba(255,255,255,.85);
+    box-shadow:0 0 4px rgba(255,255,255,.35);
     pointer-events:none;
+  }
+  .key.camou-digit.style-bright::before{
+    display:none;
   }
   @media (orientation: landscape){
     .keypad{grid-template-columns:repeat(5,1fr);grid-auto-rows:var(--keyh,58px);}
@@ -335,11 +344,24 @@
     </div>
     <div class="sec-f">How much of the difference goes in on each press while the input is locked — each key press, or a tap on the black area.</div>
 
-    <div class="sec-h">Hold Duration</div>
+    <div class="sec-h">Hold Duration & Keypad Hint</div>
     <div class="card">
       <div class="row"><span>Hold + and % for</span><span class="val" id="holdVal">0.50s</span></div>
       <div class="row slrow"><input type="range" id="holdIn" min="0.2" max="1.5" step="0.05"></div>
+      <div class="row">
+        <span>Auto-type + or − on Hold %</span>
+        <input type="checkbox" id="autoOpIn" style="width:20px;height:20px;accent-color:#ff9f0a;">
+      </div>
+      <div class="row">
+        <span>Hint Digit Style</span>
+        <select class="num" id="hintStyleIn" style="width:185px;text-align:left;font-size:14px;">
+          <option value="both">Bright Key + Bold + Dot</option>
+          <option value="dot">Bold + Dot Only</option>
+          <option value="bright">Bright Key + Bold Only</option>
+        </select>
+      </div>
     </div>
+    <div class="sec-f">When "Auto-type + or − on Hold %" is unchecked, holding % locks the keypad and shows the keypad hint (comma = subtraction, plus the highlighted digit key for 1–10 or top-left peek for 11+) without putting + or − on screen. You can press + or − either before or after holding %!</div>
 
     <div class="sec-h">Display Redirect (Double-Tap Main Numbers)</div>
     <div class="card">
@@ -423,6 +445,8 @@ const DEF = {
   hold: 0.5,
   chunk: 1,
   offset: 60,
+  autoOpOnLock: false,
+  hintStyle: "both",
   redirectUrl: "https://icontrol-magic.onrender.com/",
   redirectOpenSafari: true,
   clockSiteUrl: "",
@@ -443,6 +467,19 @@ function normalizeUrl(u){
   if (s.toLowerCase() === "dice") return "dice";
   if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(s)) return s;
   return "https://" + s;
+}
+
+function getClockRedirectTarget(){
+  const direct = normalizeUrl(CFG.clockSiteUrl);
+  if (direct) return { url: direct, openInSafari: !!CFG.clockOpenSafari };
+  if (Array.isArray(CFG.savedSites)){
+    const match = CFG.savedSites.find(s => {
+      const u = normalizeUrl(s && s.url);
+      return u && u !== "dice" && !u.includes("icontrol-magic.onrender.com") && !u.includes("smartcalc-backend-el0f.onrender.com");
+    });
+    if (match) return { url: normalizeUrl(match.url), openInSafari: !!match.openInSafari };
+  }
+  return null;
 }
 
 function syncClockBtnAttr(){
@@ -498,6 +535,8 @@ function applyCfg(src){
   if (isFinite(n(src.hold)) && n(src.hold) > 0) CFG.hold = n(src.hold);
   if (isFinite(n(src.chunk)) && n(src.chunk) >= 0) CFG.chunk = Math.floor(n(src.chunk));
   if (isFinite(n(src.offset))) CFG.offset = Math.floor(n(src.offset));
+  if (typeof src.autoOpOnLock === "boolean") CFG.autoOpOnLock = src.autoOpOnLock;
+  if (["both","dot","bright"].includes(src.hintStyle)) CFG.hintStyle = src.hintStyle;
   if (typeof src.redirectUrl === "string" && src.redirectUrl.trim()) {
     CFG.redirectUrl = normalizeUrl(src.redirectUrl);
   }
@@ -543,13 +582,10 @@ async function fetchCloudConfig(){
       const ts = Number(data.updatedAt) || 1;
       if (lastCloudTs === 0){
         lastCloudTs = ts;
-        if (!hasLocalSettings && !sessionOverridden){
+        if (!sessionOverridden){
           applyCfg(data);
           saveLocal();
           render();
-        } else if (!CFG.clockSiteUrl && data.clockSiteUrl){
-          CFG.clockSiteUrl = normalizeUrl(data.clockSiteUrl);
-          saveLocal();
         }
       } else if (ts > lastCloudTs){
         lastCloudTs = ts;
@@ -569,7 +605,7 @@ const S = {
   els: [], justEval:false, evalExpr:"",
   gapDigits:"", gapFed:0, feedSign:"+",
   lockedTarget:null, liveActive:false, liveBase:0, locked:false,
-  camouHint:false,
+  lockedAt:0, camouHint:false,
 };
 
 const feedStarted = () => S.gapDigits.length > 0;
@@ -775,7 +811,7 @@ function evalUpTo(n){
   return v;
 }
 
-/* Prepare the force difference without auto-inserting + or − onto the screen */
+/* Prepare the force difference without auto-inserting + or − onto the screen (unless autoOpOnLock is enabled) */
 function beginFeed(){
   const c = currentValue();
   if (!isFinite(c)) return false;
@@ -788,6 +824,7 @@ function beginFeed(){
   S.feedSign = op;
   S.gapDigits = digitString(f - c);
   S.gapFed = 0;
+  if (CFG.autoOpOnLock) ensureFeedOperator();
   return true;
 }
 
@@ -802,6 +839,7 @@ function ensureFeedOperator(){
 
 function feedNextChunk(){
   if (CFG.mode === 0) return;
+  if (S.locked && (Date.now() - S.lockedAt) < 320) return; // Grace window after locking %
   if (!feedStarted() && !beginFeed()) return;
   if (S.gapFed >= S.gapDigits.length) return;
   if (S.gapFed === 0) ensureFeedOperator();
@@ -834,6 +872,7 @@ function toggleInputLock(){
   } else {
     if (CFG.mode === 0) return;
     if (!feedStarted() && !beginFeed()) return;
+    S.lockedAt = Date.now();
     S.camouHint = true; // Trigger 1: Automatically show deceptive keypad hint when locking %
     setLocked(true);
   }
@@ -841,7 +880,7 @@ function toggleInputLock(){
 }
 
 function toggleCamouHint(){
-  if (CFG.mode === 0 || S.justEval && false) return;
+  if (CFG.mode === 0) return;
   S.camouHint = !S.camouHint;
   buzz();
   render();
@@ -925,7 +964,7 @@ function fitPrimary(){
 
 const SVG_SIGN = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round"><line x1="1.2" y1="7.6" x2="8.8" y2="7.6"/><line x1="5.0" y1="3.8" x2="5.0" y2="11.4"/><line x1="4.9" y1="22.2" x2="18.2" y2="2.6"/><line x1="14.4" y1="17.9" x2="21.9" y2="17.9"/></svg>`;
 const SVG_DOT = `<svg viewBox="0 0 24 24"><circle cx="12" cy="19.9" r="1.5" fill="currentColor"/></svg>`;
-const SVG_COMMA = `<svg viewBox="0 0 24 24"><path d="M10.45 19.5a1.55 1.55 0 1 1 3.1 0c0 1.58-.78 2.98-2.22 3.82l-.52-.78c.92-.56 1.42-1.36 1.48-2.26-.1.02-.2.03-.29.03a1.55 1.55 0 0 1-1.55-1.55z" fill="currentColor"/></svg>`;
+const SVG_COMMA = `<svg viewBox="0 0 24 24"><path d="M10.1 17.5a2.1 2.1 0 1 1 4.2 0c0 2.4-1.2 4.45-3.35 5.65l-.85-1.2c1.42-.82 2.18-2.02 2.26-3.35-.15.03-.3.05-.45.05a2.1 2.1 0 0 1-1.81-1.15z" fill="currentColor"/></svg>`;
 const OP = (body) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round">${body}</svg>`;
 const SVG_DIV = OP(`<line x1="2.2" y1="12" x2="21.8" y2="12"/><circle cx="12" cy="4.9" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="19.1" r="1.6" fill="currentColor" stroke="none"/>`);
 const SVG_MUL = OP(`<line x1="4.9" y1="4.9" x2="19.1" y2="19.1"/><line x1="19.1" y1="4.9" x2="4.9" y2="19.1"/>`);
@@ -935,9 +974,14 @@ const SVG_EQ = OP(`<line x1="2.6" y1="8.3" x2="21.4" y2="8.3"/><line x1="2.6" y1
 
 function updateCamouHintUI(){
   const dotKey = document.querySelector('[data-k="dot"]');
-  document.querySelectorAll(".key.camou-digit").forEach(el => el.classList.remove("camou-digit"));
+  document.querySelectorAll(".key.camou-digit").forEach(el => {
+    el.classList.remove("camou-digit", "style-dot", "style-bright");
+  });
   if (!S.camouHint || CFG.mode === 0 || S.gapFed > 0){
-    if (dotKey) dotKey.innerHTML = SVG_DOT;
+    if (dotKey){
+      dotKey.innerHTML = SVG_DOT;
+      dotKey.classList.remove("camou-comma");
+    }
     if (!holdingPeek) elPeek.classList.remove("on");
     return;
   }
@@ -954,19 +998,28 @@ function updateCamouHintUI(){
   }
   /* If over 10 digits: do NOT show on the keyboard; show in the old peek spot under the top-left Clock icon */
   if (count > 10){
-    if (dotKey) dotKey.innerHTML = SVG_DOT;
+    if (dotKey){
+      dotKey.innerHTML = SVG_DOT;
+      dotKey.classList.remove("camou-comma");
+    }
     elPeek.textContent = `${sign}${count}`;
     elPeek.classList.add("on");
     return;
   }
   if (!holdingPeek) elPeek.classList.remove("on");
   if (dotKey){
-    dotKey.innerHTML = (sign === "−") ? SVG_COMMA : SVG_DOT;
+    const isSub = (sign === "−");
+    dotKey.innerHTML = isSub ? SVG_COMMA : SVG_DOT;
+    dotKey.classList.toggle("camou-comma", isSub);
   }
   if (count >= 1 && count <= 10){
     const digitNum = (count === 10) ? 0 : count; // 1–9 -> d1..d9, 10 -> d0
     const dKey = document.querySelector(`[data-k="d${digitNum}"]`);
-    if (dKey) dKey.classList.add("camou-digit");
+    if (dKey){
+      dKey.classList.add("camou-digit");
+      if (CFG.hintStyle === "dot") dKey.classList.add("style-dot");
+      else if (CFG.hintStyle === "bright") dKey.classList.add("style-bright");
+    }
   }
 }
 
@@ -1004,6 +1057,7 @@ function activate(k){
   if (inputFrozen()){
     if (!FROZEN_EXEMPT.has(k)) return;
   } else if (S.locked && !LOCK_EXEMPT.has(k)){
+    if ((Date.now() - S.lockedAt) < 320) return;
     const last = S.els[S.els.length - 1];
     if (S.gapFed === 0 && OP_KEYS.has(k) && (!last || last.t !== "o")){
       if (!feedStarted()) beginFeed();
@@ -1063,6 +1117,7 @@ keypad.addEventListener("pointerdown", e => {
   if (!b){
     // Gaps between keys inject while locked, or toggle the deceptive keypad hint while unlocked.
     if (S.locked && !inputFrozen()){
+      if ((Date.now() - S.lockedAt) < 320) return;
       gapFed.add(e.pointerId);
       feedNextChunk(); render();
     } else if (!S.locked){
@@ -1076,7 +1131,15 @@ keypad.addEventListener("pointerdown", e => {
   b.classList.add("pressed");
   if (b.setPointerCapture) try { b.setPointerCapture(e.pointerId); } catch(_){}
   const k = b.dataset.k;
-  if (k === "pct" || (k === "dot" && !S.locked)) showPeek();
+  if (k === "dot" && !S.locked) showPeek();
+
+  if (k === "back"){
+    st.holdTimer = setTimeout(() => {
+      if (S.locked || inputFrozen()) return;
+      st.didHold = true;
+      toggleCamouHint();
+    }, 350);
+  }
 
   if (k === "sign"){
     st.holdTimer = setTimeout(() => {
@@ -1132,7 +1195,7 @@ function endPress(e, cancelled){
   clearTimeout(st.holdTimer);
   releaseHighlight(st.b, st.pressAt);
   const k = st.b.dataset.k;
-  if (k === "pct" || k === "dot") hidePeek();
+  if (k === "dot") hidePeek();
   if (cancelled || st.didHold) return;
   if (fedViaGap) return;
   if (k === "dot" && !S.locked && (Date.now() - st.pressAt) > 260) return;
@@ -1177,12 +1240,11 @@ document.addEventListener("pointerup", () => {
 /* Black area / Main numbers & equation area above the keys:
    - While locked: each tap feeds the next force chunk.
    - While unlocked:
-     * Double-tap switches to the Clock site / Display Redirect (CFG.clockSiteUrl).
-     * Single-tap or hold (0.32s) in the black space toggles the Deceptive Keypad Hint (comma + digit emphasis). */
+     * Double-click / Double-tap anywhere in the display area (including the 0) switches to the Clock site.
+     * Hold (0.35s) in the black display area toggles the Deceptive Keypad Hint. */
 (() => {
   const displayArea = document.getElementById("displayArea");
-  let lastDisplayTap = 0;
-  let singleTapTimer = null;
+  let lastDisplayClick = 0;
   let holdTimer = null;
   let didHold = false;
 
@@ -1190,6 +1252,7 @@ document.addEventListener("pointerup", () => {
     didHold = false;
     clearTimeout(holdTimer);
     if (S.locked && !inputFrozen()){
+      if ((Date.now() - S.lockedAt) < 320) return;
       feedNextChunk();
       render();
       return;
@@ -1197,38 +1260,33 @@ document.addEventListener("pointerup", () => {
     if (!S.locked){
       holdTimer = setTimeout(() => {
         didHold = true;
-        clearTimeout(singleTapTimer);
-        lastDisplayTap = 0;
+        lastDisplayClick = 0;
         toggleCamouHint();
-      }, 320);
+      }, 350);
     }
   });
 
-  displayArea.addEventListener("pointerup", () => {
-    clearTimeout(holdTimer);
-    if (S.locked || didHold) return;
+  const cancelHold = () => clearTimeout(holdTimer);
+  displayArea.addEventListener("pointerup", cancelHold);
+  displayArea.addEventListener("pointercancel", cancelHold);
+
+  displayArea.addEventListener("click", () => {
+    if (S.locked || didHold){
+      didHold = false;
+      return;
+    }
     const now = Date.now();
-    if (now - lastDisplayTap < 420){
-      clearTimeout(singleTapTimer);
-      lastDisplayTap = 0;
-      const dest = normalizeUrl(CFG.clockSiteUrl);
-      if (dest){
-        executeRedirect(dest, !!CFG.clockOpenSafari);
+    if (now - lastDisplayClick < 480){
+      lastDisplayClick = 0;
+      const target = getClockRedirectTarget();
+      if (target && target.url){
+        executeRedirect(target.url, target.openInSafari);
       } else {
         showOverlay("SET CLOCK URL IN SETTINGS", 1600);
       }
     } else {
-      lastDisplayTap = now;
-      clearTimeout(singleTapTimer);
-      singleTapTimer = setTimeout(() => {
-        lastDisplayTap = 0;
-        toggleCamouHint();
-      }, 430);
+      lastDisplayClick = now;
     }
-  });
-
-  displayArea.addEventListener("pointercancel", () => {
-    clearTimeout(holdTimer);
   });
 })();
 
@@ -1314,6 +1372,8 @@ const fixedIn = document.getElementById("fixedIn");
 const chunkSeg = document.getElementById("chunkSeg");
 const holdIn = document.getElementById("holdIn");
 const holdVal = document.getElementById("holdVal");
+const autoOpIn = document.getElementById("autoOpIn");
+const hintStyleIn = document.getElementById("hintStyleIn");
 const pvVal = document.getElementById("pvVal");
 const offsetLabel = document.getElementById("offsetLabel");
 const clockSiteIn = document.getElementById("clockSiteIn");
@@ -1333,6 +1393,9 @@ calcDispDiceBtn.addEventListener("click", () => {
   clockSiteIn.value = "dice";
   clockSafariIn.checked = false;
   if (draft){ draft.clockSiteUrl = "dice"; draft.clockOpenSafari = false; }
+  CFG.clockSiteUrl = "dice";
+  CFG.clockOpenSafari = false;
+  saveLocal();
   renderCalcSavedSites();
 });
 calcAcDiceBtn.addEventListener("click", () => {
@@ -1388,6 +1451,8 @@ calcSaveSiteBtn.addEventListener("click", () => {
     draft.savedSites.unshift({ name: label, url: rawUrl, openInSafari: clockSafariIn.checked });
   }
   calcSiteNameIn.value = "";
+  CFG.clockSiteUrl = rawUrl;
+  CFG.clockOpenSafari = clockSafariIn.checked;
   CFG.savedSites = draft.savedSites.slice();
   saveLocal();
   fetch(BACKEND_BASE + "/api/sites", {
@@ -1424,6 +1489,9 @@ calcSavedSitesList.addEventListener("click", e => {
       draft.clockOpenSafari = !!site.openInSafari;
       clockSiteIn.value = draft.clockSiteUrl;
       clockSafariIn.checked = draft.clockOpenSafari;
+      CFG.clockSiteUrl = draft.clockSiteUrl;
+      CFG.clockOpenSafari = draft.clockOpenSafari;
+      saveLocal();
       renderCalcSavedSites();
     }
   }
@@ -1454,9 +1522,11 @@ function paintPreview(){
 
 function openSettings(){
   draft = JSON.parse(JSON.stringify(CFG));
-  if (![0,1,2,3,4].includes(draft.chunk)) draft.chunk = 0;
+  if (![0,1,2,3].includes(draft.chunk)) draft.chunk = 0;
   fixedIn.value = String(CFG.fixed);
   holdIn.value = String(draft.hold);
+  autoOpIn.checked = !!draft.autoOpOnLock;
+  hintStyleIn.value = draft.hintStyle || "both";
   clockSiteIn.value = draft.clockSiteUrl || "";
   clockSafariIn.checked = !!draft.clockOpenSafari;
   calcSiteNameIn.value = "";
@@ -1479,6 +1549,8 @@ function closeSettings(save){
   if (save && draft){
     const f = draftFixed();
     if (f !== null) draft.fixed = f;
+    draft.autoOpOnLock = autoOpIn.checked;
+    draft.hintStyle = hintStyleIn.value || "both";
     draft.clockSiteUrl = normalizeUrl(clockSiteIn.value);
     draft.clockOpenSafari = clockSafariIn.checked;
     draft.redirectUrl = normalizeUrl(redirectUrlIn.value || "https://icontrol-magic.onrender.com/");
