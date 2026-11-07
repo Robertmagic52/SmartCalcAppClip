@@ -10,1088 +10,1304 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#000000">
 <style>
-:root{
---bg:#000;
---digit:#333333;
---fn:#5d5d5d;
---op:#f68d00;
---fg:#f5f5f5;
---gray:#9e9e9e;
---hint:#6b6b6b;
---icon-bg:#1e1e1e;
---gap:2.5vw;
---pad:4.0vw;
---sh-bg:#1c1c1e;
---sh-cell:#2c2c2e;
---sh-fill:#3a3a3c;
---sh-sep:rgba(84,84,88,.55);
---sh-label:#8d8d93;
-}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-html,body{
-margin:0;padding:0;height:100%;background:var(--bg);
-overscroll-behavior:none;overflow:hidden;
-font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",Helvetica,Arial,sans-serif;
--webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
-touch-action:manipulation;color:var(--fg);
-}
-.app{
-position:fixed;inset:0;display:flex;flex-direction:column;
-padding:max(8px, calc(env(safe-area-inset-top, 0px) - 16px))
-calc(var(--pad) + env(safe-area-inset-right, 0px))
-max(16px, calc(env(safe-area-inset-bottom, 0px) + 27px))
-calc(var(--pad) + env(safe-area-inset-left, 0px));
-}
-.topbar{display:flex;align-items:flex-start;justify-content:space-between;padding:4px 0 0;margin:0;}
-.iconbtn{
-width:44px;height:44px;border-radius:50%;background:var(--icon-bg);
-display:flex;align-items:center;justify-content:center;color:var(--fg);flex:0 0 auto;cursor:pointer;
-position:relative;text-decoration:none;
-box-shadow:inset 0 1px 1.5px rgba(255,255,255,.08), inset 0 -1px 1.5px rgba(255,255,255,.06);
-}
-.iconbtn::after{
-content:"";position:absolute;inset:0;border-radius:50%;padding:1px;
-background:linear-gradient(180deg, rgba(255,255,255,.16) 0%, rgba(255,255,255,.03) 38%, rgba(255,255,255,.02) 62%, rgba(255,255,255,.16) 100%);
--webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
--webkit-mask-composite:xor; mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask-composite:exclude;
-pointer-events:none;
-}
-.iconbtn svg{width:22px;height:22px;display:block;}
-#gridBtn .cut{fill:var(--icon-bg);}
-#gridBtn #lockDot{transition:fill .18s ease;}
-#gridBtn.locked #lockDot{fill:currentColor;}
-.peek{
-margin-top:6px;font:15px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
-color:var(--hint);height:18px;opacity:0;transition:opacity .12s ease;
-white-space:nowrap;letter-spacing:.02em;
-}
-.peek.on{opacity:1;}
-.display{
-flex:1;display:flex;flex-direction:column;justify-content:flex-end;
-align-items:flex-end;padding:0 1px calc(var(--keysize,80px) * 0.14);
-min-height:0;overflow:hidden;position:relative;cursor:pointer;
-}
-.overlay{
-position:absolute;top:14px;left:0;right:0;
-display:flex;justify-content:center;pointer-events:none;
-opacity:0;transition:opacity .18s ease;
-}
-.overlay.on{opacity:1;}
-.overlay span{
-background:rgba(30,30,30,.92);color:var(--gray);
-font:500 14px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;
-letter-spacing:.04em;padding:7px 14px;border-radius:999px;
-border:1px solid rgba(255,255,255,.08);
-white-space:nowrap;
-}
-.secondary{color:var(--gray);font-size:calc(var(--keysize,80px) * 0.34);font-weight:400;
-line-height:1.15;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:clip;}
-.primary{color:var(--fg);font-size:calc(var(--keysize,80px) * 0.90);font-weight:300;
-line-height:1.05;white-space:nowrap;max-width:100%;letter-spacing:-.02em;}
-.keypad{
-display:grid;grid-template-columns:repeat(4,var(--keysize,80px));
-grid-auto-rows:var(--keysize,80px);gap:var(--gap);flex:0 0 auto;
-justify-content:center;
-}
-.key{
-width:var(--keysize,80px);height:var(--keysize,80px);
-border-radius:50%;border:0;display:flex;align-items:center;justify-content:center;
-font-size:calc(var(--keysize,80px) * 0.42);font-weight:400;color:var(--fg);background:var(--digit);
-padding:0;font-family:inherit;position:relative;will-change:transform;
-box-shadow:inset 0 2px 3px rgba(255,255,255,.07), inset 0 -2px 3px rgba(255,255,255,.04);
-background-image:linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0) 62%);
-transition:transform .34s cubic-bezier(.22,.92,.28,1.02), background-image .30s cubic-bezier(.3,.8,.3,1);
-}
-.key.fn{
-background:var(--fn);color:var(--fg);font-weight:500;
-box-shadow:inset 0 2px 4px rgba(255,255,255,.10), inset 0 -2px 4px rgba(255,255,255,.08);
-}
-.key.op{
-background:var(--op);color:var(--fg);font-size:calc(var(--keysize,80px) * 0.385);
-box-shadow:inset 0 2px 4px rgba(255,230,140,.14), inset 0 -2px 3px rgba(255,220,120,.08);
-}
-.key::after{
-content:"";position:absolute;inset:0;border-radius:50%;padding:1px;
-background:linear-gradient(180deg, rgba(255,255,255,.18) 0%, rgba(255,255,255,.04) 36%, rgba(255,255,255,.02) 64%, rgba(255,255,255,.13) 100%);
--webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
--webkit-mask-composite:xor; mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask-composite:exclude;
-pointer-events:none;}
-.key.pressed{
-transform:scale(1.10);z-index:2;
-background-image:linear-gradient(180deg, rgba(255,255,255,.30) 0%, rgba(255,255,255,.24) 62%);
-transition:transform .12s cubic-bezier(.34,.9,.45,1), background-image .09s ease-out;
-}
-.key svg{width:.9em;height:.9em;}
-.key[data-k="back"]{font-size:calc(var(--keysize,80px) * 0.50);font-weight:500;}
-.key[data-k="clear"]{font-size:calc(var(--keysize,80px) * 0.39);font-weight:500;letter-spacing:-.01em;}
-.key[data-k="pct"]{font-size:calc(var(--keysize,80px) * 0.45);font-weight:500;}
-@media (orientation: landscape){
-.keypad{grid-template-columns:repeat(5,1fr);grid-auto-rows:var(--keyh,58px);}
-.display{padding:0 10px calc(var(--keyh,58px) * 0.28);}
-.secondary{font-size:calc(var(--keyh,58px) * 0.42);}
-.primary{font-size:calc(var(--keyh,58px) * 1.15);}
-.key{width:auto;height:var(--keyh,58px);border-radius:999px;font-size:calc(var(--keyh,58px) * 0.46);}
-.key.op{font-size:calc(var(--keyh,58px) * 0.42);}
-.key[data-k="back"]{font-size:calc(var(--keyh,58px) * 0.55);}
-.key[data-k="clear"]{font-size:calc(var(--keyh,58px) * 0.43);}
-.key[data-k="pct"]{font-size:calc(var(--keyh,58px) * 0.50);}
-.key::after{border-radius:999px;}
-.key[data-k="d7"]{grid-area:1/1;} .key[data-k="d8"]{grid-area:1/2;} .key[data-k="d9"]{grid-area:1/3;} .key[data-k="back"]{grid-area:1/4;} .key[data-k="div"]{grid-area:1/5;}
-.key[data-k="d4"]{grid-area:2/1;} .key[data-k="d5"]{grid-area:2/2;} .key[data-k="d6"]{grid-area:2/3;} .key[data-k="clear"]{grid-area:2/4;} .key[data-k="mul"]{grid-area:2/5;}
-.key[data-k="d1"]{grid-area:3/1;} .key[data-k="d2"]{grid-area:3/2;} .key[data-k="d3"]{grid-area:3/3;} .key[data-k="pct"]{grid-area:3/4;} .key[data-k="sub"]{grid-area:3/5;}
-.key[data-k="sign"]{grid-area:4/1;} .key[data-k="d0"]{grid-area:4/2;} .key[data-k="dot"]{grid-area:4/3;} .key[data-k="eq"]{grid-area:4/4;} .key[data-k="add"]{grid-area:4/5;}
-}
-.key.op svg{width:1em;height:1em;}
-.sheet{
-position:fixed;inset:0;z-index:50;background:var(--sh-bg);color:#fff;
-display:flex;flex-direction:column;
-transform:translateY(100%);visibility:hidden;
-transition:transform .38s cubic-bezier(.32,.72,0,1), visibility 0s linear .38s;
-font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif;
-}
-.sheet.open{transform:none;visibility:visible;
-transition:transform .38s cubic-bezier(.32,.72,0,1), visibility 0s;}
-.sh-head{flex:0 0 auto;padding-top:env(safe-area-inset-top);background:var(--sh-bg);
-border-bottom:.5px solid var(--sh-sep);}
-.sh-bar{height:56px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;
-padding:0 calc(20px + env(safe-area-inset-right,0px)) 0 calc(20px + env(safe-area-inset-left,0px));}
-.sh-btn{color:#ff9f0a;font-family:inherit;font-size:17px;font-weight:400;line-height:1;background:none;border:0;
-padding:10px 0;cursor:pointer;}
-.sh-btn.l{justify-self:start;} .sh-btn.r{justify-self:end;}
-.sh-btn:active{opacity:.45;}
-.sh-title{font-size:17px;font-weight:600;letter-spacing:-.01em;}
-.sh-body{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
-overscroll-behavior:contain;touch-action:pan-y;
-padding:0 calc(16px + env(safe-area-inset-right,0px)) calc(40px + env(safe-area-inset-bottom,0px)) calc(16px + env(safe-area-inset-left,0px));}
-.sec-h{font-size:13px;color:var(--sh-label);letter-spacing:.05em;text-transform:uppercase;
-margin:20px 4px 8px;}
-.sec-f{font-size:15px;line-height:1.3;color:var(--sh-label);margin:8px 4px 0;}
-.card{background:var(--sh-cell);border-radius:12px;overflow:hidden;}
-.row{display:flex;align-items:center;justify-content:space-between;gap:12px;
-min-height:49px;padding:0 15px;font-size:17px;letter-spacing:-.01em;}
-.row + .row{border-top:.5px solid var(--sh-sep);}
-.opt{cursor:pointer;transition:background .2s ease;}
-.opt:active{background:var(--sh-fill);transition:none;}
-.chk{width:20px;height:20px;display:block;opacity:0;flex:0 0 auto;}
-.opt.sel .chk{opacity:1;}
-.inrow{padding-top:12px;padding-bottom:12px;}
-.num{width:147px;height:35px;background:var(--sh-fill);border:0;border-radius:8px;color:#fff;
-font-family:inherit;font-size:17px;line-height:1;text-align:right;padding:0 12px;outline:none;
--webkit-user-select:text;user-select:text;-webkit-appearance:none;appearance:none;}
-.seg{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;padding:12px 14px;}
-.seg button{height:35px;border:0;border-radius:8px;background:var(--sh-fill);color:#fff;
-font-family:inherit;font-size:17px;font-weight:400;line-height:1;padding:0;cursor:pointer;}
-.seg button.sel{background:#ff9f0a;color:#1c1c1e;}
-.val{color:#fff;font-variant-numeric:tabular-nums;}
-.slrow{padding-top:10px;padding-bottom:10px;}
-.slrow input{width:100%;margin:0;accent-color:#ff9f0a;}
-.dice-app{
-position:fixed;inset:0;z-index:80;
-background:radial-gradient(circle at 50% 42%, #1d1d22 0%, #0a0a0c 74%);
-display:none;flex-direction:column;align-items:center;justify-content:center;
-padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-}
-.dice-app.open{display:flex;}
-.die-stage{
-perspective:900px;display:flex;flex-direction:column;align-items:center;justify-content:center;
-cursor:pointer;padding:32px;
-}
-.die{
-width:min(46vw, 196px);height:min(46vw, 196px);
-background:linear-gradient(145deg, #ffffff 0%, #ececf1 58%, #d7d7df 100%);
-border-radius:22%;
-padding:14%;
-display:grid;
-grid-template-columns:repeat(3, 1fr);
-grid-template-rows:repeat(3, 1fr);
-place-items:center;
-box-shadow:
-0 26px 54px rgba(0,0,0,.68),
-0 6px 16px rgba(0,0,0,.42),
-inset 0 2px 3px rgba(255,255,255,.95),
-inset 0 -5px 10px rgba(0,0,0,.15);
-will-change:transform;
-transition:transform .14s ease;
-}
-.die:active{transform:scale(.95);}
-.die.rolling{
-animation:dieRoll .52s cubic-bezier(.22,.82,.32,1);
-}
-@keyframes dieRoll{
-0%  {transform:scale(.90) rotate3d(1,1,0,0deg);}
-30% {transform:scale(1.08) translateY(-18px) rotate3d(1,-.8,.4,170deg);}
-65% {transform:scale(1.03) translateY(-6px) rotate3d(-.6,1,-.3,310deg);}
-100%{transform:scale(1) translateY(0) rotate3d(0,0,1,360deg);}
-}
-.pip{
-width:68%;height:68%;border-radius:50%;
-background:radial-gradient(circle at 36% 34%, #35353a 0%, #151518 75%);
-box-shadow:inset 0 2px 3px rgba(0,0,0,.65), 0 1px 1px rgba(255,255,255,.7);
-opacity:0;transform:scale(.4);
-transition:opacity .08s ease, transform .12s ease;
-}
-.pip.on{opacity:1;transform:scale(1);}
-.die-sub{
-margin-top:34px;color:rgba(255,255,255,.32);
-font-size:15px;font-weight:500;letter-spacing:.04em;
-pointer-events:none;
-}
-.die-corner{
-position:fixed;width:84px;height:84px;z-index:85;
-}
-.die-corner.tl{top:0;left:0;}
-.die-corner.tr{top:0;right:0;}
-.die-corner.bl{bottom:0;left:0;}
-.die-corner.br{bottom:0;right:0;}
+  :root{
+    --bg:#000;
+    --digit:#333333;
+    --fn:#5d5d5d;
+    --op:#f68d00;
+    --fg:#f5f5f5;
+    --gray:#9e9e9e;
+    --hint:#6b6b6b;
+    --icon-bg:#1e1e1e;
+    --gap:2.5vw;
+    --pad:4.0vw;
+    /* settings sheet */
+    --sh-bg:#1c1c1e;
+    --sh-cell:#2c2c2e;
+    --sh-fill:#3a3a3c;
+    --sh-sep:rgba(84,84,88,.55);
+    --sh-label:#8d8d93;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{
+    margin:0;padding:0;height:100%;background:var(--bg);
+    overscroll-behavior:none;overflow:hidden;
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",Helvetica,Arial,sans-serif;
+    -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
+    touch-action:manipulation;color:var(--fg);
+  }
+  .app{
+    position:fixed;inset:0;display:flex;flex-direction:column;
+    padding:max(8px, calc(env(safe-area-inset-top, 0px) - 16px))
+            calc(var(--pad) + env(safe-area-inset-right, 0px))
+            max(16px, calc(env(safe-area-inset-bottom, 0px) + 27px))
+            calc(var(--pad) + env(safe-area-inset-left, 0px));
+  }
+  .topbar{display:flex;align-items:flex-start;justify-content:space-between;padding:4px 0 0;margin:0;}
+  .iconbtn{
+    width:44px;height:44px;border-radius:50%;background:var(--icon-bg);
+    display:flex;align-items:center;justify-content:center;color:var(--fg);flex:0 0 auto;cursor:pointer;
+    position:relative;text-decoration:none;
+    box-shadow:inset 0 1px 1.5px rgba(255,255,255,.08), inset 0 -1px 1.5px rgba(255,255,255,.06);
+  }
+  .iconbtn::after{
+    content:"";position:absolute;inset:0;border-radius:50%;padding:1px;
+    background:linear-gradient(180deg, rgba(255,255,255,.16) 0%, rgba(255,255,255,.03) 38%, rgba(255,255,255,.02) 62%, rgba(255,255,255,.16) 100%);
+    -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite:xor; mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask-composite:exclude;
+    pointer-events:none;
+  }
+  .iconbtn svg{width:22px;height:22px;display:block;}
+  #gridBtn .cut{fill:var(--icon-bg);}
+  #gridBtn #lockDot{transition:fill .18s ease;}
+  #gridBtn.locked #lockDot{fill:currentColor;}
+  .peek{
+    margin-top:6px;font:15px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+    color:var(--hint);height:18px;opacity:0;transition:opacity .12s ease;
+    white-space:nowrap;letter-spacing:.02em;
+  }
+  .peek.on{opacity:1;}
+  .display{
+    flex:1;display:flex;flex-direction:column;justify-content:flex-end;
+    align-items:flex-end;padding:0 1px calc(var(--keysize,80px) * 0.14);
+    min-height:0;overflow:hidden;position:relative;cursor:pointer;
+  }
+  .overlay{
+    position:absolute;top:14px;left:0;right:0;
+    display:flex;justify-content:center;pointer-events:none;
+    opacity:0;transition:opacity .18s ease;
+  }
+  .overlay.on{opacity:1;}
+  .overlay span{
+    background:rgba(30,30,30,.92);color:var(--gray);
+    font:500 14px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;
+    letter-spacing:.04em;padding:7px 14px;border-radius:999px;
+    border:1px solid rgba(255,255,255,.08);
+    white-space:nowrap;
+  }
+  .secondary{color:var(--gray);font-size:calc(var(--keysize,80px) * 0.34);font-weight:400;
+    line-height:1.15;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:clip;}
+  .primary{color:var(--fg);font-size:calc(var(--keysize,80px) * 0.90);font-weight:300;
+    line-height:1.05;white-space:nowrap;max-width:100%;letter-spacing:-.02em;}
+  .keypad{
+    display:grid;grid-template-columns:repeat(4,var(--keysize,80px));
+    grid-auto-rows:var(--keysize,80px);gap:var(--gap);flex:0 0 auto;
+    justify-content:center;
+  }
+  .key{
+    width:var(--keysize,80px);height:var(--keysize,80px);
+    border-radius:50%;border:0;display:flex;align-items:center;justify-content:center;
+    font-size:calc(var(--keysize,80px) * 0.42);font-weight:400;color:var(--fg);background:var(--digit);
+    padding:0;font-family:inherit;position:relative;will-change:transform;
+    box-shadow:inset 0 2px 3px rgba(255,255,255,.07), inset 0 -2px 3px rgba(255,255,255,.04);
+    background-image:linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0) 62%);
+    transition:transform .34s cubic-bezier(.22,.92,.28,1.02), background-image .30s cubic-bezier(.3,.8,.3,1);
+  }
+  .key.fn{
+    background:var(--fn);color:var(--fg);font-weight:500;
+    box-shadow:inset 0 2px 4px rgba(255,255,255,.10), inset 0 -2px 4px rgba(255,255,255,.08);
+  }
+  .key.op{
+    background:var(--op);color:var(--fg);font-size:calc(var(--keysize,80px) * 0.385);
+    box-shadow:inset 0 2px 4px rgba(255,230,140,.14), inset 0 -2px 3px rgba(255,220,120,.08);
+  }
+  .key::after{
+    content:"";position:absolute;inset:0;border-radius:50%;padding:1px;
+    background:linear-gradient(180deg, rgba(255,255,255,.18) 0%, rgba(255,255,255,.04) 36%, rgba(255,255,255,.02) 64%, rgba(255,255,255,.13) 100%);
+    -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite:xor; mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask-composite:exclude;
+    pointer-events:none;}
+  .key.pressed{
+    transform:scale(1.10);z-index:2;
+    background-image:linear-gradient(180deg, rgba(255,255,255,.30) 0%, rgba(255,255,255,.24) 62%);
+    transition:transform .12s cubic-bezier(.34,.9,.45,1), background-image .09s ease-out;
+  }
+  .key svg{width:.9em;height:.9em;}
+  .key[data-k="back"]{font-size:calc(var(--keysize,80px) * 0.50);font-weight:500;}
+  .key[data-k="clear"]{font-size:calc(var(--keysize,80px) * 0.39);font-weight:500;letter-spacing:-.01em;}
+  .key[data-k="pct"]{font-size:calc(var(--keysize,80px) * 0.45);font-weight:500;}
+  /* Subtle deceptive keypad hint: slightly bolder/brighter digit + tiny dot underneath */
+  .key.camou-digit{
+    font-weight:560;
+    color:#ffffff;
+    text-shadow:0 0 8px rgba(255,255,255,.15);
+  }
+  .key.camou-digit::before{
+    content:"";
+    position:absolute;
+    bottom:calc(var(--keysize,80px) * 0.15);
+    left:50%;
+    transform:translateX(-50%);
+    width:4px;
+    height:4px;
+    border-radius:50%;
+    background:rgba(255,255,255,.52);
+    pointer-events:none;
+  }
+  @media (orientation: landscape){
+    .keypad{grid-template-columns:repeat(5,1fr);grid-auto-rows:var(--keyh,58px);}
+    .display{padding:0 10px calc(var(--keyh,58px) * 0.28);}
+    .secondary{font-size:calc(var(--keyh,58px) * 0.42);}
+    .primary{font-size:calc(var(--keyh,58px) * 1.15);}
+    .key{width:auto;height:var(--keyh,58px);border-radius:999px;font-size:calc(var(--keyh,58px) * 0.46);}
+    .key.op{font-size:calc(var(--keyh,58px) * 0.42);}
+    .key[data-k="back"]{font-size:calc(var(--keyh,58px) * 0.55);}
+    .key[data-k="clear"]{font-size:calc(var(--keyh,58px) * 0.43);}
+    .key[data-k="pct"]{font-size:calc(var(--keyh,58px) * 0.50);}
+    .key.camou-digit::before{bottom:calc(var(--keyh,58px) * 0.12);}
+    .key::after{border-radius:999px;}
+    .key[data-k="d7"]{grid-area:1/1;} .key[data-k="d8"]{grid-area:1/2;} .key[data-k="d9"]{grid-area:1/3;} .key[data-k="back"]{grid-area:1/4;} .key[data-k="div"]{grid-area:1/5;}
+    .key[data-k="d4"]{grid-area:2/1;} .key[data-k="d5"]{grid-area:2/2;} .key[data-k="d6"]{grid-area:2/3;} .key[data-k="clear"]{grid-area:2/4;} .key[data-k="mul"]{grid-area:2/5;}
+    .key[data-k="d1"]{grid-area:3/1;} .key[data-k="d2"]{grid-area:3/2;} .key[data-k="d3"]{grid-area:3/3;} .key[data-k="pct"]{grid-area:3/4;} .key[data-k="sub"]{grid-area:3/5;}
+    .key[data-k="sign"]{grid-area:4/1;} .key[data-k="d0"]{grid-area:4/2;} .key[data-k="dot"]{grid-area:4/3;} .key[data-k="eq"]{grid-area:4/4;} .key[data-k="add"]{grid-area:4/5;}
+  }
+  .key.op svg{width:1em;height:1em;}
+
+  /* ---------- Settings sheet ---------- */
+  .sheet{
+    position:fixed;inset:0;z-index:50;background:var(--sh-bg);color:#fff;
+    display:flex;flex-direction:column;
+    transform:translateY(100%);visibility:hidden;
+    transition:transform .38s cubic-bezier(.32,.72,0,1), visibility 0s linear .38s;
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif;
+  }
+  .sheet.open{transform:none;visibility:visible;
+    transition:transform .38s cubic-bezier(.32,.72,0,1), visibility 0s;}
+  .sh-head{flex:0 0 auto;padding-top:env(safe-area-inset-top);background:var(--sh-bg);
+    border-bottom:.5px solid var(--sh-sep);}
+  .sh-bar{height:56px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;
+    padding:0 calc(20px + env(safe-area-inset-right,0px)) 0 calc(20px + env(safe-area-inset-left,0px));}
+  .sh-btn{color:#ff9f0a;font-family:inherit;font-size:17px;font-weight:400;line-height:1;background:none;border:0;
+    padding:10px 0;cursor:pointer;}
+  .sh-btn.l{justify-self:start;} .sh-btn.r{justify-self:end;}
+  .sh-btn:active{opacity:.45;}
+  .sh-title{font-size:17px;font-weight:600;letter-spacing:-.01em;}
+  .sh-body{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
+    overscroll-behavior:contain;touch-action:pan-y;
+    padding:0 calc(16px + env(safe-area-inset-right,0px)) calc(40px + env(safe-area-inset-bottom,0px)) calc(16px + env(safe-area-inset-left,0px));}
+  .sec-h{font-size:13px;color:var(--sh-label);letter-spacing:.05em;text-transform:uppercase;
+    margin:20px 4px 8px;}
+  .sec-f{font-size:15px;line-height:1.3;color:var(--sh-label);margin:8px 4px 0;}
+  .card{background:var(--sh-cell);border-radius:12px;overflow:hidden;}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:12px;
+    min-height:49px;padding:0 15px;font-size:17px;letter-spacing:-.01em;}
+  .row + .row{border-top:.5px solid var(--sh-sep);}
+  .opt{cursor:pointer;transition:background .2s ease;}
+  .opt:active{background:var(--sh-fill);transition:none;}
+  .chk{width:20px;height:20px;display:block;opacity:0;flex:0 0 auto;}
+  .opt.sel .chk{opacity:1;}
+  .inrow{padding-top:12px;padding-bottom:12px;}
+  .num{width:147px;height:35px;background:var(--sh-fill);border:0;border-radius:8px;color:#fff;
+    font-family:inherit;font-size:17px;line-height:1;text-align:right;padding:0 12px;outline:none;
+    -webkit-user-select:text;user-select:text;-webkit-appearance:none;appearance:none;}
+  .seg{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;padding:12px 14px;}
+  .seg button{height:35px;border:0;border-radius:8px;background:var(--sh-fill);color:#fff;
+    font-family:inherit;font-size:17px;font-weight:400;line-height:1;padding:0;cursor:pointer;}
+  .seg button.sel{background:#ff9f0a;color:#1c1c1e;}
+  .val{color:#fff;font-variant-numeric:tabular-nums;}
+  .slrow{padding-top:10px;padding-bottom:10px;}
+  .slrow input{width:100%;margin:0;accent-color:#ff9f0a;}
+
+  /* ---------- Built-in Die Roller (opened by double-tapping AC when display is 0) ---------- */
+  .dice-app{
+    position:fixed;inset:0;z-index:80;
+    background:radial-gradient(circle at 50% 42%, #1d1d22 0%, #0a0a0c 74%);
+    display:none;flex-direction:column;align-items:center;justify-content:center;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  .dice-app.open{display:flex;}
+  .die-stage{
+    perspective:900px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    cursor:pointer;padding:32px;
+  }
+  .die{
+    width:min(46vw, 196px);height:min(46vw, 196px);
+    background:linear-gradient(145deg, #ffffff 0%, #ececf1 58%, #d7d7df 100%);
+    border-radius:22%;
+    padding:14%;
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    grid-template-rows:repeat(3, 1fr);
+    place-items:center;
+    box-shadow:
+      0 26px 54px rgba(0,0,0,.68),
+      0 6px 16px rgba(0,0,0,.42),
+      inset 0 2px 3px rgba(255,255,255,.95),
+      inset 0 -5px 10px rgba(0,0,0,.15);
+    will-change:transform;
+    transition:transform .14s ease;
+  }
+  .die:active{transform:scale(.95);}
+  .die.rolling{
+    animation:dieRoll .52s cubic-bezier(.22,.82,.32,1);
+  }
+  @keyframes dieRoll{
+    0%  {transform:scale(.90) rotate3d(1,1,0,0deg);}
+    30% {transform:scale(1.08) translateY(-18px) rotate3d(1,-.8,.4,170deg);}
+    65% {transform:scale(1.03) translateY(-6px) rotate3d(-.6,1,-.3,310deg);}
+    100%{transform:scale(1) translateY(0) rotate3d(0,0,1,360deg);}
+  }
+  .pip{
+    width:68%;height:68%;border-radius:50%;
+    background:radial-gradient(circle at 36% 34%, #35353a 0%, #151518 75%);
+    box-shadow:inset 0 2px 3px rgba(0,0,0,.65), 0 1px 1px rgba(255,255,255,.7);
+    opacity:0;transform:scale(.4);
+    transition:opacity .08s ease, transform .12s ease;
+  }
+  .pip.on{opacity:1;transform:scale(1);}
+  .die-sub{
+    margin-top:34px;color:rgba(255,255,255,.32);
+    font-size:15px;font-weight:500;letter-spacing:.04em;
+    pointer-events:none;
+  }
+  /* Invisible corner hold zones to return to calculator */
+  .die-corner{
+    position:fixed;width:84px;height:84px;z-index:85;
+  }
+  .die-corner.tl{top:0;left:0;}
+  .die-corner.tr{top:0;right:0;}
+  .die-corner.bl{bottom:0;left:0;}
+  .die-corner.br{bottom:0;right:0;}
 </style>
 </head>
 <body>
 <div class="app">
-<div class="topbar">
-<div>
-<a class="iconbtn" id="clockBtn" href="https://icontrol-magic.onrender.com/" target="_blank" rel="noopener noreferrer" aria-hidden="true">
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-<circle cx="12" cy="12" r="9.1" stroke-width="1.5"/>
-<path d="M12,5.9 L12,12 L4.8,12" stroke-width="1.5"/>
-</svg>
-</a>
-<div class="peek" id="peek">&nbsp;</div>
+  <div class="topbar">
+    <div>
+      <a class="iconbtn" id="clockBtn" href="https://icontrol-magic.onrender.com/" target="_blank" rel="noopener noreferrer" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="9.1" stroke-width="1.5"/>
+          <path d="M12,5.9 L12,12 L4.8,12" stroke-width="1.5"/>
+        </svg>
+      </a>
+      <div class="peek" id="peek">&nbsp;</div>
+    </div>
+    <div class="iconbtn" id="gridBtn" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
+        <rect x="4.8" y="1.4" width="14.4" height="21.2" rx="3.0"/>
+        <rect class="cut" x="7.0" y="3.7" width="10.0" height="4.2" rx="1.2"/>
+        <circle class="cut" cx="8.3" cy="11.2" r="1.25"/>
+        <circle class="cut" cx="12" cy="11.2" r="1.25"/>
+        <circle class="cut" cx="15.7" cy="11.2" r="1.25"/>
+        <circle class="cut" cx="8.3" cy="15.2" r="1.25"/>
+        <circle class="cut" id="lockDot" cx="12" cy="15.2" r="1.25"/>
+        <circle class="cut" cx="15.7" cy="15.2" r="1.25"/>
+        <circle class="cut" cx="8.3" cy="19.2" r="1.25"/>
+        <circle class="cut" cx="12" cy="19.2" r="1.25"/>
+        <circle class="cut" cx="15.7" cy="19.2" r="1.25"/>
+      </svg>
+    </div>
+  </div>
+  <div class="display" id="displayArea">
+    <div class="overlay" id="overlay"><span id="overlayText"></span></div>
+    <div class="secondary" id="secondary"></div>
+    <div class="primary" id="primary">0</div>
+  </div>
+  <div class="keypad" id="keypad"></div>
 </div>
-<div class="iconbtn" id="gridBtn" aria-hidden="true">
-<svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
-<rect x="4.8" y="1.4" width="14.4" height="21.2" rx="3.0"/>
-<rect class="cut" x="7.0" y="3.7" width="10.0" height="4.2" rx="1.2"/>
-<circle class="cut" cx="8.3" cy="11.2" r="1.25"/>
-<circle class="cut" cx="12" cy="11.2" r="1.25"/>
-<circle class="cut" cx="15.7" cy="11.2" r="1.25"/>
-<circle class="cut" cx="8.3" cy="15.2" r="1.25"/>
-<circle class="cut" id="lockDot" cx="12" cy="15.2" r="1.25"/>
-<circle class="cut" cx="15.7" cy="15.2" r="1.25"/>
-<circle class="cut" cx="8.3" cy="19.2" r="1.25"/>
-<circle class="cut" cx="12" cy="19.2" r="1.25"/>
-<circle class="cut" cx="15.7" cy="19.2" r="1.25"/>
-</svg>
-</div>
-</div>
-<div class="display" id="displayArea">
-<div class="overlay" id="overlay"><span id="overlayText"></span></div>
-<div class="secondary" id="secondary"></div>
-<div class="primary" id="primary">0</div>
-</div>
-<div class="keypad" id="keypad"></div>
-</div>
+
+<!-- Settings sheet (opened by double-tapping the calculator button, top right) -->
 <div class="sheet" id="sheet" aria-hidden="true">
-<div class="sh-head">
-<div class="sh-bar">
-<button class="sh-btn l" id="shCancel" type="button">Cancel</button>
-<div class="sh-title">Settings</div>
-<button class="sh-btn r" id="shDone" type="button">Done</button>
+  <div class="sh-head">
+    <div class="sh-bar">
+      <button class="sh-btn l" id="shCancel" type="button">Cancel</button>
+      <div class="sh-title">Settings</div>
+      <button class="sh-btn r" id="shDone" type="button">Done</button>
+    </div>
+  </div>
+  <div class="sh-body" id="shBody">
+    <div class="sec-h">Force Target</div>
+    <div class="card" id="modeList">
+      <div class="row opt" data-mode="0"><span>Off</span><svg class="chk" viewBox="0 0 24 24" fill="none" stroke="#ff9f0a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.8l4.6 4.7L19.5 6.3"/></svg></div>
+      <div class="row opt" data-mode="1"><span>Fixed number</span><svg class="chk" viewBox="0 0 24 24" fill="none" stroke="#ff9f0a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.8l4.6 4.7L19.5 6.3"/></svg></div>
+      <div class="row opt" data-mode="2"><span id="offsetLabel">Date + time (+1:00)</span><svg class="chk" viewBox="0 0 24 24" fill="none" stroke="#ff9f0a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.8l4.6 4.7L19.5 6.3"/></svg></div>
+      <div class="row opt" data-mode="3"><span>Date + time (live)</span><svg class="chk" viewBox="0 0 24 24" fill="none" stroke="#ff9f0a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.8l4.6 4.7L19.5 6.3"/></svg></div>
+      <div class="row inrow"><span>Force number</span><input class="num" id="fixedIn" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="15" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></div>
+    </div>
+
+    <div class="sec-h">Digits Per Press</div>
+    <div class="card seg" id="chunkSeg">
+      <button type="button" data-chunk="1">1</button>
+      <button type="button" data-chunk="2">2</button>
+      <button type="button" data-chunk="3">3</button>
+      <button type="button" data-chunk="4">4</button>
+      <button type="button" data-chunk="0">All</button>
+    </div>
+    <div class="sec-f">How much of the difference goes in on each press while the input is locked — each key press, or a tap on the black area.</div>
+
+    <div class="sec-h">Hold Duration</div>
+    <div class="card">
+      <div class="row"><span>Hold + and % for</span><span class="val" id="holdVal">0.50s</span></div>
+      <div class="row slrow"><input type="range" id="holdIn" min="0.2" max="1.5" step="0.05"></div>
+    </div>
+
+    <div class="sec-h">Display Redirect (Double-Tap Main Numbers)</div>
+    <div class="card">
+      <div class="row inrow">
+        <span style="white-space:nowrap;">Target URL</span>
+        <input class="num" id="clockSiteIn" type="text" placeholder="https://your-clock-site.com or dice" style="flex:1;width:auto;text-align:left;font-size:14px;">
+        <button type="button" id="calcDispDiceBtn" style="background:var(--sh-fill);color:#ff9f0a;border:0;border-radius:8px;padding:7px 10px;font-size:13px;font-weight:600;cursor:pointer;">🎲 Dice</button>
+      </div>
+      <div class="row">
+        <span>Open in New Safari Tab (off = App Clip)</span>
+        <input type="checkbox" id="clockSafariIn" style="width:20px;height:20px;accent-color:#ff9f0a;">
+      </div>
+      <div class="row inrow">
+        <input class="num" id="calcSiteNameIn" type="text" placeholder="Label (e.g. Stopwatch)" style="flex:1;width:auto;text-align:left;font-size:14px;">
+        <button type="button" id="calcSaveSiteBtn" style="background:#ff9f0a;color:#000;border:0;border-radius:8px;padding:7px 12px;font-size:14px;font-weight:600;cursor:pointer;">+ Save Site</button>
+      </div>
+    </div>
+    <div class="sec-f">Double-tap the main numbers/equation area (when unlocked) to switch to your Clock site, any saved URL, or <b>dice</b>. Leave "Open in New Safari Tab" unchecked so your Clock site opens inside the App Clip browser.</div>
+
+    <div class="sec-h">Saved Websites Library</div>
+    <div class="card" id="calcSavedSitesList"></div>
+
+    <div class="sec-h">Top-Left Clock Button & AC Double-Tap Redirects</div>
+    <div class="card">
+      <div class="row inrow">
+        <span style="white-space:nowrap;">Top-Left URL</span>
+        <input class="num" id="redirectUrlIn" type="text" placeholder="https://icontrol-magic.onrender.com/" style="flex:1;width:auto;text-align:left;font-size:14px;">
+      </div>
+      <div class="row">
+        <span>Top-Left Opens New Safari Tab</span>
+        <input type="checkbox" id="redirectSafariIn" style="width:20px;height:20px;accent-color:#ff9f0a;">
+      </div>
+      <div class="row inrow">
+        <span style="white-space:nowrap;">2x AC Target</span>
+        <input class="num" id="acUrlIn" type="text" placeholder="dice or https://..." style="flex:1;width:auto;text-align:left;font-size:14px;">
+        <button type="button" id="calcAcDiceBtn" style="background:var(--sh-fill);color:#ff9f0a;border:0;border-radius:8px;padding:7px 10px;font-size:13px;font-weight:600;cursor:pointer;">🎲 Dice</button>
+      </div>
+      <div class="row">
+        <span>2x AC Opens New Safari Tab</span>
+        <input type="checkbox" id="acSafariIn" style="width:20px;height:20px;accent-color:#ff9f0a;">
+      </div>
+    </div>
+
+    <div class="sec-h">Preview</div>
+    <div class="card">
+      <div class="row"><span>Current target</span><span class="val" id="pvVal"></span></div>
+    </div>
+  </div>
 </div>
-</div>
-<div class="sh-body" id="shBody">
-<div class="sec-h">Force Target</div>
-<div class="card" id="modeList">
-<div class="row opt" data-mode="0"><span>Off</span><svg class="chk" viewBox="0 0 24 24" fill="none" stroke="#ff9f0a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.8l4.6 4.7L19.5 6.3"/></svg></div>
-<div class="row opt" data-mode="1"><span>Fixed number</span><svg class="chk" viewBox="0 0 24 24" fill="none" stroke="#ff9f0a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.8l4.6 4.7L19.5 6.3"/></svg></div>
-<div class="row opt" data-mode="2"><span id="offsetLabel">Date + time (+1:00)</span><svg class="chk" viewBox="0 0 24 24" fill="none" stroke="#ff9f0a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.8l4.6 4.7L19.5 6.3"/></svg></div>
-<div class="row opt" data-mode="3"><span>Date + time (live)</span><svg class="chk" viewBox="0 0 24 24" fill="none" stroke="#ff9f0a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.8l4.6 4.7L19.5 6.3"/></svg></div>
-<div class="row inrow"><span>Force number</span><input class="num" id="fixedIn" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="15" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></div>
-</div>
-<div class="sec-h">Digits Per Press</div>
-<div class="card seg" id="chunkSeg">
-<button type="button" data-chunk="1">1</button>
-<button type="button" data-chunk="2">2</button>
-<button type="button" data-chunk="3">3</button>
-<button type="button" data-chunk="4">4</button>
-<button type="button" data-chunk="0">All</button>
-</div>
-<div class="sec-f">How much of the difference goes in on each press while the input is locked — each key press, or a tap on the black area.</div>
-<div class="sec-h">Hold Duration</div>
-<div class="card">
-<div class="row"><span>Hold + and % for</span><span class="val" id="holdVal">0.50s</span></div>
-<div class="row slrow"><input type="range" id="holdIn" min="0.2" max="1.5" step="0.05"></div>
-</div>
-<div class="sec-h">Display Redirect (Double-Tap Main Numbers)</div>
-<div class="card">
-<div class="row inrow">
-<span style="white-space:nowrap;">Target URL</span>
-<input class="num" id="clockSiteIn" type="text" placeholder="https://your-clock-site.com or dice" style="flex:1;width:auto;text-align:left;font-size:14px;">
-<button type="button" id="calcDispDiceBtn" style="background:var(--sh-fill);color:#ff9f0a;border:0;border-radius:8px;padding:7px 10px;font-size:13px;font-weight:600;cursor:pointer;">🎲 Dice</button>
-</div>
-<div class="row">
-<span>Open in New Safari Tab (off = App Clip)</span>
-<input type="checkbox" id="clockSafariIn" style="width:20px;height:20px;accent-color:#ff9f0a;">
-</div>
-<div class="row inrow">
-<input class="num" id="calcSiteNameIn" type="text" placeholder="Label (e.g. Stopwatch)" style="flex:1;width:auto;text-align:left;font-size:14px;">
-<button type="button" id="calcSaveSiteBtn" style="background:#ff9f0a;color:#000;border:0;border-radius:8px;padding:7px 12px;font-size:14px;font-weight:600;cursor:pointer;">+ Save Site</button>
-</div>
-</div>
-<div class="sec-f">Double-tap the main numbers/equation area (when unlocked) to switch to your Clock site, any saved URL, or <b>dice</b>. Leave "Open in New Safari Tab" unchecked so your Clock site opens inside the App Clip browser.</div>
-<div class="sec-h">Saved Websites Library</div>
-<div class="card" id="calcSavedSitesList"></div>
-<div class="sec-h">Top-Left Clock Button & AC Double-Tap Redirects</div>
-<div class="card">
-<div class="row inrow">
-<span style="white-space:nowrap;">Top-Left URL</span>
-<input class="num" id="redirectUrlIn" type="text" placeholder="https://icontrol-magic.onrender.com/" style="flex:1;width:auto;text-align:left;font-size:14px;">
-</div>
-<div class="row">
-<span>Top-Left Opens New Safari Tab</span>
-<input type="checkbox" id="redirectSafariIn" style="width:20px;height:20px;accent-color:#ff9f0a;">
-</div>
-<div class="row inrow">
-<span style="white-space:nowrap;">2x AC Target</span>
-<input class="num" id="acUrlIn" type="text" placeholder="dice or https://..." style="flex:1;width:auto;text-align:left;font-size:14px;">
-<button type="button" id="calcAcDiceBtn" style="background:var(--sh-fill);color:#ff9f0a;border:0;border-radius:8px;padding:7px 10px;font-size:13px;font-weight:600;cursor:pointer;">🎲 Dice</button>
-</div>
-<div class="row">
-<span>2x AC Opens New Safari Tab</span>
-<input type="checkbox" id="acSafariIn" style="width:20px;height:20px;accent-color:#ff9f0a;">
-</div>
-</div>
-<div class="sec-h">Preview</div>
-<div class="card">
-<div class="row"><span>Current target</span><span class="val" id="pvVal"></span></div>
-</div>
-</div>
-</div>
+
+<!-- Built-in Die Roller (double-tap AC when cleared; hold any corner to return) -->
 <div class="dice-app" id="diceApp" aria-hidden="true">
-<div class="die-corner tl" data-corner="1"></div>
-<div class="die-corner tr" data-corner="2"></div>
-<div class="die-corner bl" data-corner="3"></div>
-<div class="die-corner br" data-corner="4"></div>
-<div class="die-stage" id="dieStage">
-<div class="die" id="dieCube">
-<span class="pip" data-p="0"></span>
-<span class="pip" data-p="1"></span>
-<span class="pip" data-p="2"></span>
-<span class="pip" data-p="3"></span>
-<span class="pip" data-p="4"></span>
-<span class="pip" data-p="5"></span>
-<span class="pip" data-p="6"></span>
-<span class="pip" data-p="7"></span>
-<span class="pip" data-p="8"></span>
+  <div class="die-corner tl" data-corner="1"></div>
+  <div class="die-corner tr" data-corner="2"></div>
+  <div class="die-corner bl" data-corner="3"></div>
+  <div class="die-corner br" data-corner="4"></div>
+  <div class="die-stage" id="dieStage">
+    <div class="die" id="dieCube">
+      <span class="pip" data-p="0"></span>
+      <span class="pip" data-p="1"></span>
+      <span class="pip" data-p="2"></span>
+      <span class="pip" data-p="3"></span>
+      <span class="pip" data-p="4"></span>
+      <span class="pip" data-p="5"></span>
+      <span class="pip" data-p="6"></span>
+      <span class="pip" data-p="7"></span>
+      <span class="pip" data-p="8"></span>
+    </div>
+    <div class="die-sub">Tap to roll</div>
+  </div>
 </div>
-<div class="die-sub">Tap to roll</div>
-</div>
-</div>
+
 <script>
 "use strict";
 const BACKEND_BASE = "https://smartcalc-backend-el0f.onrender.com";
 const BACKEND_URL = BACKEND_BASE + "/api/config";
 const STORE_KEY = "calc.settings.v3";
 const DEF = {
-mode: 2,
-fixed: 6417118,
-hold: 0.5,
-chunk: 1,
-offset: 60,
-redirectUrl: "https://icontrol-magic.onrender.com/",
-redirectOpenSafari: true,
-clockSiteUrl: "",
-clockOpenSafari: false,
-acRedirectUrl: "dice",
-acOpenSafari: false,
-savedSites: [
-{ name: "Built-in 3D Dice Roller", url: "dice", openInSafari: false },
-{ name: "iControl", url: "https://icontrol-magic.onrender.com/", openInSafari: true }
-]
+  mode: 2,
+  fixed: 6417118,
+  hold: 0.5,
+  chunk: 1,
+  offset: 60,
+  redirectUrl: "https://icontrol-magic.onrender.com/",
+  redirectOpenSafari: true,
+  clockSiteUrl: "",
+  clockOpenSafari: false,
+  acRedirectUrl: "dice",
+  acOpenSafari: false,
+  savedSites: [
+    { name: "Built-in 3D Dice Roller", url: "dice", openInSafari: false },
+    { name: "iControl", url: "https://icontrol-magic.onrender.com/", openInSafari: true }
+  ]
 };
 let CFG = JSON.parse(JSON.stringify(DEF));
+
 function normalizeUrl(u){
-if (!u) return "";
-const s = u.trim();
-if (!s) return "";
-if (s.toLowerCase() === "dice") return "dice";
-if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(s)) return s;
-return "https://" + s;
+  if (!u) return "";
+  const s = u.trim();
+  if (!s) return "";
+  if (s.toLowerCase() === "dice") return "dice";
+  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(s)) return s;
+  return "https://" + s;
 }
+
 function syncClockBtnAttr(){
-const cb = document.getElementById("clockBtn");
-if (!cb) return;
-const u = normalizeUrl(CFG.redirectUrl || "https://icontrol-magic.onrender.com/");
-if (u === "dice"){
-cb.href = "#dice";
-cb.removeAttribute("target");
-} else {
-cb.href = u;
-if (CFG.redirectOpenSafari !== false){
-cb.target = "_blank";
-cb.rel = "noopener noreferrer";
-} else {
-cb.removeAttribute("target");
+  const cb = document.getElementById("clockBtn");
+  if (!cb) return;
+  const u = normalizeUrl(CFG.redirectUrl || "https://icontrol-magic.onrender.com/");
+  if (u === "dice"){
+    cb.href = "#dice";
+    cb.removeAttribute("target");
+  } else {
+    cb.href = u;
+    if (CFG.redirectOpenSafari !== false){
+      cb.target = "_blank";
+      cb.rel = "noopener noreferrer";
+    } else {
+      cb.removeAttribute("target");
+    }
+  }
 }
-}
-}
+
 function executeRedirect(rawTarget, openInSafari){
-const u = normalizeUrl(rawTarget);
-if (!u) return false;
-if (u === "dice"){
-openDiceApp();
-return true;
+  const u = normalizeUrl(rawTarget);
+  if (!u) return false;
+  if (u === "dice"){
+    openDiceApp();
+    return true;
+  }
+  buzz();
+  if (openInSafari){
+    const a = document.createElement("a");
+    a.href = u;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  } else {
+    window.location.href = u;
+  }
+  return true;
 }
-buzz();
-if (openInSafari){
-const a = document.createElement("a");
-a.href = u;
-a.target = "_blank";
-a.rel = "noopener noreferrer";
-document.body.appendChild(a);
-a.click();
-a.remove();
-} else {
-window.location.href = u;
-}
-return true;
-}
+
+/* ---------- Config: defaults -> local -> cloud ---------- */
 let sessionOverridden = false;
 let hasLocalSettings = false;
 let lastCloudTs = 0;
+
 function applyCfg(src){
-if (!src || typeof src !== "object") return;
-const n = v => (typeof v === "number" ? v : parseFloat(v));
-if ([0,1,2,3].includes(n(src.mode))) CFG.mode = n(src.mode);
-if (isFinite(n(src.fixed))) CFG.fixed = n(src.fixed);
-if (isFinite(n(src.hold)) && n(src.hold) > 0) CFG.hold = n(src.hold);
-if (isFinite(n(src.chunk)) && n(src.chunk) >= 0) CFG.chunk = Math.floor(n(src.chunk));
-if (isFinite(n(src.offset))) CFG.offset = Math.floor(n(src.offset));
-if (typeof src.redirectUrl === "string" && src.redirectUrl.trim()) {
-CFG.redirectUrl = normalizeUrl(src.redirectUrl);
-}
-if (typeof src.redirectOpenSafari === "boolean") CFG.redirectOpenSafari = src.redirectOpenSafari;
-if (typeof src.clockSiteUrl === "string" && src.clockSiteUrl.trim()) {
-CFG.clockSiteUrl = normalizeUrl(src.clockSiteUrl);
-}
-if (typeof src.clockOpenSafari === "boolean") CFG.clockOpenSafari = src.clockOpenSafari;
-if (typeof src.acRedirectUrl === "string" && src.acRedirectUrl.trim()) {
-CFG.acRedirectUrl = normalizeUrl(src.acRedirectUrl);
-}
-if (typeof src.acOpenSafari === "boolean") CFG.acOpenSafari = src.acOpenSafari;
-if (Array.isArray(src.savedSites) && src.savedSites.length) {
-CFG.savedSites = src.savedSites;
-}
-syncClockBtnAttr();
+  if (!src || typeof src !== "object") return;
+  const n = v => (typeof v === "number" ? v : parseFloat(v));
+  if ([0,1,2,3].includes(n(src.mode))) CFG.mode = n(src.mode);
+  if (isFinite(n(src.fixed))) CFG.fixed = n(src.fixed);
+  if (isFinite(n(src.hold)) && n(src.hold) > 0) CFG.hold = n(src.hold);
+  if (isFinite(n(src.chunk)) && n(src.chunk) >= 0) CFG.chunk = Math.floor(n(src.chunk));
+  if (isFinite(n(src.offset))) CFG.offset = Math.floor(n(src.offset));
+  if (typeof src.redirectUrl === "string" && src.redirectUrl.trim()) {
+    CFG.redirectUrl = normalizeUrl(src.redirectUrl);
+  }
+  if (typeof src.redirectOpenSafari === "boolean") CFG.redirectOpenSafari = src.redirectOpenSafari;
+  if (typeof src.clockSiteUrl === "string" && src.clockSiteUrl.trim()) {
+    CFG.clockSiteUrl = normalizeUrl(src.clockSiteUrl);
+  }
+  if (typeof src.clockOpenSafari === "boolean") CFG.clockOpenSafari = src.clockOpenSafari;
+  if (typeof src.acRedirectUrl === "string" && src.acRedirectUrl.trim()) {
+    CFG.acRedirectUrl = normalizeUrl(src.acRedirectUrl);
+  }
+  if (typeof src.acOpenSafari === "boolean") CFG.acOpenSafari = src.acOpenSafari;
+  if (Array.isArray(src.savedSites) && src.savedSites.length) {
+    CFG.savedSites = src.savedSites;
+  }
+  syncClockBtnAttr();
 }
 function loadLocal(){
-try {
-const s = JSON.parse(localStorage.getItem(STORE_KEY) || localStorage.getItem("calc.settings.v2") || "null");
-if (s && typeof s === "object"){
-applyCfg(s);
-hasLocalSettings = true;
-return true;
-}
-} catch(e){}
-return false;
+  try {
+    const s = JSON.parse(localStorage.getItem(STORE_KEY) || localStorage.getItem("calc.settings.v2") || "null");
+    if (s && typeof s === "object"){
+      applyCfg(s);
+      hasLocalSettings = true;
+      return true;
+    }
+  } catch(e){}
+  return false;
 }
 function saveLocal(){
-try {
-localStorage.setItem(STORE_KEY, JSON.stringify(CFG));
-hasLocalSettings = true;
-} catch(e){}
-syncClockBtnAttr();
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify(CFG));
+    hasLocalSettings = true;
+  } catch(e){}
+  syncClockBtnAttr();
 }
 loadLocal();
+
 async function fetchCloudConfig(){
-try {
-const res = await fetch(BACKEND_URL, { cache: "no-store" });
-const data = await res.json();
-if (data && typeof data === "object"){
-const ts = Number(data.updatedAt) || 1;
-if (lastCloudTs === 0){
-lastCloudTs = ts;
-if (!hasLocalSettings && !sessionOverridden){
-applyCfg(data);
-saveLocal();
-render();
-} else if (!CFG.clockSiteUrl && data.clockSiteUrl){
-CFG.clockSiteUrl = normalizeUrl(data.clockSiteUrl);
-saveLocal();
-}
-} else if (ts > lastCloudTs){
-lastCloudTs = ts;
-applyCfg(data);
-saveLocal();
-render();
-}
-}
-} catch(e){}
+  try {
+    const res = await fetch(BACKEND_URL, { cache: "no-store" });
+    const data = await res.json();
+    if (data && typeof data === "object"){
+      const ts = Number(data.updatedAt) || 1;
+      if (lastCloudTs === 0){
+        lastCloudTs = ts;
+        if (!hasLocalSettings && !sessionOverridden){
+          applyCfg(data);
+          saveLocal();
+          render();
+        } else if (!CFG.clockSiteUrl && data.clockSiteUrl){
+          CFG.clockSiteUrl = normalizeUrl(data.clockSiteUrl);
+          saveLocal();
+        }
+      } else if (ts > lastCloudTs){
+        lastCloudTs = ts;
+        applyCfg(data);
+        saveLocal();
+        render();
+      }
+    }
+  } catch(e){ /* keep local / defaults */ }
 }
 fetchCloudConfig();
 setInterval(() => {
-if (!S.locked) fetchCloudConfig();
+  if (!S.locked) fetchCloudConfig();
 }, 3500);
+
 const S = {
-els: [], justEval:false, evalExpr:"",
-gapDigits:"", gapFed:0, feedSign:"+",
-lockedTarget:null, liveActive:false, liveBase:0, locked:false,
+  els: [], justEval:false, evalExpr:"",
+  gapDigits:"", gapFed:0, feedSign:"+",
+  lockedTarget:null, liveActive:false, liveBase:0, locked:false,
+  camouHint:false,
 };
+
 const feedStarted = () => S.gapDigits.length > 0;
 const isFeeding = () => feedStarted() && S.gapFed < S.gapDigits.length;
 const inputFrozen = () => feedStarted() && S.gapFed >= S.gapDigits.length && !S.justEval;
+
 function parseNum(s){
-let t = s;
-if (t.endsWith(".")) t = t.slice(0,-1);
-if (t === "" || t === "-") return 0;
-const v = parseFloat(t);
-return isNaN(v) ? 0 : v;
+  let t = s;
+  if (t.endsWith(".")) t = t.slice(0,-1);
+  if (t === "" || t === "-") return 0;
+  const v = parseFloat(t);
+  return isNaN(v) ? 0 : v;
 }
+
 function currentValue(){
-const els = S.els.slice();
-if (els.length && els[els.length-1].t === "o") els.pop();
-const nums = [], ops = [];
-for (const e of els) (e.t === "n" ? nums : ops).push(e.t === "n" ? parseNum(e.v) : e.v);
-if (!nums.length) return 0;
-const vals = [nums[0]], addSub = [];
-for (let i = 0; i < ops.length; i++){
-const rhs = (i+1 < nums.length) ? nums[i+1] : vals[vals.length-1];
-const op = ops[i];
-if (op === "×") vals[vals.length-1] *= rhs;
-else if (op === "÷"){ if (rhs === 0) return NaN; vals[vals.length-1] /= rhs; }
-else { addSub.push(op); vals.push(rhs); }
+  const els = S.els.slice();
+  if (els.length && els[els.length-1].t === "o") els.pop();
+  const nums = [], ops = [];
+  for (const e of els) (e.t === "n" ? nums : ops).push(e.t === "n" ? parseNum(e.v) : e.v);
+  if (!nums.length) return 0;
+  const vals = [nums[0]], addSub = [];
+  for (let i = 0; i < ops.length; i++){
+    const rhs = (i+1 < nums.length) ? nums[i+1] : vals[vals.length-1];
+    const op = ops[i];
+    if (op === "×") vals[vals.length-1] *= rhs;
+    else if (op === "÷"){ if (rhs === 0) return NaN; vals[vals.length-1] /= rhs; }
+    else { addSub.push(op); vals.push(rhs); }
+  }
+  let r = vals[0];
+  for (let i = 0; i < addSub.length; i++) r += (addSub[i] === "+") ? vals[i+1] : -vals[i+1];
+  return roundResult(r);
 }
-let r = vals[0];
-for (let i = 0; i < addSub.length; i++) r += (addSub[i] === "+") ? vals[i+1] : -vals[i+1];
-return roundResult(r);
-}
+
 function roundResult(v){
-if (!isFinite(v) || v === 0) return v;
-const p = 10 - Math.ceil(Math.log10(Math.abs(v)));
-if (p <= 0) return Math.round(v);
-const m = Math.pow(10, p);
-return Math.round(v * m) / m;
+  if (!isFinite(v) || v === 0) return v;
+  const p = 10 - Math.ceil(Math.log10(Math.abs(v)));
+  if (p <= 0) return Math.round(v);
+  const m = Math.pow(10, p);
+  return Math.round(v * m) / m;
 }
+
 function groupInt(raw){
-let s = String(raw), neg = s.startsWith("-");
-if (neg) s = s.slice(1);
-const dot = s.indexOf(".");
-const ip = dot < 0 ? s : s.slice(0, dot);
-const fp = dot < 0 ? "" : s.slice(dot);
-const grouped = (ip === "" ? "0" : ip).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-return (neg ? "-" : "") + grouped + fp;
+  let s = String(raw), neg = s.startsWith("-");
+  if (neg) s = s.slice(1);
+  const dot = s.indexOf(".");
+  const ip = dot < 0 ? s : s.slice(0, dot);
+  const fp = dot < 0 ? "" : s.slice(dot);
+  const grouped = (ip === "" ? "0" : ip).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return (neg ? "-" : "") + grouped + fp;
 }
+
 function fmt(v){
-if (isNaN(v) || !isFinite(v)) return "Error";
-if (v === 0) return "0";
-const a = Math.abs(v);
-if (a >= 1e15 || a < 1e-6) return v.toExponential(6).replace("e+", "e");
-const intDigits = a >= 1 ? Math.floor(Math.log10(a)) + 1 : 1;
-const dp = Math.max(0, Math.min(15 - intDigits, 12));
-let s = v.toFixed(dp);
-if (s.indexOf(".") >= 0) s = s.replace(/\.?0+$/, "");
-return groupInt(s);
+  if (isNaN(v) || !isFinite(v)) return "Error";
+  if (v === 0) return "0";
+  const a = Math.abs(v);
+  if (a >= 1e15 || a < 1e-6) return v.toExponential(6).replace("e+", "e");
+  const intDigits = a >= 1 ? Math.floor(Math.log10(a)) + 1 : 1;
+  const dp = Math.max(0, Math.min(15 - intDigits, 12));
+  let s = v.toFixed(dp);
+  if (s.indexOf(".") >= 0) s = s.replace(/\.?0+$/, "");
+  return groupInt(s);
 }
+
 const expressionText = () => S.els.map(e => e.t === "n" ? groupInt(e.v) : e.v).join("");
 const primaryText = () => S.justEval ? fmt(currentValue()) : (S.els.length ? expressionText() : "0");
 const secondaryText = () => S.justEval ? S.evalExpr : "";
 const clearLabel = () => S.els.length ? "C" : "AC";
+
 function dateTimeNumber(plusSec){
-const d = new Date(Date.now() + plusSec*1000);
-let h = d.getHours() % 12; if (h === 0) h = 12;
-const p2 = n => String(n).padStart(2, "0");
-return parseInt(`${d.getMonth()+1}${p2(d.getDate())}${h}${p2(d.getMinutes())}`, 10);
+  const d = new Date(Date.now() + plusSec*1000);
+  let h = d.getHours() % 12; if (h === 0) h = 12;
+  const p2 = n => String(n).padStart(2, "0");
+  return parseInt(`${d.getMonth()+1}${p2(d.getDate())}${h}${p2(d.getMinutes())}`, 10);
 }
+
 function forceValueFor(cfg){
-if (cfg.mode === 0 || cfg.mode === 1) return cfg.fixed;
-return dateTimeNumber(cfg.mode === 2 ? cfg.offset : 0);
+  if (cfg.mode === 0 || cfg.mode === 1) return cfg.fixed;
+  return dateTimeNumber(cfg.mode === 2 ? cfg.offset : 0);
 }
 const currentForceValue = () => forceValueFor(CFG);
+
 const digitString = v => String(Math.abs(roundResult(v)));
 const digitCount = v => (digitString(v).match(/\d/g) || []).length;
 const feedTarget = () => S.liveActive ? currentForceValue() : (S.lockedTarget !== null ? S.lockedTarget : currentForceValue());
+
 function getSimpleHint(){
-const target = currentForceValue();
-const currentVal = currentValue();
-const sign = target >= currentVal ? "+" : "−";
-const count = digitCount(target - currentVal);
-return `${sign}${count}`;
+  const target = currentForceValue();
+  const currentVal = currentValue();
+  const sign = target >= currentVal ? "+" : "−";
+  const count = digitCount(target - currentVal);
+  return `${sign}${count}`;
 }
+
 function forceHint(){
-if (S.justEval) return null;
-if (isFeeding()) return S.feedSign + (S.gapDigits.length - S.gapFed);
-if (CFG.mode === 0) return "off";
-return getSimpleHint();
+  if (S.justEval) return null;
+  if (isFeeding()) return S.feedSign + (S.gapDigits.length - S.gapFed);
+  if (CFG.mode === 0) return "off";
+  return getSimpleHint();
 }
+
 function cancelFeed(){
-S.gapDigits = ""; S.gapFed = 0; S.lockedTarget = null; S.liveActive = false;
+  S.gapDigits = ""; S.gapFed = 0; S.lockedTarget = null; S.liveActive = false;
 }
+
 function inputDigit(d){
-cancelFeed();
-if (S.justEval){ S.els = []; S.justEval = false; }
-const last = S.els[S.els.length-1];
-if (last && last.t === "n"){
-if ((last.v.match(/\d/g) || []).length >= 15) return;
-if (last.v === "0") last.v = String(d);
-else if (last.v === "-0") last.v = "-" + d;
-else last.v += d;
-} else S.els.push({t:"n", v:String(d)});
+  cancelFeed();
+  S.camouHint = false;
+  if (S.justEval){ S.els = []; S.justEval = false; }
+  const last = S.els[S.els.length-1];
+  if (last && last.t === "n"){
+    if ((last.v.match(/\d/g) || []).length >= 15) return;
+    if (last.v === "0") last.v = String(d);
+    else if (last.v === "-0") last.v = "-" + d;
+    else last.v += d;
+  } else S.els.push({t:"n", v:String(d)});
 }
+
 function inputDecimal(){
-cancelFeed();
-if (S.justEval){ S.els = []; S.justEval = false; }
-const last = S.els[S.els.length-1];
-if (last && last.t === "n"){
-if (last.v.indexOf(".") < 0) last.v += ".";
-} else S.els.push({t:"n", v:"0."});
+  cancelFeed();
+  S.camouHint = false;
+  if (S.justEval){ S.els = []; S.justEval = false; }
+  const last = S.els[S.els.length-1];
+  if (last && last.t === "n"){
+    if (last.v.indexOf(".") < 0) last.v += ".";
+  } else S.els.push({t:"n", v:"0."});
 }
+
 function inputOperator(op){
-cancelFeed();
-S.justEval = false;
-const last = S.els[S.els.length-1];
-if (!S.els.length) S.els = [{t:"n", v:String(currentValue())}, {t:"o", v:op}];
-else if (last.t === "o") last.v = op;
-else S.els.push({t:"o", v:op});
+  cancelFeed();
+  S.justEval = false;
+  const last = S.els[S.els.length-1];
+  if (!S.els.length) S.els = [{t:"n", v:String(currentValue())}, {t:"o", v:op}];
+  else if (last.t === "o") last.v = op;
+  else S.els.push({t:"o", v:op});
 }
+
 function inputEquals(){
-const shown = expressionText();
-if (feedStarted()) snapForceTerm();
-const v = currentValue();
-if (!isFinite(v)){
-clearAll(); setLocked(false);
-S.els = [{t:"n", v:"0"}];
-return;
+  const shown = expressionText();
+  if (feedStarted()) snapForceTerm();
+  const v = currentValue();
+  if (!isFinite(v)){
+    clearAll(); setLocked(false);
+    S.els = [{t:"n", v:"0"}];
+    return;
+  }
+  S.evalExpr = shown;
+  S.els = [{t:"n", v:String(v)}];
+  S.justEval = true;
+  cancelFeed();
+  S.camouHint = false;
+  setLocked(false);
 }
-S.evalExpr = shown;
-S.els = [{t:"n", v:String(v)}];
-S.justEval = true;
-cancelFeed();
-setLocked(false);
-}
+
 function backspace(){
-cancelFeed();
-if (S.justEval) S.justEval = false;
-const last = S.els[S.els.length-1];
-if (!last) return;
-if (last.t === "n"){
-last.v = last.v.slice(0, -1);
-if (last.v === "" || last.v === "-") S.els.pop();
-} else S.els.pop();
+  cancelFeed();
+  S.camouHint = false;
+  if (S.justEval) S.justEval = false;
+  const last = S.els[S.els.length-1];
+  if (!last) return;
+  if (last.t === "n"){
+    last.v = last.v.slice(0, -1);
+    if (last.v === "" || last.v === "-") S.els.pop();
+  } else S.els.pop();
 }
+
 function clearAll(){
-S.els = []; S.justEval = false; S.evalExpr = "";
-cancelFeed(); setLocked(false);
+  S.els = []; S.justEval = false; S.evalExpr = "";
+  cancelFeed(); S.camouHint = false; setLocked(false);
 }
+
 function toggleSign(){
-cancelFeed();
-const last = S.els[S.els.length-1];
-if (last && last.t === "n"){
-if (last.v.startsWith("-")) last.v = last.v.slice(1);
-else if (last.v !== "0") last.v = "-" + last.v;
-} else if (S.justEval){
-S.els = [{t:"n", v:String(-currentValue())}];
+  cancelFeed();
+  const last = S.els[S.els.length-1];
+  if (last && last.t === "n"){
+    if (last.v.startsWith("-")) last.v = last.v.slice(1);
+    else if (last.v !== "0") last.v = "-" + last.v;
+  } else if (S.justEval){
+    S.els = [{t:"n", v:String(-currentValue())}];
+  }
 }
-}
+
 function percent(){
-cancelFeed();
-const last = S.els[S.els.length-1];
-if (!last || last.t !== "n") return;
-const operand = parseNum(last.v);
-let pct = operand / 100;
-if (S.els.length >= 3){
-const op = S.els[S.els.length-2];
-if (op.t === "o" && (op.v === "+" || op.v === "−")){
-const base = evalUpTo(S.els.length - 2);
-if (isFinite(base)) pct = base * (operand / 100);
+  cancelFeed();
+  const last = S.els[S.els.length-1];
+  if (!last || last.t !== "n") return;
+  const operand = parseNum(last.v);
+  let pct = operand / 100;
+  if (S.els.length >= 3){
+    const op = S.els[S.els.length-2];
+    if (op.t === "o" && (op.v === "+" || op.v === "−")){
+      const base = evalUpTo(S.els.length - 2);
+      if (isFinite(base)) pct = base * (operand / 100);
+    }
+  }
+  last.v = String(roundResult(pct));
 }
-}
-last.v = String(roundResult(pct));
-}
+
 function evalUpTo(n){
-const keep = S.els;
-S.els = keep.slice(0, n);
-const v = currentValue();
-S.els = keep;
-return v;
+  const keep = S.els;
+  S.els = keep.slice(0, n);
+  const v = currentValue();
+  S.els = keep;
+  return v;
 }
+
+/* Prepare the force difference without auto-inserting + or − onto the screen */
 function beginFeed(){
-const last = S.els[S.els.length-1];
-if (last && last.t === "o") S.els.pop();
-const c = currentValue();
-if (!isFinite(c)) return false;
-if (!S.els.length) S.els.push({t:"n", v:String(c)});
-S.liveBase = c;
-S.liveActive = (CFG.mode === 3);
-S.lockedTarget = currentForceValue();
-const f = feedTarget();
-if (!isFinite(f)) return false;
-const op = (f >= c) ? "+" : "−";
-S.feedSign = op;
-S.gapDigits = digitString(f - c);
-S.gapFed = 0;
-S.els.push({t:"o", v:op});
-S.justEval = false;
-return true;
+  const c = currentValue();
+  if (!isFinite(c)) return false;
+  S.liveBase = c;
+  S.liveActive = (CFG.mode === 3);
+  S.lockedTarget = currentForceValue();
+  const f = feedTarget();
+  if (!isFinite(f)) return false;
+  const op = (f >= c) ? "+" : "−";
+  S.feedSign = op;
+  S.gapDigits = digitString(f - c);
+  S.gapFed = 0;
+  return true;
 }
+
+/* Place the required + or − onto S.els when the operator is pressed (or right before the first forced digit) */
+function ensureFeedOperator(){
+  if (!S.els.length) S.els.push({t:"n", v:String(S.liveBase)});
+  const last = S.els[S.els.length-1];
+  if (last && last.t === "o") last.v = S.feedSign;
+  else S.els.push({t:"o", v:S.feedSign});
+  S.justEval = false;
+}
+
 function feedNextChunk(){
-if (CFG.mode === 0) return;
-if (!feedStarted() && !beginFeed()) return;
-if (S.gapFed >= S.gapDigits.length) return;
-const remaining = S.gapDigits.length - S.gapFed;
-const take = (CFG.chunk <= 0) ? remaining : Math.min(CFG.chunk, remaining);
-const chunk = S.gapDigits.substr(S.gapFed, take);
-S.gapFed += chunk.length;
-const last = S.els[S.els.length-1];
-if (last && last.t === "n") last.v += chunk;
-else S.els.push({t:"n", v:chunk});
-if (S.gapFed >= S.gapDigits.length) setLocked(false);
-buzz();
+  if (CFG.mode === 0) return;
+  if (!feedStarted() && !beginFeed()) return;
+  if (S.gapFed >= S.gapDigits.length) return;
+  if (S.gapFed === 0) ensureFeedOperator();
+  const remaining = S.gapDigits.length - S.gapFed;
+  const take = (CFG.chunk <= 0) ? remaining : Math.min(CFG.chunk, remaining);
+  const chunk = S.gapDigits.substr(S.gapFed, take);
+  S.gapFed += chunk.length;
+  S.camouHint = false; // Auto-clear deceptive keypad hint as soon as forced digits start typing
+  const last = S.els[S.els.length-1];
+  if (last && last.t === "n") last.v += chunk;
+  else S.els.push({t:"n", v:chunk});
+  if (S.gapFed >= S.gapDigits.length) setLocked(false);
+  buzz();
 }
+
 function snapForceTerm(){
-if (S.els.length < 2) return;
-const n = S.els[S.els.length-1], o = S.els[S.els.length-2];
-if (n.t !== "n" || o.t !== "o") return;
-const f = feedTarget();
-o.v = (f >= S.liveBase) ? "+" : "−";
-n.v = digitString(f - S.liveBase);
+  if (S.els.length < 2) return;
+  const n = S.els[S.els.length-1], o = S.els[S.els.length-2];
+  if (n.t !== "n" || o.t !== "o") return;
+  const f = feedTarget();
+  o.v = (f >= S.liveBase) ? "+" : "−";
+  n.v = digitString(f - S.liveBase);
 }
+
 function toggleInputLock(){
-if (S.locked || inputFrozen()){
-setLocked(false);
-if (inputFrozen()) cancelFeed();
-} else {
-if (CFG.mode === 0) return;
-if (!feedStarted() && !beginFeed()) return;
-setLocked(true);
+  if (S.locked || inputFrozen()){
+    S.camouHint = false;
+    setLocked(false);
+    if (inputFrozen()) cancelFeed();
+  } else {
+    if (CFG.mode === 0) return;
+    if (!feedStarted() && !beginFeed()) return;
+    S.camouHint = true; // Trigger 1: Automatically show deceptive keypad hint when locking %
+    setLocked(true);
+  }
+  buzz();
 }
-buzz();
+
+function toggleCamouHint(){
+  if (CFG.mode === 0 || S.justEval && false) return;
+  S.camouHint = !S.camouHint;
+  buzz();
+  render();
 }
+
+/* Hold + : store what's on screen as the force number, clear display to confirm. */
 function storeForceFromDisplay(){
-if (!S.els.length) return false;
-const v = currentValue();
-if (!isFinite(v)) return false;
-CFG.fixed = roundResult(v);
-CFG.mode = 1;
-sessionOverridden = true;
-saveLocal();
-clearAll();
-buzz();
-return true;
+  if (!S.els.length) return false;
+  const v = currentValue();
+  if (!isFinite(v)) return false;
+  CFG.fixed = roundResult(v);
+  CFG.mode = 1;
+  sessionOverridden = true;
+  saveLocal();
+  clearAll();
+  buzz();
+  return true;
 }
+
 function buzz(){ if (navigator.vibrate) try { navigator.vibrate(12); } catch(e){} }
+
 const elPrimary = document.getElementById("primary");
 const elSecondary = document.getElementById("secondary");
 const elPeek = document.getElementById("peek");
 const elOverlay = document.getElementById("overlay");
 const elOverlayText = document.getElementById("overlayText");
 let overlayTimer = null;
+
 function showOverlay(msg, ms){
-clearTimeout(overlayTimer);
-elOverlayText.textContent = msg;
-elOverlay.classList.add("on");
-overlayTimer = setTimeout(() => elOverlay.classList.remove("on"), ms || 1500);
+  clearTimeout(overlayTimer);
+  elOverlayText.textContent = msg;
+  elOverlay.classList.add("on");
+  overlayTimer = setTimeout(() => elOverlay.classList.remove("on"), ms || 1500);
 }
-function showPeek(){ elPeek.textContent = forceHint() || " "; elPeek.classList.add("on"); }
-function hidePeek(){ elPeek.classList.remove("on"); }
+
+let holdingPeek = false;
+function showPeek(){ holdingPeek = true; elPeek.textContent = forceHint() || " "; elPeek.classList.add("on"); }
+function hidePeek(){
+  holdingPeek = false;
+  updateCamouHintUI();
+}
 const gridBtn = document.getElementById("gridBtn");
+
 function setLocked(on){
-S.locked = on;
-gridBtn.classList.toggle("locked", on);
+  S.locked = on;
+  gridBtn.classList.toggle("locked", on);
 }
+
 function sizeKeypad(){
-const W = document.documentElement.clientWidth;
-const H = document.documentElement.clientHeight;
-const landscape = W > H;
-const base = Math.min(W, H);
-const gap = Math.round(base * 0.020);
-const pad = Math.round(base * 0.039);
-const appEl = document.querySelector(".app");
-const barH = document.querySelector(".topbar").offsetHeight;
-const room = appEl.clientHeight - barH;
-const root = document.documentElement.style;
-if (landscape){
-const keyh = Math.max(26, Math.floor((room * 0.74 - gap * 3) / 4));
-root.setProperty("--keyh", keyh + "px");
-} else {
-let size = (W - pad * 2 - gap * 3) / 4;
-const maxByHeight = (room * 0.78 - gap * 4) / 5;
-size = Math.max(28, Math.floor(Math.min(size, maxByHeight)));
-root.setProperty("--keysize", size + "px");
+  const W = document.documentElement.clientWidth;
+  const H = document.documentElement.clientHeight;
+  const landscape = W > H;
+  const base = Math.min(W, H);
+  const gap = Math.round(base * 0.020);
+  const pad = Math.round(base * 0.039);
+  const appEl = document.querySelector(".app");
+  const barH = document.querySelector(".topbar").offsetHeight;
+  const room = appEl.clientHeight - barH;
+  const root = document.documentElement.style;
+
+  if (landscape){
+    const keyh = Math.max(26, Math.floor((room * 0.74 - gap * 3) / 4));
+    root.setProperty("--keyh", keyh + "px");
+  } else {
+    let size = (W - pad * 2 - gap * 3) / 4;
+    const maxByHeight = (room * 0.78 - gap * 4) / 5;
+    size = Math.max(28, Math.floor(Math.min(size, maxByHeight)));
+    root.setProperty("--keysize", size + "px");
+  }
+  root.setProperty("--gap", gap + "px");
+  root.setProperty("--pad", pad + "px");
 }
-root.setProperty("--gap", gap + "px");
-root.setProperty("--pad", pad + "px");
-}
+
 function fitPrimary(){
-const el = elPrimary;
-el.style.fontSize = "";
-const max = el.parentElement.clientWidth - 12;
-let size = parseFloat(getComputedStyle(el).fontSize) || 80;
-while (el.scrollWidth > max && size > 24){ size -= 2; el.style.fontSize = size + "px"; }
+  const el = elPrimary;
+  el.style.fontSize = "";
+  const max = el.parentElement.clientWidth - 12;
+  let size = parseFloat(getComputedStyle(el).fontSize) || 80;
+  while (el.scrollWidth > max && size > 24){ size -= 2; el.style.fontSize = size + "px"; }
 }
-function render(){
-elPrimary.textContent = primaryText();
-elSecondary.textContent = secondaryText();
-fitPrimary();
-const acKey = document.querySelector('[data-k="clear"]');
-if (acKey) acKey.textContent = clearLabel();
-}
+
 const SVG_SIGN = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round"><line x1="1.2" y1="7.6" x2="8.8" y2="7.6"/><line x1="5.0" y1="3.8" x2="5.0" y2="11.4"/><line x1="4.9" y1="22.2" x2="18.2" y2="2.6"/><line x1="14.4" y1="17.9" x2="21.9" y2="17.9"/></svg>`;
 const SVG_DOT = `<svg viewBox="0 0 24 24"><circle cx="12" cy="19.9" r="1.5" fill="currentColor"/></svg>`;
+const SVG_COMMA = `<svg viewBox="0 0 24 24"><path d="M10.45 19.5a1.55 1.55 0 1 1 3.1 0c0 1.58-.78 2.98-2.22 3.82l-.52-.78c.92-.56 1.42-1.36 1.48-2.26-.1.02-.2.03-.29.03a1.55 1.55 0 0 1-1.55-1.55z" fill="currentColor"/></svg>`;
 const OP = (body) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round">${body}</svg>`;
 const SVG_DIV = OP(`<line x1="2.2" y1="12" x2="21.8" y2="12"/><circle cx="12" cy="4.9" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="19.1" r="1.6" fill="currentColor" stroke="none"/>`);
 const SVG_MUL = OP(`<line x1="4.9" y1="4.9" x2="19.1" y2="19.1"/><line x1="19.1" y1="4.9" x2="4.9" y2="19.1"/>`);
 const SVG_SUB = OP(`<line x1="2.2" y1="12" x2="21.8" y2="12"/>`);
 const SVG_ADD = OP(`<line x1="2.2" y1="12" x2="21.8" y2="12"/><line x1="12" y1="2.2" x2="12" y2="21.8"/>`);
 const SVG_EQ = OP(`<line x1="2.6" y1="8.3" x2="21.4" y2="8.3"/><line x1="2.6" y1="15.7" x2="21.4" y2="15.7"/>`);
+
+function updateCamouHintUI(){
+  const dotKey = document.querySelector('[data-k="dot"]');
+  document.querySelectorAll(".key.camou-digit").forEach(el => el.classList.remove("camou-digit"));
+  if (!S.camouHint || CFG.mode === 0 || S.gapFed > 0){
+    if (dotKey) dotKey.innerHTML = SVG_DOT;
+    if (!holdingPeek) elPeek.classList.remove("on");
+    return;
+  }
+  let sign = "+";
+  let count = 0;
+  if (feedStarted()){
+    sign = S.feedSign;
+    count = S.gapDigits.length - S.gapFed;
+  } else {
+    const target = currentForceValue();
+    const currentVal = currentValue();
+    sign = target >= currentVal ? "+" : "−";
+    count = digitCount(target - currentVal);
+  }
+  /* If over 10 digits: do NOT show on the keyboard; show in the old peek spot under the top-left Clock icon */
+  if (count > 10){
+    if (dotKey) dotKey.innerHTML = SVG_DOT;
+    elPeek.textContent = `${sign}${count}`;
+    elPeek.classList.add("on");
+    return;
+  }
+  if (!holdingPeek) elPeek.classList.remove("on");
+  if (dotKey){
+    dotKey.innerHTML = (sign === "−") ? SVG_COMMA : SVG_DOT;
+  }
+  if (count >= 1 && count <= 10){
+    const digitNum = (count === 10) ? 0 : count; // 1–9 -> d1..d9, 10 -> d0
+    const dKey = document.querySelector(`[data-k="d${digitNum}"]`);
+    if (dKey) dKey.classList.add("camou-digit");
+  }
+}
+
+function render(){
+  elPrimary.textContent = primaryText();
+  elSecondary.textContent = secondaryText();
+  fitPrimary();
+  const acKey = document.querySelector('[data-k="clear"]');
+  if (acKey) acKey.textContent = clearLabel();
+  updateCamouHintUI();
+}
+
 const KEYS = [
-["back","⌫","fn"], ["clear","AC","fn"], ["pct","%","fn"], ["div",SVG_DIV,"op"],
-["d7","7","d"], ["d8","8","d"], ["d9","9","d"], ["mul",SVG_MUL,"op"],
-["d4","4","d"], ["d5","5","d"], ["d6","6","d"], ["sub",SVG_SUB,"op"],
-["d1","1","d"], ["d2","2","d"], ["d3","3","d"], ["add",SVG_ADD,"op"],
-["sign",SVG_SIGN,"d"], ["d0","0","d"], ["dot",SVG_DOT,"d"], ["eq",SVG_EQ,"op"],
+  ["back","⌫","fn"], ["clear","AC","fn"], ["pct","%","fn"], ["div",SVG_DIV,"op"],
+  ["d7","7","d"], ["d8","8","d"], ["d9","9","d"], ["mul",SVG_MUL,"op"],
+  ["d4","4","d"], ["d5","5","d"], ["d6","6","d"], ["sub",SVG_SUB,"op"],
+  ["d1","1","d"], ["d2","2","d"], ["d3","3","d"], ["add",SVG_ADD,"op"],
+  ["sign",SVG_SIGN,"d"], ["d0","0","d"], ["dot",SVG_DOT,"d"], ["eq",SVG_EQ,"op"],
 ];
 const keypad = document.getElementById("keypad");
 for (const [k, label, kind] of KEYS){
-const b = document.createElement("button");
-b.className = "key" + (kind === "fn" ? " fn" : kind === "op" ? " op" : "");
-b.dataset.k = k;
-if (label.startsWith("<")) b.innerHTML = label; else b.textContent = label;
-keypad.appendChild(b);
+  const b = document.createElement("button");
+  b.className = "key" + (kind === "fn" ? " fn" : kind === "op" ? " op" : "");
+  b.dataset.k = k;
+  if (label.startsWith("<")) b.innerHTML = label; else b.textContent = label;
+  keypad.appendChild(b);
 }
+
 const LOCK_EXEMPT = new Set(["eq"]);
 const FROZEN_EXEMPT = new Set(["eq"]);
+const OP_KEYS = new Set(["add", "sub", "mul", "div"]);
 let lastAcTap = 0;
+
 function activate(k){
-if (inputFrozen()){
-if (!FROZEN_EXEMPT.has(k)) return;
-} else if (S.locked && !LOCK_EXEMPT.has(k)){
-feedNextChunk(); render(); return;
+  if (inputFrozen()){
+    if (!FROZEN_EXEMPT.has(k)) return;
+  } else if (S.locked && !LOCK_EXEMPT.has(k)){
+    const last = S.els[S.els.length - 1];
+    if (S.gapFed === 0 && OP_KEYS.has(k) && (!last || last.t !== "o")){
+      if (!feedStarted()) beginFeed();
+      ensureFeedOperator();
+      buzz();
+      render();
+      return;
+    }
+    feedNextChunk(); render(); return;
+  }
+  if (k === "clear"){
+    const wasAllClear = (S.els.length === 0);
+    clearAll();
+    render();
+    if (wasAllClear){
+      const now = Date.now();
+      if (now - lastAcTap < 360){
+        lastAcTap = 0;
+        executeRedirect(CFG.acRedirectUrl || "dice", !!CFG.acOpenSafari);
+      } else {
+        lastAcTap = now;
+      }
+    } else {
+      lastAcTap = 0;
+    }
+    return;
+  }
+  lastAcTap = 0;
+  switch (k){
+    case "back": backspace(); break;
+    case "pct": percent(); break;
+    case "sign": toggleSign(); break;
+    case "dot": inputDecimal(); break;
+    case "eq": inputEquals(); break;
+    case "div": inputOperator("÷"); break;
+    case "mul": inputOperator("×"); break;
+    case "sub": inputOperator("−"); break;
+    case "add": inputOperator("+"); break;
+    default:
+      if (k.startsWith("d")) inputDigit(parseInt(k.slice(1), 10));
+  }
+  render();
 }
-if (k === "clear"){
-const wasAllClear = (S.els.length === 0);
-clearAll();
-render();
-if (wasAllClear){
-const now = Date.now();
-if (now - lastAcTap < 360){
-lastAcTap = 0;
-executeRedirect(CFG.acRedirectUrl || "dice", !!CFG.acOpenSafari);
-} else {
-lastAcTap = now;
-}
-} else {
-lastAcTap = 0;
-}
-return;
-}
-lastAcTap = 0;
-switch (k){
-case "back": backspace(); break;
-case "pct": percent(); break;
-case "sign": toggleSign(); break;
-case "dot": inputDecimal(); break;
-case "eq": inputEquals(); break;
-case "div": inputOperator("÷"); break;
-case "mul": inputOperator("×"); break;
-case "sub": inputOperator("−"); break;
-case "add": inputOperator("+"); break;
-default:
-if (k.startsWith("d")) inputDigit(parseInt(k.slice(1), 10));
-}
-render();
-}
-const HOLD_DELAY = 500;
+
+const HOLD_DELAY = 500;          // hold ± to flip Fixed / Time, or hold = to show mode
 const P = new Map();
 const gapFed = new Set();
+
 function releaseHighlight(b, pressAt){
-clearTimeout(b._hl);
-const wait = Math.max(0, 130 - (Date.now() - pressAt));
-b._hl = setTimeout(() => b.classList.remove("pressed"), wait);
+  clearTimeout(b._hl);
+  const wait = Math.max(0, 130 - (Date.now() - pressAt));
+  b._hl = setTimeout(() => b.classList.remove("pressed"), wait);
 }
+
 keypad.addEventListener("pointerdown", e => {
-const b = e.target.closest(".key");
-if (!b){
-if (S.locked && !inputFrozen()){
-gapFed.add(e.pointerId);
-feedNextChunk(); render();
-}
-return;
-}
-clearTimeout(b._hl);
-const st = {b, pressAt: Date.now(), holdTimer: null, didHold: false};
-P.set(e.pointerId, st);
-b.classList.add("pressed");
-if (b.setPointerCapture) try { b.setPointerCapture(e.pointerId); } catch(_){}
-const k = b.dataset.k;
-if (k === "pct" || (k === "dot" && !S.locked)) showPeek();
-if (k === "sign"){
-st.holdTimer = setTimeout(() => {
-if (S.locked || inputFrozen()) return;
-st.didHold = true;
-CFG.mode = (CFG.mode === 1) ? 2 : 1;
-sessionOverridden = true;
-saveLocal();
-buzz();
-showOverlay(CFG.mode === 2 ? "MODE: TIME" : "MODE: FIXED", 1200);
-}, HOLD_DELAY);
-}
-if (k === "eq"){
-st.holdTimer = setTimeout(() => {
-if (S.locked || inputFrozen() || feedStarted()) return;
-st.didHold = true;
-buzz();
-let info = "";
-if (CFG.mode === 0) info = "MODE: OFF";
-else if (CFG.mode === 1) info = `FIXED: ${CFG.fixed}`;
-else if (CFG.mode === 2){
-const mins = Math.floor(CFG.offset / 60);
-const secs = CFG.offset % 60;
-info = `TIME: +${mins}m ${secs}s`;
-} else if (CFG.mode === 3) info = "TIME: LIVE";
-showOverlay(info, 2000);
-}, HOLD_DELAY);
-}
-if (k === "pct"){
-st.holdTimer = setTimeout(() => {
-if (inputFrozen()) return;
-st.didHold = true;
-toggleInputLock();
-render();
-}, CFG.hold * 1000);
-}
-if (k === "add"){
-st.holdTimer = setTimeout(() => {
-if (S.locked || feedStarted()) return;
-if (storeForceFromDisplay()){ st.didHold = true; render(); }
-}, CFG.hold * 1000);
-}
+  const b = e.target.closest(".key");
+  if (!b){
+    // Gaps between keys inject while locked, or toggle the deceptive keypad hint while unlocked.
+    if (S.locked && !inputFrozen()){
+      gapFed.add(e.pointerId);
+      feedNextChunk(); render();
+    } else if (!S.locked){
+      toggleCamouHint();
+    }
+    return;
+  }
+  clearTimeout(b._hl);
+  const st = {b, pressAt: Date.now(), holdTimer: null, didHold: false};
+  P.set(e.pointerId, st);
+  b.classList.add("pressed");
+  if (b.setPointerCapture) try { b.setPointerCapture(e.pointerId); } catch(_){}
+  const k = b.dataset.k;
+  if (k === "pct" || (k === "dot" && !S.locked)) showPeek();
+
+  if (k === "sign"){
+    st.holdTimer = setTimeout(() => {
+      if (S.locked || inputFrozen()) return;
+      st.didHold = true;
+      CFG.mode = (CFG.mode === 1) ? 2 : 1;
+      sessionOverridden = true;
+      saveLocal();
+      buzz();
+      showOverlay(CFG.mode === 2 ? "MODE: TIME" : "MODE: FIXED", 1200);
+    }, HOLD_DELAY);
+  }
+
+  if (k === "eq"){
+    st.holdTimer = setTimeout(() => {
+      if (S.locked || inputFrozen() || feedStarted()) return;
+      st.didHold = true;
+      buzz();
+      let info = "";
+      if (CFG.mode === 0) info = "MODE: OFF";
+      else if (CFG.mode === 1) info = `FIXED: ${CFG.fixed}`;
+      else if (CFG.mode === 2){
+        const mins = Math.floor(CFG.offset / 60);
+        const secs = CFG.offset % 60;
+        info = `TIME: +${mins}m ${secs}s`;
+      } else if (CFG.mode === 3) info = "TIME: LIVE";
+      showOverlay(info, 2000);
+    }, HOLD_DELAY);
+  }
+
+  if (k === "pct"){
+    st.holdTimer = setTimeout(() => {
+      if (inputFrozen()) return;
+      st.didHold = true;
+      toggleInputLock();
+      render();
+    }, CFG.hold * 1000);
+  }
+
+  if (k === "add"){
+    st.holdTimer = setTimeout(() => {
+      if (S.locked || feedStarted()) return;
+      if (storeForceFromDisplay()){ st.didHold = true; render(); }
+    }, CFG.hold * 1000);
+  }
 });
+
 function endPress(e, cancelled){
-const st = P.get(e.pointerId);
-const fedViaGap = gapFed.delete(e.pointerId);
-if (!st) return;
-P.delete(e.pointerId);
-clearTimeout(st.holdTimer);
-releaseHighlight(st.b, st.pressAt);
-const k = st.b.dataset.k;
-if (k === "pct" || k === "dot") hidePeek();
-if (cancelled || st.didHold) return;
-if (fedViaGap) return;
-if (k === "dot" && !S.locked && (Date.now() - st.pressAt) > 260) return;
-activate(k);
+  const st = P.get(e.pointerId);
+  const fedViaGap = gapFed.delete(e.pointerId);
+  if (!st) return;
+  P.delete(e.pointerId);
+  clearTimeout(st.holdTimer);
+  releaseHighlight(st.b, st.pressAt);
+  const k = st.b.dataset.k;
+  if (k === "pct" || k === "dot") hidePeek();
+  if (cancelled || st.didHold) return;
+  if (fedViaGap) return;
+  if (k === "dot" && !S.locked && (Date.now() - st.pressAt) > 260) return;
+  activate(k);
 }
 keypad.addEventListener("pointerup", e => endPress(e, false));
 keypad.addEventListener("pointercancel", e => endPress(e, true));
+
 document.addEventListener("pointerup", () => {
-if (P.size) return;
-document.querySelectorAll(".key.pressed").forEach(b => b.classList.remove("pressed"));
+  if (P.size) return;
+  document.querySelectorAll(".key.pressed").forEach(b => b.classList.remove("pressed"));
 }, true);
+
+/* History button: quick tap → opens CFG.redirectUrl (new Safari tab, App Clip, or Dice). Press & hold → peek the hint. */
 (() => {
-const clock = document.getElementById("clockBtn");
-syncClockBtnAttr();
-let t = null, held = false;
-clock.addEventListener("pointerdown", () => {
-held = false;
-syncClockBtnAttr();
-clearTimeout(t);
-t = setTimeout(() => { held = true; showPeek(); }, 250);
-});
-const end = () => { clearTimeout(t); hidePeek(); };
-clock.addEventListener("pointerup", end);
-clock.addEventListener("pointercancel", end);
-clock.addEventListener("pointerleave", end);
-clock.addEventListener("click", e => {
-if (held){ e.preventDefault(); held = false; return; }
-const dest = normalizeUrl(CFG.redirectUrl || "https://icontrol-magic.onrender.com/");
-if (dest === "dice"){
-e.preventDefault();
-openDiceApp();
-} else if (CFG.redirectOpenSafari === false){
-e.preventDefault();
-window.location.href = dest;
-}
-});
+  const clock = document.getElementById("clockBtn");
+  syncClockBtnAttr();
+  let t = null, held = false;
+  clock.addEventListener("pointerdown", () => {
+    held = false;
+    syncClockBtnAttr();
+    clearTimeout(t);
+    t = setTimeout(() => { held = true; showPeek(); }, 250);
+  });
+  const end = () => { clearTimeout(t); hidePeek(); };
+  clock.addEventListener("pointerup", end);
+  clock.addEventListener("pointercancel", end);
+  clock.addEventListener("pointerleave", end);
+  clock.addEventListener("click", e => {
+    if (held){ e.preventDefault(); held = false; return; }
+    const dest = normalizeUrl(CFG.redirectUrl || "https://icontrol-magic.onrender.com/");
+    if (dest === "dice"){
+      e.preventDefault();
+      openDiceApp();
+    } else if (CFG.redirectOpenSafari === false){
+      e.preventDefault();
+      window.location.href = dest;
+    }
+  });
 })();
+
+/* Black area / Main numbers & equation area above the keys:
+   - While locked: each tap feeds the next force chunk.
+   - While unlocked:
+     * Double-tap switches to the Clock site / Display Redirect (CFG.clockSiteUrl).
+     * Single-tap or hold (0.32s) in the black space toggles the Deceptive Keypad Hint (comma + digit emphasis). */
 (() => {
-const displayArea = document.getElementById("displayArea");
-let lastDisplayTap = 0;
-displayArea.addEventListener("pointerdown", () => {
-if (S.locked && !inputFrozen()){
-feedNextChunk();
-render();
-}
-});
-displayArea.addEventListener("pointerup", () => {
-if (S.locked) return;
-const now = Date.now();
-if (now - lastDisplayTap < 420){
-lastDisplayTap = 0;
-const dest = normalizeUrl(CFG.clockSiteUrl);
-if (dest){
-executeRedirect(dest, !!CFG.clockOpenSafari);
-} else {
-showOverlay("SET CLOCK URL IN SETTINGS", 1600);
-}
-} else {
-lastDisplayTap = now;
-}
-});
+  const displayArea = document.getElementById("displayArea");
+  let lastDisplayTap = 0;
+  let singleTapTimer = null;
+  let holdTimer = null;
+  let didHold = false;
+
+  displayArea.addEventListener("pointerdown", () => {
+    didHold = false;
+    clearTimeout(holdTimer);
+    if (S.locked && !inputFrozen()){
+      feedNextChunk();
+      render();
+      return;
+    }
+    if (!S.locked){
+      holdTimer = setTimeout(() => {
+        didHold = true;
+        clearTimeout(singleTapTimer);
+        lastDisplayTap = 0;
+        toggleCamouHint();
+      }, 320);
+    }
+  });
+
+  displayArea.addEventListener("pointerup", () => {
+    clearTimeout(holdTimer);
+    if (S.locked || didHold) return;
+    const now = Date.now();
+    if (now - lastDisplayTap < 420){
+      clearTimeout(singleTapTimer);
+      lastDisplayTap = 0;
+      const dest = normalizeUrl(CFG.clockSiteUrl);
+      if (dest){
+        executeRedirect(dest, !!CFG.clockOpenSafari);
+      } else {
+        showOverlay("SET CLOCK URL IN SETTINGS", 1600);
+      }
+    } else {
+      lastDisplayTap = now;
+      clearTimeout(singleTapTimer);
+      singleTapTimer = setTimeout(() => {
+        lastDisplayTap = 0;
+        toggleCamouHint();
+      }, 430);
+    }
+  });
+
+  displayArea.addEventListener("pointercancel", () => {
+    clearTimeout(holdTimer);
+  });
 })();
+
+/* ---------- Built-in Die Roller ---------- */
 const diceApp = document.getElementById("diceApp");
 const dieCube = document.getElementById("dieCube");
 const diePips = Array.from(dieCube.querySelectorAll(".pip"));
 const PIP_MAP = {
-1: [4],
-2: [2, 6],
-3: [2, 4, 6],
-4: [0, 2, 6, 8],
-5: [0, 2, 4, 6, 8],
-6: [0, 2, 3, 5, 6, 8]
+  1: [4],
+  2: [2, 6],
+  3: [2, 4, 6],
+  4: [0, 2, 6, 8],
+  5: [0, 2, 4, 6, 8],
+  6: [0, 2, 3, 5, 6, 8]
 };
 let currentFace = 5;
 let rolling = false;
+
 function showDieFace(face){
-currentFace = face;
-const active = new Set(PIP_MAP[face] || PIP_MAP[5]);
-diePips.forEach((p, idx) => p.classList.toggle("on", active.has(idx)));
+  currentFace = face;
+  const active = new Set(PIP_MAP[face] || PIP_MAP[5]);
+  diePips.forEach((p, idx) => p.classList.toggle("on", active.has(idx)));
 }
+
 function rollDie(){
-if (rolling) return;
-rolling = true;
-buzz();
-dieCube.classList.remove("rolling");
-void dieCube.offsetWidth;
-dieCube.classList.add("rolling");
-let ticks = 0;
-const shuffle = setInterval(() => {
-ticks++;
-const rand = 1 + Math.floor(Math.random() * 6);
-showDieFace(rand);
-if (ticks >= 6){
-clearInterval(shuffle);
-const finalFace = 1 + Math.floor(Math.random() * 6);
-showDieFace(finalFace);
-rolling = false;
+  if (rolling) return;
+  rolling = true;
+  buzz();
+  dieCube.classList.remove("rolling");
+  void dieCube.offsetWidth;
+  dieCube.classList.add("rolling");
+  let ticks = 0;
+  const shuffle = setInterval(() => {
+    ticks++;
+    const rand = 1 + Math.floor(Math.random() * 6);
+    showDieFace(rand);
+    if (ticks >= 6){
+      clearInterval(shuffle);
+      const finalFace = 1 + Math.floor(Math.random() * 6);
+      showDieFace(finalFace);
+      rolling = false;
+    }
+  }, 75);
 }
-}, 75);
-}
+
 function openDiceApp(){
-showDieFace(1 + Math.floor(Math.random() * 6));
-diceApp.classList.add("open");
-diceApp.setAttribute("aria-hidden", "false");
-buzz();
+  showDieFace(1 + Math.floor(Math.random() * 6));
+  diceApp.classList.add("open");
+  diceApp.setAttribute("aria-hidden", "false");
+  buzz();
 }
+
 function closeDiceApp(){
-diceApp.classList.remove("open");
-diceApp.setAttribute("aria-hidden", "true");
-buzz();
+  diceApp.classList.remove("open");
+  diceApp.setAttribute("aria-hidden", "true");
+  buzz();
 }
+
 document.getElementById("dieStage").addEventListener("click", rollDie);
+
+/* Hold any of the 4 corners for 600ms to return from the die roller to the calculator */
 diceApp.querySelectorAll(".die-corner").forEach(corner => {
-let holdT = null;
-const start = e => {
-e.stopPropagation();
-clearTimeout(holdT);
-holdT = setTimeout(() => {
-holdT = null;
-closeDiceApp();
-}, 600);
-};
-const cancel = () => { clearTimeout(holdT); holdT = null; };
-corner.addEventListener("pointerdown", start);
-corner.addEventListener("pointerup", cancel);
-corner.addEventListener("pointercancel", cancel);
-corner.addEventListener("pointerleave", cancel);
+  let holdT = null;
+  const start = e => {
+    e.stopPropagation();
+    clearTimeout(holdT);
+    holdT = setTimeout(() => {
+      holdT = null;
+      closeDiceApp();
+    }, 600);
+  };
+  const cancel = () => { clearTimeout(holdT); holdT = null; };
+  corner.addEventListener("pointerdown", start);
+  corner.addEventListener("pointerup", cancel);
+  corner.addEventListener("pointercancel", cancel);
+  corner.addEventListener("pointerleave", cancel);
 });
+
+/* ---------- Settings sheet ---------- */
 const sheet = document.getElementById("sheet");
 const modeList = document.getElementById("modeList");
 const fixedIn = document.getElementById("fixedIn");
@@ -1112,216 +1328,229 @@ const acUrlIn = document.getElementById("acUrlIn");
 const acSafariIn = document.getElementById("acSafariIn");
 const calcAcDiceBtn = document.getElementById("calcAcDiceBtn");
 let draft = null, pvTimer = null;
+
 calcDispDiceBtn.addEventListener("click", () => {
-clockSiteIn.value = "dice";
-clockSafariIn.checked = false;
-if (draft){ draft.clockSiteUrl = "dice"; draft.clockOpenSafari = false; }
-renderCalcSavedSites();
+  clockSiteIn.value = "dice";
+  clockSafariIn.checked = false;
+  if (draft){ draft.clockSiteUrl = "dice"; draft.clockOpenSafari = false; }
+  renderCalcSavedSites();
 });
 calcAcDiceBtn.addEventListener("click", () => {
-acUrlIn.value = "dice";
-acSafariIn.checked = false;
-if (draft){ draft.acRedirectUrl = "dice"; draft.acOpenSafari = false; }
+  acUrlIn.value = "dice";
+  acSafariIn.checked = false;
+  if (draft){ draft.acRedirectUrl = "dice"; draft.acOpenSafari = false; }
 });
+
 function renderCalcSavedSites(){
-if (!draft) return;
-if (!Array.isArray(draft.savedSites) || !draft.savedSites.length){
-calcSavedSitesList.innerHTML = `<div class="row" style="color:var(--sh-label);font-size:14px;">No saved websites yet.</div>`;
-return;
+  if (!draft) return;
+  if (!Array.isArray(draft.savedSites) || !draft.savedSites.length){
+    calcSavedSitesList.innerHTML = `<div class="row" style="color:var(--sh-label);font-size:14px;">No saved websites yet.</div>`;
+    return;
+  }
+  const activeNorm = normalizeUrl(clockSiteIn.value || draft.clockSiteUrl);
+  calcSavedSitesList.innerHTML = draft.savedSites.map((site, idx) => {
+    const sNorm = normalizeUrl(site.url);
+    const isSel = sNorm === activeNorm;
+    const safeName = (site.name || site.url).replace(/</g, "&lt;");
+    const safeUrl = site.url.replace(/</g, "&lt;");
+    const modeTag = sNorm === "dice" ? "Built-in" : (site.openInSafari ? "Safari Tab" : "App Clip");
+    return `<div class="row calc-site-row" data-idx="${idx}" style="cursor:pointer;padding:10px 15px;">
+      <div style="flex:1;min-width:0;overflow:hidden;">
+        <div style="font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${isSel ? "✓ " : ""}${safeName} <span style="font-size:11px;color:#ff9f0a;">(${modeTag})</span></div>
+        <div style="font-size:12px;color:var(--sh-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${safeUrl}</div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <button type="button" class="calc-site-use" data-idx="${idx}" style="background:var(--sh-fill);color:#fff;border:0;border-radius:7px;padding:6px 10px;font-size:13px;cursor:pointer;">Use</button>
+        <button type="button" class="calc-site-del" data-idx="${idx}" style="background:rgba(255,69,58,0.2);color:#ff453a;border:0;border-radius:7px;width:28px;height:28px;font-size:16px;font-weight:700;cursor:pointer;">×</button>
+      </div>
+    </div>`;
+  }).join("");
 }
-const activeNorm = normalizeUrl(clockSiteIn.value || draft.clockSiteUrl);
-calcSavedSitesList.innerHTML = draft.savedSites.map((site, idx) => {
-const sNorm = normalizeUrl(site.url);
-const isSel = sNorm === activeNorm;
-const safeName = (site.name || site.url).replace(/</g, "&lt;");
-const safeUrl = site.url.replace(/</g, "&lt;");
-const modeTag = sNorm === "dice" ? "Built-in" : (site.openInSafari ? "Safari Tab" : "App Clip");
-return `<div class="row calc-site-row" data-idx="${idx}" style="cursor:pointer;padding:10px 15px;">
-<div style="flex:1;min-width:0;overflow:hidden;">
-<div style="font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${isSel ? "✓ " : ""}${safeName} <span style="font-size:11px;color:#ff9f0a;">(${modeTag})</span></div>
-<div style="font-size:12px;color:var(--sh-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${safeUrl}</div>
-</div>
-<div style="display:flex;gap:6px;align-items:center;">
-<button type="button" class="calc-site-use" data-idx="${idx}" style="background:var(--sh-fill);color:#fff;border:0;border-radius:7px;padding:6px 10px;font-size:13px;cursor:pointer;">Use</button>
-<button type="button" class="calc-site-del" data-idx="${idx}" style="background:rgba(255,69,58,0.2);color:#ff453a;border:0;border-radius:7px;width:28px;height:28px;font-size:16px;font-weight:700;cursor:pointer;">×</button>
-</div>
-</div>`;
-}).join("");
-}
+
 calcSaveSiteBtn.addEventListener("click", () => {
-if (!draft) return;
-const rawUrl = normalizeUrl(clockSiteIn.value);
-if (!rawUrl) return;
-let label = calcSiteNameIn.value.trim();
-if (!label){
-if (rawUrl === "dice") label = "Built-in 3D Dice Roller";
-else {
-try { label = new URL(rawUrl).hostname.replace(/^www\./, ""); } catch(e){ label = rawUrl; }
-}
-}
-clockSiteIn.value = rawUrl;
-draft.clockSiteUrl = rawUrl;
-draft.clockOpenSafari = clockSafariIn.checked;
-const existingIdx = draft.savedSites.findIndex(s => normalizeUrl(s.url) === rawUrl);
-if (existingIdx >= 0){
-draft.savedSites[existingIdx] = { name: label, url: rawUrl, openInSafari: clockSafariIn.checked };
-} else {
-draft.savedSites.unshift({ name: label, url: rawUrl, openInSafari: clockSafariIn.checked });
-}
-calcSiteNameIn.value = "";
-CFG.savedSites = draft.savedSites.slice();
-saveLocal();
-fetch(BACKEND_BASE + "/api/sites", {
-method: "POST",
-headers: { "Content-Type": "application/json" },
-body: JSON.stringify({ savedSites: CFG.savedSites })
-}).catch(() => {});
-renderCalcSavedSites();
+  if (!draft) return;
+  const rawUrl = normalizeUrl(clockSiteIn.value);
+  if (!rawUrl) return;
+  let label = calcSiteNameIn.value.trim();
+  if (!label){
+    if (rawUrl === "dice") label = "Built-in 3D Dice Roller";
+    else {
+      try { label = new URL(rawUrl).hostname.replace(/^www\./, ""); } catch(e){ label = rawUrl; }
+    }
+  }
+  clockSiteIn.value = rawUrl;
+  draft.clockSiteUrl = rawUrl;
+  draft.clockOpenSafari = clockSafariIn.checked;
+  const existingIdx = draft.savedSites.findIndex(s => normalizeUrl(s.url) === rawUrl);
+  if (existingIdx >= 0){
+    draft.savedSites[existingIdx] = { name: label, url: rawUrl, openInSafari: clockSafariIn.checked };
+  } else {
+    draft.savedSites.unshift({ name: label, url: rawUrl, openInSafari: clockSafariIn.checked });
+  }
+  calcSiteNameIn.value = "";
+  CFG.savedSites = draft.savedSites.slice();
+  saveLocal();
+  fetch(BACKEND_BASE + "/api/sites", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ savedSites: CFG.savedSites })
+  }).catch(() => {});
+  renderCalcSavedSites();
 });
+
 calcSavedSitesList.addEventListener("click", e => {
-if (!draft) return;
-const delBtn = e.target.closest(".calc-site-del");
-if (delBtn){
-e.stopPropagation();
-const idx = Number(delBtn.dataset.idx);
-draft.savedSites.splice(idx, 1);
-CFG.savedSites = draft.savedSites.slice();
-saveLocal();
-fetch(BACKEND_BASE + "/api/sites", {
-method: "POST",
-headers: { "Content-Type": "application/json" },
-body: JSON.stringify({ savedSites: CFG.savedSites })
-}).catch(() => {});
-renderCalcSavedSites();
-return;
-}
-const row = e.target.closest(".calc-site-row");
-if (row){
-const idx = Number(row.dataset.idx);
-const site = draft.savedSites[idx];
-if (site){
-draft.clockSiteUrl = normalizeUrl(site.url);
-draft.clockOpenSafari = !!site.openInSafari;
-clockSiteIn.value = draft.clockSiteUrl;
-clockSafariIn.checked = draft.clockOpenSafari;
-renderCalcSavedSites();
-}
-}
+  if (!draft) return;
+  const delBtn = e.target.closest(".calc-site-del");
+  if (delBtn){
+    e.stopPropagation();
+    const idx = Number(delBtn.dataset.idx);
+    draft.savedSites.splice(idx, 1);
+    CFG.savedSites = draft.savedSites.slice();
+    saveLocal();
+    fetch(BACKEND_BASE + "/api/sites", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ savedSites: CFG.savedSites })
+    }).catch(() => {});
+    renderCalcSavedSites();
+    return;
+  }
+  const row = e.target.closest(".calc-site-row");
+  if (row){
+    const idx = Number(row.dataset.idx);
+    const site = draft.savedSites[idx];
+    if (site){
+      draft.clockSiteUrl = normalizeUrl(site.url);
+      draft.clockOpenSafari = !!site.openInSafari;
+      clockSiteIn.value = draft.clockSiteUrl;
+      clockSafariIn.checked = draft.clockOpenSafari;
+      renderCalcSavedSites();
+    }
+  }
 });
+
 function draftFixed(){
-const s = fixedIn.value.replace(/\D/g, "");
-return s === "" ? null : parseInt(s, 10);
+  const s = fixedIn.value.replace(/\D/g, "");
+  return s === "" ? null : parseInt(s, 10);
 }
+
 function paintSettings(){
-modeList.querySelectorAll(".opt").forEach(r =>
-r.classList.toggle("sel", Number(r.dataset.mode) === draft.mode));
-chunkSeg.querySelectorAll("button").forEach(b =>
-b.classList.toggle("sel", Number(b.dataset.chunk) === draft.chunk));
-const m = Math.floor(Math.abs(draft.offset) / 60), s = Math.abs(draft.offset) % 60;
-offsetLabel.textContent = `Date + time (${draft.offset < 0 ? "−" : "+"}${m}:${String(s).padStart(2,"0")})`;
-holdVal.textContent = draft.hold.toFixed(2) + "s";
-paintPreview();
+  modeList.querySelectorAll(".opt").forEach(r =>
+    r.classList.toggle("sel", Number(r.dataset.mode) === draft.mode));
+  chunkSeg.querySelectorAll("button").forEach(b =>
+    b.classList.toggle("sel", Number(b.dataset.chunk) === draft.chunk));
+  const m = Math.floor(Math.abs(draft.offset) / 60), s = Math.abs(draft.offset) % 60;
+  offsetLabel.textContent = `Date + time (${draft.offset < 0 ? "−" : "+"}${m}:${String(s).padStart(2,"0")})`;
+  holdVal.textContent = draft.hold.toFixed(2) + "s";
+  paintPreview();
 }
+
 function paintPreview(){
-if (draft.mode === 0){ pvVal.textContent = "Off"; return; }
-const f = draftFixed();
-const cfg = Object.assign({}, draft, { fixed: f === null ? CFG.fixed : f });
-pvVal.textContent = String(forceValueFor(cfg));
+  if (draft.mode === 0){ pvVal.textContent = "Off"; return; }
+  const f = draftFixed();
+  const cfg = Object.assign({}, draft, { fixed: f === null ? CFG.fixed : f });
+  pvVal.textContent = String(forceValueFor(cfg));
 }
+
 function openSettings(){
-draft = JSON.parse(JSON.stringify(CFG));
-if (![0,1,2,3,4].includes(draft.chunk)) draft.chunk = 0;
-fixedIn.value = String(CFG.fixed);
-holdIn.value = String(draft.hold);
-clockSiteIn.value = draft.clockSiteUrl || "";
-clockSafariIn.checked = !!draft.clockOpenSafari;
-calcSiteNameIn.value = "";
-redirectUrlIn.value = draft.redirectUrl || "https://icontrol-magic.onrender.com/";
-redirectSafariIn.checked = (draft.redirectOpenSafari !== false);
-acUrlIn.value = draft.acRedirectUrl || "dice";
-acSafariIn.checked = !!draft.acOpenSafari;
-renderCalcSavedSites();
-paintSettings();
-document.getElementById("shBody").scrollTop = 0;
-sheet.classList.add("open");
-sheet.setAttribute("aria-hidden", "false");
-clearInterval(pvTimer);
-pvTimer = setInterval(paintPreview, 1000);
+  draft = JSON.parse(JSON.stringify(CFG));
+  if (![0,1,2,3,4].includes(draft.chunk)) draft.chunk = 0;
+  fixedIn.value = String(CFG.fixed);
+  holdIn.value = String(draft.hold);
+  clockSiteIn.value = draft.clockSiteUrl || "";
+  clockSafariIn.checked = !!draft.clockOpenSafari;
+  calcSiteNameIn.value = "";
+  redirectUrlIn.value = draft.redirectUrl || "https://icontrol-magic.onrender.com/";
+  redirectSafariIn.checked = (draft.redirectOpenSafari !== false);
+  acUrlIn.value = draft.acRedirectUrl || "dice";
+  acSafariIn.checked = !!draft.acOpenSafari;
+  renderCalcSavedSites();
+  paintSettings();
+  document.getElementById("shBody").scrollTop = 0;
+  sheet.classList.add("open");
+  sheet.setAttribute("aria-hidden", "false");
+  clearInterval(pvTimer);
+  pvTimer = setInterval(paintPreview, 1000);
 }
+
 function closeSettings(save){
-fixedIn.blur();
-clockSiteIn.blur();
-if (save && draft){
-const f = draftFixed();
-if (f !== null) draft.fixed = f;
-draft.clockSiteUrl = normalizeUrl(clockSiteIn.value);
-draft.clockOpenSafari = clockSafariIn.checked;
-draft.redirectUrl = normalizeUrl(redirectUrlIn.value || "https://icontrol-magic.onrender.com/");
-draft.redirectOpenSafari = redirectSafariIn.checked;
-draft.acRedirectUrl = normalizeUrl(acUrlIn.value || "dice");
-draft.acOpenSafari = acSafariIn.checked;
-Object.assign(CFG, draft);
-sessionOverridden = true;
-saveLocal();
-fetch(BACKEND_URL, {
-method: "POST",
-headers: { "Content-Type": "application/json" },
-body: JSON.stringify({
-mode: CFG.mode,
-fixed: String(CFG.fixed),
-offset: CFG.offset,
-chunk: CFG.chunk,
-hold: CFG.hold,
-clockSiteUrl: CFG.clockSiteUrl,
-clockOpenSafari: CFG.clockOpenSafari,
-redirectUrl: CFG.redirectUrl,
-redirectOpenSafari: CFG.redirectOpenSafari,
-acRedirectUrl: CFG.acRedirectUrl,
-acOpenSafari: CFG.acOpenSafari,
-savedSites: CFG.savedSites
-})
-}).catch(() => {});
+  fixedIn.blur();
+  clockSiteIn.blur();
+  if (save && draft){
+    const f = draftFixed();
+    if (f !== null) draft.fixed = f;
+    draft.clockSiteUrl = normalizeUrl(clockSiteIn.value);
+    draft.clockOpenSafari = clockSafariIn.checked;
+    draft.redirectUrl = normalizeUrl(redirectUrlIn.value || "https://icontrol-magic.onrender.com/");
+    draft.redirectOpenSafari = redirectSafariIn.checked;
+    draft.acRedirectUrl = normalizeUrl(acUrlIn.value || "dice");
+    draft.acOpenSafari = acSafariIn.checked;
+    Object.assign(CFG, draft);
+    sessionOverridden = true;
+    saveLocal();
+    fetch(BACKEND_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        mode: CFG.mode,
+        fixed: String(CFG.fixed),
+        offset: CFG.offset,
+        chunk: CFG.chunk,
+        hold: CFG.hold,
+        clockSiteUrl: CFG.clockSiteUrl,
+        clockOpenSafari: CFG.clockOpenSafari,
+        redirectUrl: CFG.redirectUrl,
+        redirectOpenSafari: CFG.redirectOpenSafari,
+        acRedirectUrl: CFG.acRedirectUrl,
+        acOpenSafari: CFG.acOpenSafari,
+        savedSites: CFG.savedSites
+      })
+    }).catch(() => {});
+  }
+  clearInterval(pvTimer);
+  sheet.classList.remove("open");
+  sheet.setAttribute("aria-hidden", "true");
+  render();
 }
-clearInterval(pvTimer);
-sheet.classList.remove("open");
-sheet.setAttribute("aria-hidden", "true");
-render();
-}
+
 modeList.addEventListener("click", e => {
-const r = e.target.closest(".opt");
-if (!r) return;
-draft.mode = Number(r.dataset.mode);
-paintSettings();
+  const r = e.target.closest(".opt");
+  if (!r) return;
+  draft.mode = Number(r.dataset.mode);
+  paintSettings();
 });
 chunkSeg.addEventListener("click", e => {
-const b = e.target.closest("button");
-if (!b) return;
-draft.chunk = Number(b.dataset.chunk);
-paintSettings();
+  const b = e.target.closest("button");
+  if (!b) return;
+  draft.chunk = Number(b.dataset.chunk);
+  paintSettings();
 });
 fixedIn.addEventListener("input", () => {
-const clean = fixedIn.value.replace(/\D/g, "").slice(0, 15);
-if (clean !== fixedIn.value) fixedIn.value = clean;
-paintPreview();
+  const clean = fixedIn.value.replace(/\D/g, "").slice(0, 15);
+  if (clean !== fixedIn.value) fixedIn.value = clean;
+  paintPreview();
 });
 holdIn.addEventListener("input", () => {
-draft.hold = parseFloat(holdIn.value) || DEF.hold;
-holdVal.textContent = draft.hold.toFixed(2) + "s";
+  draft.hold = parseFloat(holdIn.value) || DEF.hold;
+  holdVal.textContent = draft.hold.toFixed(2) + "s";
 });
 document.getElementById("shCancel").addEventListener("click", () => closeSettings(false));
 document.getElementById("shDone").addEventListener("click", () => closeSettings(true));
+
+/* Double-tap the calculator button to open Settings. A single tap does nothing. */
 let lastGridTap = 0;
 gridBtn.addEventListener("click", () => {
-const now = Date.now();
-if (now - lastGridTap < 380){ lastGridTap = 0; openSettings(); }
-else lastGridTap = now;
+  const now = Date.now();
+  if (now - lastGridTap < 380){ lastGridTap = 0; openSettings(); }
+  else lastGridTap = now;
 });
+
 setLocked(false);
 sizeKeypad();
 render();
 window.addEventListener("resize", () => { sizeKeypad(); fitPrimary(); });
 if (window.visualViewport)
-window.visualViewport.addEventListener("resize", () => { sizeKeypad(); fitPrimary(); });
+  window.visualViewport.addEventListener("resize", () => { sizeKeypad(); fitPrimary(); });
 </script>
 </body>
 </html>
