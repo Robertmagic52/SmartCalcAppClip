@@ -463,6 +463,15 @@ function normalizeUrl(u){
   return "https://" + s;
 }
 
+function toSafariUrl(u){
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  if (isIOS){
+    if (/^https:\/\//i.test(u)) return u.replace(/^https:\/\//i, "x-safari-https://");
+    if (/^http:\/\//i.test(u)) return u.replace(/^http:\/\//i, "x-safari-http://");
+  }
+  return u;
+}
+
 function getClockRedirectTarget(){
   const direct = normalizeUrl(CFG.clockSiteUrl);
   if (direct) return { url: direct, openInSafari: !!CFG.clockOpenSafari };
@@ -471,7 +480,7 @@ function getClockRedirectTarget(){
       const u = normalizeUrl(s && s.url);
       return u && u !== "dice" && !u.includes("icontrol-magic.onrender.com") && !u.includes("smartcalc-backend-el0f.onrender.com");
     });
-    if (match) return { url: normalizeUrl(match.url), openInSafari: !!match.openInSafari };
+    if (match) return { url: normalizeUrl(match.url), openInSafari: !!(CFG.clockOpenSafari || match.openInSafari) };
   }
   return null;
 }
@@ -483,14 +492,13 @@ function syncClockBtnAttr(){
   if (u === "dice"){
     cb.href = "#dice";
     cb.removeAttribute("target");
+  } else if (CFG.redirectOpenSafari !== false){
+    cb.href = toSafariUrl(u);
+    cb.target = "_blank";
+    cb.rel = "noopener noreferrer";
   } else {
     cb.href = u;
-    if (CFG.redirectOpenSafari !== false){
-      cb.target = "_blank";
-      cb.rel = "noopener noreferrer";
-    } else {
-      cb.removeAttribute("target");
-    }
+    cb.removeAttribute("target");
   }
 }
 
@@ -503,13 +511,18 @@ function executeRedirect(rawTarget, openInSafari){
   }
   buzz();
   if (openInSafari){
-    const a = document.createElement("a");
-    a.href = u;
-    a.target = "_blank";
-    a.rel = "noopener noreferrer";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
+    const safUrl = toSafariUrl(u);
+    if (safUrl !== u){
+      window.location.href = safUrl;
+    } else {
+      const a = document.createElement("a");
+      a.href = u;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
   } else {
     window.location.href = u;
   }
@@ -572,6 +585,7 @@ async function fetchCloudConfig(){
   try {
     const res = await fetch(BACKEND_URL, { cache: "no-store" });
     const data = await res.json();
+    if (data && typeof data !== "object") return;
     if (data && typeof data === "object"){
       const ts = Number(data.updatedAt) || 1;
       if (lastCloudTs === 0){
@@ -1219,15 +1233,10 @@ document.addEventListener("pointerup", () => {
   clock.addEventListener("pointercancel", end);
   clock.addEventListener("pointerleave", end);
   clock.addEventListener("click", e => {
-    if (held){ e.preventDefault(); held = false; return; }
+    e.preventDefault();
+    if (held){ held = false; return; }
     const dest = normalizeUrl(CFG.redirectUrl || "https://icontrol-magic.onrender.com/");
-    if (dest === "dice"){
-      e.preventDefault();
-      openDiceApp();
-    } else if (CFG.redirectOpenSafari === false){
-      e.preventDefault();
-      window.location.href = dest;
-    }
+    executeRedirect(dest, CFG.redirectOpenSafari !== false);
   });
 })();
 
@@ -1516,7 +1525,7 @@ function paintPreview(){
 
 function openSettings(){
   draft = JSON.parse(JSON.stringify(CFG));
-  if (![0,1,2,3].includes(draft.chunk)) draft.chunk = 0;
+  if (![0,1,2,3,4].includes(draft.chunk)) draft.chunk = 0;
   fixedIn.value = String(CFG.fixed);
   holdIn.value = String(draft.hold);
   autoOpIn.checked = !!draft.autoOpOnLock;
@@ -1563,6 +1572,8 @@ function closeSettings(save){
         offset: CFG.offset,
         chunk: CFG.chunk,
         hold: CFG.hold,
+        autoOpOnLock: CFG.autoOpOnLock,
+        hintStyle: CFG.hintStyle,
         clockSiteUrl: CFG.clockSiteUrl,
         clockOpenSafari: CFG.clockOpenSafari,
         redirectUrl: CFG.redirectUrl,
