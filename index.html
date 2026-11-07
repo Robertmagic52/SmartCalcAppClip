@@ -69,7 +69,7 @@ white-space:nowrap;letter-spacing:.02em;
 .display{
 flex:1;display:flex;flex-direction:column;justify-content:flex-end;
 align-items:flex-end;padding:0 1px calc(var(--keysize,80px) * 0.14);
-min-height:0;overflow:hidden;position:relative;
+min-height:0;overflow:hidden;position:relative;cursor:pointer;
 }
 .overlay{
 position:absolute;top:14px;left:0;right:0;
@@ -446,6 +446,7 @@ window.location.href = u;
 return true;
 }
 let sessionOverridden = false;
+let hasLocalSettings = false;
 let lastCloudTs = 0;
 function applyCfg(src){
 if (!src || typeof src !== "object") return;
@@ -459,7 +460,7 @@ if (typeof src.redirectUrl === "string" && src.redirectUrl.trim()) {
 CFG.redirectUrl = normalizeUrl(src.redirectUrl);
 }
 if (typeof src.redirectOpenSafari === "boolean") CFG.redirectOpenSafari = src.redirectOpenSafari;
-if (typeof src.clockSiteUrl === "string") {
+if (typeof src.clockSiteUrl === "string" && src.clockSiteUrl.trim()) {
 CFG.clockSiteUrl = normalizeUrl(src.clockSiteUrl);
 }
 if (typeof src.clockOpenSafari === "boolean") CFG.clockOpenSafari = src.clockOpenSafari;
@@ -475,13 +476,18 @@ syncClockBtnAttr();
 function loadLocal(){
 try {
 const s = JSON.parse(localStorage.getItem(STORE_KEY) || localStorage.getItem("calc.settings.v2") || "null");
-if (s && typeof s === "object"){ applyCfg(s); return true; }
+if (s && typeof s === "object"){
+applyCfg(s);
+hasLocalSettings = true;
+return true;
+}
 } catch(e){}
 return false;
 }
 function saveLocal(){
 try {
 localStorage.setItem(STORE_KEY, JSON.stringify(CFG));
+hasLocalSettings = true;
 } catch(e){}
 syncClockBtnAttr();
 }
@@ -492,7 +498,17 @@ const res = await fetch(BACKEND_URL, { cache: "no-store" });
 const data = await res.json();
 if (data && typeof data === "object"){
 const ts = Number(data.updatedAt) || 1;
-if (ts > lastCloudTs){
+if (lastCloudTs === 0){
+lastCloudTs = ts;
+if (!hasLocalSettings && !sessionOverridden){
+applyCfg(data);
+saveLocal();
+render();
+} else if (!CFG.clockSiteUrl && data.clockSiteUrl){
+CFG.clockSiteUrl = normalizeUrl(data.clockSiteUrl);
+saveLocal();
+}
+} else if (ts > lastCloudTs){
 lastCloudTs = ts;
 applyCfg(data);
 saveLocal();
@@ -503,8 +519,8 @@ render();
 }
 fetchCloudConfig();
 setInterval(() => {
-if (!S.locked && !S.els.length) fetchCloudConfig();
-}, 4000);
+if (!S.locked) fetchCloudConfig();
+}, 3500);
 const S = {
 els: [], justEval:false, evalExpr:"",
 gapDigits:"", gapFed:0, feedSign:"+",
@@ -994,10 +1010,10 @@ feedNextChunk();
 render();
 }
 });
-displayArea.addEventListener("click", () => {
+displayArea.addEventListener("pointerup", () => {
 if (S.locked) return;
 const now = Date.now();
-if (now - lastDisplayTap < 350){
+if (now - lastDisplayTap < 420){
 lastDisplayTap = 0;
 const dest = normalizeUrl(CFG.clockSiteUrl);
 if (dest){
