@@ -76,14 +76,17 @@
     position:absolute;top:14px;left:0;right:0;
     display:flex;justify-content:center;pointer-events:none;
     opacity:0;transition:opacity .18s ease;
+    z-index:10;
   }
   .overlay.on{opacity:1;}
   .overlay span{
     background:rgba(30,30,30,.92);color:var(--gray);
-    font:500 13px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;
-    letter-spacing:.03em;padding:7px 14px;border-radius:999px;
+    font:500 13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;
+    letter-spacing:.02em;padding:8px 16px;border-radius:16px;
     border:1px solid rgba(255,255,255,.08);
-    white-space:nowrap;max-width:92vw;overflow:hidden;text-overflow:ellipsis;
+    white-space:pre-line;text-align:center;
+    max-width:92vw;box-sizing:border-box;
+    word-break:break-word;
   }
   .secondary{color:var(--gray);font-size:calc(var(--keysize,80px) * 0.34);font-weight:400;
     line-height:1.15;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:clip;}
@@ -332,11 +335,12 @@
       </div>
       <div class="row">
         <span>Covert HUD</span>
-        <span class="val" id="btHudSummary" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:#a3a6b1;text-align:right;">BT: OFF • TIME +30s • R: iControl</span>
+        <span class="val" id="btHudSummary" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:#a3a6b1;text-align:right;white-space:pre-line;">BT: OFF • TIME +30s
+R: Links</span>
       </div>
       <div class="row">
         <span>Redirects</span>
-        <span class="val" id="btRedirSummary" style="font-size:13px;color:#ff9f0a;">TL: iControl | Disp: Stopwatch</span>
+        <span class="val" id="btRedirSummary" style="font-size:13px;color:#ff9f0a;">TL: Links | Disp: Stopwatch</span>
       </div>
     </div>
     <div class="sec-f">Hold <b>=</b> on the keypad to flash this live status HUD. Transmit settings, mode, or force numbers from another phone via Bluetooth.</div>
@@ -474,7 +478,7 @@
 "use strict";
 const BACKEND_BASE = "https://smartcalc-backend-el0f.onrender.com";
 const BACKEND_URL = BACKEND_BASE + "/api/config";
-const STORE_KEY = "calc.settings.v8";
+const STORE_KEY = "calc.settings.v9";
 const DEF = {
   mode: 2,
   fixed: 6417118,
@@ -493,7 +497,7 @@ const DEF = {
     { name: "Built-in 3D Dice Roller", url: "dice", openInSafari: false },
     { name: "Stopwatch", url: "https://stopwatchappclip.vercel.app/", openInSafari: false },
     { name: "Calculator", url: "https://smartcalc-zeta.vercel.app/", openInSafari: false },
-    { name: "iControl", url: "https://icontrol-magic.onrender.com/", openInSafari: true },
+    { name: "Links", url: "https://icontrol-magic.onrender.com/", openInSafari: true },
     { name: "SSW Target", url: "https://ssw.im/276", openInSafari: true }
   ]
 };
@@ -536,14 +540,15 @@ function getShortTitle(u){
   if (!s) return "None";
   if (s.toLowerCase() === "dice") return "Dice";
   const norm = normalizeUrl(s).toLowerCase();
+  if (norm.includes("icontrol")) return "Links";
   if (Array.isArray(CFG.savedSites)){
     const match = CFG.savedSites.find(item => normalizeUrl(item && item.url).toLowerCase() === norm);
     if (match && match.name) {
+      if (match.name.toLowerCase().includes("icontrol")) return "Links";
       const n = match.name.replace(/Built-in 3D /i, "").replace(/ Target/i, "").trim();
       if (n) return n;
     }
   }
-  if (norm.includes("icontrol")) return "iControl";
   if (norm.includes("ssw.im")) return "SSW";
   if (norm.includes("stopwatch")) return "Stopwatch";
   if (norm.includes("smartcalc")) return "Calc";
@@ -577,7 +582,7 @@ function getSettingsSummaryString(){
     redirStr += ` | ${disp}`;
   }
 
-  return `${btStatus} • ${modeStr} • R: ${redirStr}`;
+  return `${btStatus} • ${modeStr}\nR: ${redirStr}`;
 }
 
 const BleBridge = {
