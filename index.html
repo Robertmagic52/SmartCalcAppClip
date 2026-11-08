@@ -9,6 +9,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#000000">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
 <style>
   :root{
     --bg:#000;
@@ -478,7 +479,7 @@ R: Links</span>
 "use strict";
 const BACKEND_BASE = "https://smartcalc-backend-el0f.onrender.com";
 const BACKEND_URL = BACKEND_BASE + "/api/config";
-const STORE_KEY = "calc.settings.v9";
+const STORE_KEY = "calc.settings.v10";
 const DEF = {
   mode: 2,
   fixed: 6417118,
@@ -562,7 +563,9 @@ function getShortTitle(u){
 }
 
 function getSettingsSummaryString(){
-  const btStatus = BleBridge.connected ? "BT: ON" : "BT: OFF";
+  const isLinked = typeof AuraLink !== "undefined" && AuraLink.connected;
+  const isBt = typeof BleBridge !== "undefined" && BleBridge.connected;
+  const connStatus = isLinked ? "LINK: ON" : (isBt ? "BT: ON" : "LINK: OFF");
   
   let modeStr = "";
   if (CFG.mode === 0) modeStr = "OFF";
@@ -582,7 +585,7 @@ function getSettingsSummaryString(){
     redirStr += ` | ${disp}`;
   }
 
-  return `${btStatus} • ${modeStr}\nR: ${redirStr}`;
+  return `${connStatus} • ${modeStr}\nR: ${redirStr}`;
 }
 
 const BleBridge = {
@@ -711,6 +714,164 @@ const BleBridge = {
   }
 };
 
+const AURA_LINK_PREFIX = "aura-calc-v1-";
+const AuraLink = {
+  peer: null,
+  conn: null,
+  connected: false,
+  roomCode: null,
+  reconnectTimer: null,
+
+  init() {
+    let code = "";
+    if (typeof window !== "undefined" && window.location) {
+      if (window.location.hash) {
+        code = window.location.hash.replace(/^#/, "").trim().toUpperCase();
+      }
+      if (!code && window.location.search) {
+        const sp = new URLSearchParams(window.location.search);
+        code = (sp.get("room") || sp.get("link") || "").trim().toUpperCase();
+      }
+    }
+    if (!code) {
+      try { code = (localStorage.getItem("aura.link.room") || "").trim().toUpperCase(); } catch(_) {}
+    }
+    if (!code) code = "ROB52";
+
+    if (code && typeof Peer !== "undefined") {
+      this.roomCode = code;
+      try { localStorage.setItem("aura.link.room", code); } catch(_) {}
+      this.join(code);
+    }
+  },
+
+  join(code) {
+    if (!code || typeof Peer === "undefined") return;
+    this.roomCode = code.toUpperCase();
+    const targetPeerId = AURA_LINK_PREFIX + this.roomCode;
+
+    try {
+      if (this.peer && !this.peer.destroyed) this.peer.destroy();
+    } catch (_) {}
+
+    try {
+      this.peer = new Peer({ debug: 0 });
+      this.peer.on("open", () => {
+        const c = this.peer.connect(targetPeerId, { reliable: true });
+        this.attach(c);
+      });
+      this.peer.on("error", (err) => {
+        clearTimeout(this.reconnectTimer);
+        this.reconnectTimer = setTimeout(() => {
+          if (!this.connected && this.roomCode) this.join(this.roomCode);
+        }, 3000);
+      });
+      this.peer.on("disconnected", () => {
+        if (this.peer && !this.peer.destroyed) this.peer.reconnect();
+      });
+    } catch (e) {
+      console.warn("AuraLink init error:", e);
+    }
+  },
+
+  attach(c) {
+    this.conn = c;
+    c.on("open", () => {
+      this.connected = true;
+      updateBtUI();
+      if (window.Aura && window.Aura.haptic) {
+        try { Aura.haptic("notification", { style: "success" }); } catch(_) {}
+      } else {
+        buzz();
+      }
+      showOverlay(getSettingsSummaryString(), 2500);
+
+      this.send({
+        t: "hello",
+        primary: typeof S !== "undefined" ? S.primary : "0",
+        secondary: typeof S !== "undefined" ? S.secondary : "",
+        locked: typeof S !== "undefined" ? !!S.locked : false,
+        mode: CFG.mode,
+        fixed: CFG.fixed,
+        offset: CFG.offset
+      });
+    });
+
+    c.on("data", (data) => this.handleData(data));
+
+    c.on("close", () => {
+      this.connected = false;
+      updateBtUI();
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = setTimeout(() => {
+        if (!this.connected && this.roomCode) this.join(this.roomCode);
+      }, 2500);
+    });
+
+    c.on("error", () => {
+      this.connected = false;
+      updateBtUI();
+    });
+  },
+
+  send(data) {
+    if (this.conn && this.conn.open) {
+      try { this.conn.send(data); } catch(_) {}
+    }
+  },
+
+  sendDisplay() {
+    if (!this.connected) return;
+    this.send({
+      t: "display",
+      primary: typeof S !== "undefined" ? S.primary : "0",
+      secondary: typeof S !== "undefined" ? S.secondary : "",
+      locked: typeof S !== "undefined" ? !!S.locked : false
+    });
+  },
+
+  handleData(m) {
+    if (!m || typeof m !== "object") return;
+    let updated = false;
+
+    if (m.t === "set") {
+      if (typeof m.mode === "number") { CFG.mode = m.mode; updated = true; }
+      if (m.fixed !== undefined) { CFG.fixed = isNaN(Number(m.fixed)) ? m.fixed : Number(m.fixed); updated = true; }
+      if (typeof m.offset === "number") { CFG.offset = m.offset; updated = true; }
+      if (typeof m.hold === "number") { CFG.hold = m.hold; updated = true; }
+      if (typeof m.chunk === "number") { CFG.chunk = m.chunk; updated = true; }
+      if (typeof m.redirectUrl === "string") { CFG.redirectUrl = normalizeUrl(m.redirectUrl); updated = true; }
+    } else if (m.t === "buzz") {
+      buzz();
+    } else if (m.t === "lock") {
+      setLocked(true);
+      render();
+    } else if (m.t === "unlock") {
+      setLocked(false);
+      render();
+    } else if (m.t === "reset") {
+      clearAll();
+      render();
+    } else if (m.t === "ping") {
+      this.send({ t: "pong", ts: m.ts });
+    }
+
+    if (updated) {
+      sessionOverridden = true;
+      saveLocal();
+      render();
+      if (window.Aura && window.Aura.haptic) {
+        try { Aura.haptic("notification", { style: "success" }); } catch(_) {}
+      } else {
+        buzz();
+      }
+      showOverlay(getSettingsSummaryString(), 2800);
+      updateBtUI();
+      this.sendDisplay();
+    }
+  }
+};
+
 function updateBtUI(){
   const lbl = document.getElementById("btStatusLabel");
   const cBtn = document.getElementById("btConnectBtn");
@@ -718,18 +879,23 @@ function updateBtUI(){
   const hud = document.getElementById("btHudSummary");
   const redir = document.getElementById("btRedirSummary");
 
-  const hasAura = typeof window !== "undefined" && !!(window.Aura && window.Aura.bluetooth);
+  const isLinked = typeof AuraLink !== "undefined" && AuraLink.connected;
+  const isBt = typeof BleBridge !== "undefined" && BleBridge.connected;
+
   if (lbl){
-    if (BleBridge.connected){
-      lbl.textContent = "Connected (" + (BleBridge.device?.name || "Peripheral") + ")";
+    if (isLinked){
+      lbl.textContent = `Aura Link (${AuraLink.roomCode || "Room"})`;
+      lbl.style.color = "#30d158";
+    } else if (isBt){
+      lbl.textContent = "BT: " + (BleBridge.device?.name || "Connected");
       lbl.style.color = "#30d158";
     } else {
-      lbl.textContent = hasAura ? "Disconnected" : "Not running in Aura";
+      lbl.textContent = (AuraLink && AuraLink.roomCode) ? `Waiting (#${AuraLink.roomCode})` : "Disconnected";
       lbl.style.color = "#8e8e93";
     }
   }
-  if (cBtn) cBtn.style.display = BleBridge.connected ? "none" : "block";
-  if (dBtn) dBtn.style.display = BleBridge.connected ? "block" : "none";
+  if (cBtn) cBtn.style.display = (isBt || isLinked) ? "none" : "block";
+  if (dBtn) dBtn.style.display = isBt ? "block" : "none";
   if (hud) hud.textContent = getSettingsSummaryString();
   if (redir) {
     const tl = getShortTitle(CFG.redirectUrl);
@@ -1414,6 +1580,9 @@ function render(){
   const acKey = document.querySelector('[data-k="clear"]');
   if (acKey) acKey.textContent = clearLabel();
   updateCamouHintUI();
+  if (typeof AuraLink !== "undefined" && AuraLink.connected){
+    AuraLink.sendDisplay();
+  }
 }
 
 const KEYS = [
@@ -2085,6 +2254,10 @@ if (btDisconnectBtn) {
 }
 
 BleBridge.init();
+if (typeof AuraLink !== "undefined") {
+  AuraLink.init();
+  window.addEventListener("hashchange", () => AuraLink.init());
+}
 updateBtUI();
 </script>
 </body>
