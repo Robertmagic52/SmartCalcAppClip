@@ -453,6 +453,7 @@
   };
 
   let pingTimer = null;
+  let guestPollTimer = null;
 
   function setStatus(online, text) {
     const pill = $("statusPill");
@@ -462,6 +463,7 @@
 
   function startHost() {
     clearInterval(pingTimer);
+    clearInterval(guestPollTimer);
     if (conn) {
       try { conn.close(); } catch(_) {}
       conn = null;
@@ -472,12 +474,15 @@
     }
     setStatus(false, "Starting host...");
     const hostPeerId = AURA_LINK_PREFIX + roomCode;
+    const targetGuestId = AURA_LINK_PREFIX + "guest-" + roomCode;
 
     try {
       peer = new Peer(hostPeerId, AURA_PEER_CONFIG);
       peer.on("open", () => {
         setStatus(false, "Waiting for spectator...");
         syncActiveRoomToCloud(roomCode);
+        // If spectator opened first, connect to spectator directly!
+        startGuestConnectLoop(targetGuestId);
       });
 
       peer.on("disconnected", () => {
@@ -487,9 +492,11 @@
       });
 
       peer.on("connection", (c) => {
-        if (conn && conn !== c) {
-          try { conn.close(); } catch(_) {}
+        if (conn && conn.open && conn !== c) {
+          try { c.close(); } catch(_) {}
+          return;
         }
+        clearInterval(guestPollTimer);
         attachConn(c);
       });
 
@@ -510,9 +517,29 @@
     }
   }
 
+  function startGuestConnectLoop(targetGuestId) {
+    clearInterval(guestPollTimer);
+    const tryConnectGuest = () => {
+      if (conn && conn.open) {
+        clearInterval(guestPollTimer);
+        return;
+      }
+      if (!peer || peer.destroyed) return;
+      try {
+        const c = peer.connect(targetGuestId, { reliable: true });
+        attachConn(c);
+      } catch(_) {}
+    };
+
+    tryConnectGuest();
+    guestPollTimer = setInterval(tryConnectGuest, 2500);
+  }
+
   function attachConn(c) {
+    if (!c) return;
     conn = c;
     c.on("open", () => {
+      clearInterval(guestPollTimer);
       setStatus(true, "Linked");
       haptic.success();
       sendCurrentSettings();
@@ -542,6 +569,9 @@
       setStatus(false, "Waiting for spectator...");
       updateLockUI(false, false, "");
       haptic.error();
+      if (peer && !peer.destroyed) {
+        startGuestConnectLoop(AURA_LINK_PREFIX + "guest-" + roomCode);
+      }
     });
 
     c.on("error", (err) => {
@@ -550,6 +580,9 @@
       conn = null;
       setStatus(false, "Waiting for spectator...");
       updateLockUI(false, false, "");
+      if (peer && !peer.destroyed) {
+        startGuestConnectLoop(AURA_LINK_PREFIX + "guest-" + roomCode);
+      }
     });
   }
 

@@ -734,6 +734,7 @@ const AuraLink = {
   roomCode: null,
   reconnectTimer: null,
   heartbeatTimer: null,
+  pollTimer: null,
 
   init() {
     let code = "";
@@ -762,9 +763,11 @@ const AuraLink = {
     if (!code || typeof Peer === "undefined") return;
     this.roomCode = code.toUpperCase();
     const targetPeerId = AURA_LINK_PREFIX + this.roomCode;
+    const guestPeerId = AURA_LINK_PREFIX + "guest-" + this.roomCode;
 
     clearTimeout(this.reconnectTimer);
     clearInterval(this.heartbeatTimer);
+    clearInterval(this.pollTimer);
 
     if (this.conn) {
       try { this.conn.close(); } catch(_) {}
@@ -776,10 +779,20 @@ const AuraLink = {
     }
 
     try {
-      this.peer = new Peer(AURA_PEER_CONFIG);
-      this.peer.on("open", () => {
-        const c = this.peer.connect(targetPeerId, { reliable: true });
+      // Register with deterministic guest ID so host can connect to us if host opens second
+      this.peer = new Peer(guestPeerId, AURA_PEER_CONFIG);
+
+      // Listen for incoming connection from host
+      this.peer.on("connection", (c) => {
+        if (this.connected && this.conn && this.conn.open) {
+          try { c.close(); } catch(_) {}
+          return;
+        }
         this.attach(c);
+      });
+
+      this.peer.on("open", () => {
+        this.startConnectLoop(targetPeerId);
       });
 
       this.peer.on("disconnected", () => {
@@ -790,14 +803,47 @@ const AuraLink = {
 
       this.peer.on("error", (err) => {
         console.warn("AuraLink peer error:", err.type || err);
+        if (err.type === "unavailable-id") {
+          // If guest ID is temporarily held, fallback to anonymous peer and connect out
+          if (this.peer && !this.peer.destroyed) {
+            try { this.peer.destroy(); } catch(_) {}
+          }
+          this.peer = new Peer(AURA_PEER_CONFIG);
+          this.peer.on("connection", (c) => this.attach(c));
+          this.peer.on("open", () => this.startConnectLoop(targetPeerId));
+          return;
+        }
         if (!this.connected) {
-          this.scheduleReconnect(3000);
+          this.scheduleReconnect(2500);
         }
       });
     } catch (e) {
       console.warn("AuraLink init exception:", e);
       this.scheduleReconnect(3000);
     }
+  },
+
+  startConnectLoop(targetPeerId) {
+    clearInterval(this.pollTimer);
+    const tryConnect = () => {
+      if (this.connected || (this.conn && this.conn.open)) {
+        clearInterval(this.pollTimer);
+        return;
+      }
+      if (!this.peer || this.peer.destroyed) return;
+      // Close stale pending connection before trying again
+      if (this.conn && !this.conn.open) {
+        try { this.conn.close(); } catch(_) {}
+        this.conn = null;
+      }
+      try {
+        const c = this.peer.connect(targetPeerId, { reliable: true });
+        this.attach(c);
+      } catch(_) {}
+    };
+
+    tryConnect();
+    this.pollTimer = setInterval(tryConnect, 2500);
   },
 
   scheduleReconnect(delay = 2500) {
@@ -815,6 +861,7 @@ const AuraLink = {
 
     c.on("open", () => {
       this.connected = true;
+      clearInterval(this.pollTimer);
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
       updateBtUI();
@@ -851,7 +898,11 @@ const AuraLink = {
       clearInterval(this.heartbeatTimer);
       this.conn = null;
       updateBtUI();
-      this.scheduleReconnect(2000);
+      if (this.roomCode && this.peer && !this.peer.destroyed) {
+        this.startConnectLoop(AURA_LINK_PREFIX + this.roomCode);
+      } else {
+        this.scheduleReconnect(2000);
+      }
     });
 
     c.on("error", (err) => {
@@ -860,7 +911,11 @@ const AuraLink = {
       clearInterval(this.heartbeatTimer);
       this.conn = null;
       updateBtUI();
-      this.scheduleReconnect(2000);
+      if (this.roomCode && this.peer && !this.peer.destroyed) {
+        this.startConnectLoop(AURA_LINK_PREFIX + this.roomCode);
+      } else {
+        this.scheduleReconnect(2000);
+      }
     });
   },
 
