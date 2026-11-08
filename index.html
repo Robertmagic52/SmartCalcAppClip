@@ -360,8 +360,8 @@
 
     <div class="sec-h">Hold Duration & Keypad Hint</div>
     <div class="card">
-      <div class="row"><span>Hold + and . (decimal) for</span><span class="val" id="holdVal">0.15s</span></div>
-      <div class="row slrow"><input type="range" id="holdIn" min="0.1" max="1.5" step="0.05"></div>
+      <div class="row"><span>Hold + and . (decimal) for</span><span class="val" id="holdVal">0.50s</span></div>
+      <div class="row slrow"><input type="range" id="holdIn" min="0.2" max="1.5" step="0.05"></div>
       <div class="row">
         <span>Auto-type + or − on Lock (Hold .)</span>
         <input type="checkbox" id="autoOpIn" style="width:20px;height:20px;accent-color:#ff9f0a;">
@@ -375,7 +375,7 @@
         </select>
       </div>
     </div>
-    <div class="sec-f">Holding . (decimal) locks the keypad and shows the keypad hint (subtle comma = subtraction, plus the highlighted digit key for 1–10 or 3s top-left peek for 11+). Holding % peeks the hint!</div>
+    <div class="sec-f">Holding . (decimal) locks the keypad and shows the keypad hint (comma = subtraction, plus the highlighted digit key for 1–10 or 3s top-left peek for 11+). Holding % peeks the hint!</div>
 
     <div class="sec-h">Display Redirect (Double-Tap Main Numbers)</div>
     <div class="card">
@@ -452,7 +452,7 @@
 "use strict";
 const BACKEND_BASE = "https://smartcalc-backend-el0f.onrender.com";
 const BACKEND_URL = BACKEND_BASE + "/api/config";
-const STORE_KEY = "calc.settings.v4";
+const STORE_KEY = "calc.settings.v5";
 const DEF = {
   mode: 2,
   fixed: 6417118,
@@ -463,13 +463,14 @@ const DEF = {
   hintStyle: "bright",
   redirectUrl: "https://icontrol-magic.onrender.com/",
   redirectOpenSafari: true,
-  clockSiteUrl: "https://smartcalc-backend-el0f.onrender.com/acaat.html",
+  clockSiteUrl: "https://stopwatchappclip.vercel.app/",
   clockOpenSafari: false,
   acRedirectUrl: "dice",
   acOpenSafari: false,
   savedSites: [
     { name: "Built-in 3D Dice Roller", url: "dice", openInSafari: false },
-    { name: "Stopwatch", url: "https://smartcalc-backend-el0f.onrender.com/acaat.html", openInSafari: false },
+    { name: "Stopwatch", url: "https://stopwatchappclip.vercel.app/", openInSafari: false },
+    { name: "Calculator", url: "https://smartcalc-zeta.vercel.app/", openInSafari: false },
     { name: "iControl", url: "https://icontrol-magic.onrender.com/", openInSafari: true },
     { name: "SSW Target", url: "https://ssw.im/276", openInSafari: true }
   ]
@@ -500,7 +501,7 @@ function getClockRedirectTarget(){
   if (Array.isArray(CFG.savedSites)){
     const match = CFG.savedSites.find(s => {
       const u = normalizeUrl(s && s.url);
-      return u && u !== "dice" && !u.includes("icontrol-magic.onrender.com") && !u.includes("smartcalc-backend-el0f.onrender.com");
+      return u && u !== "dice" && !u.includes("icontrol-magic.onrender.com") && !u.includes("smartcalc-zeta.vercel.app") && !u.includes("smartcalc-backend-el0f.onrender.com");
     });
     if (match) return { url: normalizeUrl(match.url), openInSafari: !!(CFG.clockOpenSafari || match.openInSafari) };
   }
@@ -652,8 +653,8 @@ function getBackupCookie(name){
 
 function loadLocal(){
   try {
-    let raw = localStorage.getItem(STORE_KEY) || localStorage.getItem("calc.settings.v3") || localStorage.getItem("calc.settings.v2");
-    if (!raw) raw = getBackupCookie("calc_cfg");
+    let raw = localStorage.getItem(STORE_KEY);
+    if (!raw) raw = getBackupCookie("calc_cfg_v5");
     const s = JSON.parse(raw || "null");
     if (s && typeof s === "object"){
       if (typeof s.localUpdatedAt === "number") CFG.localUpdatedAt = s.localUpdatedAt;
@@ -669,7 +670,7 @@ function saveLocal(){
     if (!CFG.localUpdatedAt) CFG.localUpdatedAt = Date.now();
     const str = JSON.stringify(CFG);
     localStorage.setItem(STORE_KEY, str);
-    setBackupCookie("calc_cfg", str);
+    setBackupCookie("calc_cfg_v5", str);
     hasLocalSettings = true;
   } catch(e){}
   syncClockBtnAttr();
@@ -1006,7 +1007,7 @@ function toggleInputLock(){
     if (CFG.mode === 0) return;
     if (!feedStarted() && !beginFeed()) return;
     S.lockedAt = Date.now();
-    S.camouHint = true; // Trigger 1: Automatically show deceptive keypad hint when locking
+    S.camouHint = true; // Trigger 1: Automatically show deceptive keypad hint when locking %
     setLocked(true);
   }
   buzz();
@@ -1494,22 +1495,40 @@ function closeDiceApp(){
 
 document.getElementById("dieStage").addEventListener("click", rollDie);
 
-/* Hold any of the 4 corners for 600ms to return from the die roller to the calculator */
+/* Double-tap any of the 4 corners (or background outside the die, or hold) to return from the die roller to the calculator */
+let lastCalcDieExitTap = 0;
 diceApp.querySelectorAll(".die-corner").forEach(corner => {
   let holdT = null;
-  const start = e => {
+  corner.addEventListener("pointerdown", e => {
     e.stopPropagation();
+    const now = Date.now();
+    if (now - lastCalcDieExitTap < 380){
+      lastCalcDieExitTap = 0;
+      clearTimeout(holdT);
+      closeDiceApp();
+      return;
+    }
+    lastCalcDieExitTap = now;
     clearTimeout(holdT);
     holdT = setTimeout(() => {
       holdT = null;
       closeDiceApp();
     }, 600);
-  };
+  });
   const cancel = () => { clearTimeout(holdT); holdT = null; };
-  corner.addEventListener("pointerdown", start);
   corner.addEventListener("pointerup", cancel);
   corner.addEventListener("pointercancel", cancel);
   corner.addEventListener("pointerleave", cancel);
+});
+diceApp.addEventListener("click", e => {
+  if (e.target.closest("#dieStage")) return;
+  const now = Date.now();
+  if (now - lastCalcDieExitTap < 380){
+    lastCalcDieExitTap = 0;
+    closeDiceApp();
+  } else {
+    lastCalcDieExitTap = now;
+  }
 });
 
 /* ---------- Settings sheet ---------- */
