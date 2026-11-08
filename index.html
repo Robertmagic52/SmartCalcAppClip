@@ -156,24 +156,66 @@
     background: #30d158;
     box-shadow: 0 0 6px #30d158;
   }
-  .ctrl-arm-pill {
+  .ctrl-close-btn {
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: #fff;
     font: 700 11px/1 -apple-system, BlinkMacSystemFont, sans-serif;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.05em;
     padding: 6px 12px;
-    border-radius: 8px;
+    border-radius: 999px;
     cursor: pointer;
-    text-transform: uppercase;
     transition: all 0.15s ease;
   }
-  .ctrl-arm-pill.ready {
-    background: rgba(255, 159, 10, 0.18);
-    color: #ff9f0a;
-    border: 1px solid rgba(255, 159, 10, 0.35);
+  .ctrl-close-btn:active {
+    background: rgba(255, 255, 255, 0.28);
+    transform: scale(0.96);
   }
-  .ctrl-arm-pill.locked {
+  .ctrl-hero-row {
+    margin: 8px 0;
+    display: flex;
+    width: 100%;
+  }
+  .ctrl-arm-btn {
+    flex: 1;
+    width: 100%;
+    height: 52px;
+    border-radius: 14px;
+    font: 700 15px/1 -apple-system, BlinkMacSystemFont, sans-serif;
+    letter-spacing: 0.06em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .ctrl-arm-btn.ready {
+    background: rgba(255, 159, 10, 0.22);
+    color: #ff9f0a;
+    border: 1.5px solid rgba(255, 159, 10, 0.55);
+    box-shadow: 0 4px 18px rgba(255, 159, 10, 0.25);
+  }
+  .ctrl-arm-btn.ready:active {
+    transform: scale(0.98);
+    background: rgba(255, 159, 10, 0.38);
+  }
+  .ctrl-arm-btn.locked {
     background: #ff3b30;
     color: #fff;
-    box-shadow: 0 0 12px rgba(255, 59, 48, 0.6);
+    border: 1.5px solid #ff3b30;
+    box-shadow: 0 0 22px rgba(255, 59, 48, 0.75);
+    animation: pulseLock 2s infinite ease-in-out;
+  }
+  .ctrl-arm-btn.locked:active {
+    transform: scale(0.98);
+  }
+  @keyframes pulseLock {
+    0%, 100% { box-shadow: 0 0 16px rgba(255, 59, 48, 0.6); }
+    50% { box-shadow: 0 0 26px rgba(255, 59, 48, 0.95); }
   }
   .ctrl-hint-pill {
     font: 700 11px ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -464,9 +506,17 @@
           <span class="ctrl-dot"></span>
           <span id="ctrlLinkText">LINK: ROB52</span>
         </div>
-        <div class="ctrl-arm-pill ready" id="ctrlArmPill">ARM (LOCK)</div>
         <div class="ctrl-hint-pill" id="ctrlHintPill">HINT: --</div>
+        <button type="button" class="ctrl-close-btn" id="ctrlCloseBtn">✕ DONE</button>
       </div>
+
+      <div class="ctrl-hero-row">
+        <button type="button" class="ctrl-arm-btn ready" id="ctrlArmPill">
+          <span class="ctrl-arm-icon">⚡</span>
+          <span class="ctrl-arm-label">ARM SPECTATOR (LOCK)</span>
+        </button>
+      </div>
+
       <div class="ctrl-row-main">
         <div class="ctrl-modes">
           <button type="button" class="ctrl-mode-btn active" id="ctrlModeTimeBtn">TIME</button>
@@ -1805,8 +1855,18 @@ function updateCtrlHudUI(){
 
   const isLocked = (isLinked && AuraLink.spectatorLocked) || S.locked;
   if (ctrlArmPill){
-    ctrlArmPill.className = "ctrl-arm-pill " + (isLocked ? "locked" : "ready");
-    ctrlArmPill.textContent = isLocked ? "LOCKED" : "ARM (LOCK)";
+    ctrlArmPill.className = "ctrl-arm-btn " + (isLocked ? "locked" : "ready");
+    const armLabel = ctrlArmPill.querySelector(".ctrl-arm-label");
+    const armIcon = ctrlArmPill.querySelector(".ctrl-arm-icon");
+    if (isLocked) {
+      if (armIcon) armIcon.textContent = "🔒";
+      if (armLabel) armLabel.textContent = "LOCKED (TAP TO UNLOCK)";
+      else ctrlArmPill.textContent = "LOCKED (TAP TO UNLOCK)";
+    } else {
+      if (armIcon) armIcon.textContent = "⚡";
+      if (armLabel) armLabel.textContent = "ARM SPECTATOR (LOCK)";
+      else ctrlArmPill.textContent = "ARM (LOCK)";
+    }
   }
 
   const hintText = (isLinked && AuraLink.spectatorHint) || (S.locked ? forceHint() : "");
@@ -1839,15 +1899,40 @@ function updateCtrlHudUI(){
   }
 }
 
+const ctrlCloseBtn = document.getElementById("ctrlCloseBtn");
+if (ctrlCloseBtn){
+  ctrlCloseBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    closeCtrlHud();
+  });
+}
+
+let hudTouchStartY = 0;
 if (ctrlHud){
   ctrlHud.addEventListener("pointerdown", (e) => e.stopPropagation());
   ctrlHud.addEventListener("pointerup", (e) => e.stopPropagation());
+  ctrlHud.addEventListener("touchstart", (e) => {
+    if (e.touches && e.touches[0]) hudTouchStartY = e.touches[0].clientY;
+  }, { passive: true });
+  ctrlHud.addEventListener("touchend", (e) => {
+    if (e.changedTouches && e.changedTouches[0]){
+      const hudTouchEndY = e.changedTouches[0].clientY;
+      if (hudTouchEndY - hudTouchStartY > 40){
+        closeCtrlHud();
+      }
+    }
+  }, { passive: true });
   ctrlHud.addEventListener("click", (e) => {
     e.stopPropagation();
-    if (e.target === ctrlHud && activeInputBox){
+    if (activeInputBox){
       activeInputBox = null;
       ctrlEditFresh = false;
       updateCtrlHudUI();
+    } else {
+      const isInteractive = e.target.closest("button") || e.target.closest(".ctrl-val-box");
+      if (!isInteractive){
+        closeCtrlHud();
+      }
     }
   });
 }
@@ -2181,17 +2266,7 @@ function activate(k){
       handleCtrlKeypadInput(k);
       return;
     }
-    if (k === "d0"){
-      const now = Date.now();
-      if (now - lastZeroTap < 420){
-        lastZeroTap = 0;
-        closeCtrlHud();
-        return;
-      }
-      lastZeroTap = now;
-      return;
-    }
-    if (k === "eq"){
+    if (k === "d0" || k === "eq" || k === "clear"){
       closeCtrlHud();
       return;
     }
