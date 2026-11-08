@@ -1694,7 +1694,6 @@ function getSimpleHint(){
 }
 
 function forceHint(){
-  if (S.justEval) return null;
   if (isFeeding()) return S.feedSign + (S.gapDigits.length - S.gapFed);
   if (CFG.mode === 0) return "off";
   return getSimpleHint();
@@ -1868,6 +1867,7 @@ function lockCalculator(showHint = true){
   setLocked(true);
   buzz();
   render();
+  if (typeof updateCtrlHudUI === "function") updateCtrlHudUI();
 }
 
 function unlockCalculator(){
@@ -1876,6 +1876,7 @@ function unlockCalculator(){
   if (inputFrozen()) cancelFeed();
   buzz();
   render();
+  if (typeof updateCtrlHudUI === "function") updateCtrlHudUI();
 }
 
 function toggleInputLock(){
@@ -1884,6 +1885,7 @@ function toggleInputLock(){
   } else {
     lockCalculator(true);
   }
+  if (typeof updateCtrlHudUI === "function") updateCtrlHudUI();
 }
 
 /* ---------- Covert Performer Controller HUD ---------- */
@@ -1944,20 +1946,21 @@ function updateCtrlHudUI(){
   const isLocked = (isLinked && AuraLink.spectatorLocked) || S.locked;
   if (ctrlArmPill){
     ctrlArmPill.className = "ctrl-arm-btn " + (isLocked ? "locked" : "ready");
-    const armLabel = ctrlArmPill.querySelector(".ctrl-arm-label");
-    const armIcon = ctrlArmPill.querySelector(".ctrl-arm-icon");
-    if (isLocked) {
-      if (armIcon) armIcon.textContent = "🔒";
-      if (armLabel) armLabel.textContent = "LOCKED (TAP TO UNLOCK)";
-      else ctrlArmPill.textContent = "LOCKED (TAP TO UNLOCK)";
-    } else {
-      if (armIcon) armIcon.textContent = "⚡";
-      if (armLabel) armLabel.textContent = "ARM SPECTATOR (LOCK)";
-      else ctrlArmPill.textContent = "ARM (LOCK)";
-    }
+    ctrlArmPill.innerHTML = isLocked
+      ? `<span class="ctrl-arm-icon">🔒</span><span class="ctrl-arm-label">LOCKED (TAP TO UNLOCK)</span>`
+      : `<span class="ctrl-arm-icon">⚡</span><span class="ctrl-arm-label">ARM SPECTATOR (LOCK)</span>`;
   }
 
-  const hintText = (isLinked && AuraLink.spectatorHint) || (S.locked ? forceHint() : "");
+  let hintText = "";
+  if (isLinked && AuraLink.spectatorHint){
+    hintText = AuraLink.spectatorHint;
+  }
+  if (!hintText && isLocked){
+    hintText = (typeof forceHint === "function" ? forceHint() : "") || (typeof getSimpleHint === "function" ? getSimpleHint() : "");
+  }
+  if (!hintText && isLocked && typeof currentForceValue === "function"){
+    hintText = String(currentForceValue());
+  }
   if (ctrlHintPill){
     ctrlHintPill.textContent = hintText ? `HINT: ${hintText}` : "HINT: --";
   }
@@ -2026,10 +2029,19 @@ if (ctrlHud){
 }
 
 if (ctrlArmPill){
-  ctrlArmPill.addEventListener("click", (e) => {
-    e.stopPropagation();
+  let lastArmTrigger = 0;
+  const triggerArm = (e) => {
+    if (e) {
+      if (e.cancelable) e.preventDefault();
+      e.stopPropagation();
+    }
+    const now = Date.now();
+    if (now - lastArmTrigger < 350) return;
+    lastArmTrigger = now;
     handleDotHold();
-  });
+  };
+  ctrlArmPill.addEventListener("pointerup", triggerArm);
+  ctrlArmPill.addEventListener("click", triggerArm);
 }
 
 if (ctrlModeTimeBtn){
@@ -2146,7 +2158,8 @@ function handleDotHold(){
       showHudSyncStatus("ARMING...", "pending", 0);
       AuraLink.send({ t: "lock", showHint: false });
       AuraLink.spectatorLocked = true;
-      if (!AuraLink.spectatorHint) AuraLink.spectatorHint = forceHint() || "";
+      const immediateHint = (typeof forceHint === "function" ? forceHint() : "") || (typeof getSimpleHint === "function" ? getSimpleHint() : "") || (typeof currentForceValue === "function" ? String(currentForceValue()) : "");
+      AuraLink.spectatorHint = immediateHint || "";
       updateCtrlHudUI();
       if (elPeek && AuraLink.spectatorHint){
         elPeek.textContent = AuraLink.spectatorHint;
@@ -2155,6 +2168,7 @@ function handleDotHold(){
     }
   } else {
     toggleInputLock();
+    updateCtrlHudUI();
   }
 }
 
@@ -2224,6 +2238,7 @@ const gridBtn = document.getElementById("gridBtn");
 function setLocked(on){
   S.locked = on;
   gridBtn.classList.toggle("locked", on);
+  if (typeof updateCtrlHudUI === "function") updateCtrlHudUI();
 }
 
 function sizeKeypad(){
