@@ -308,6 +308,20 @@
     $("qrUrlLabel").textContent = base;
   }
 
+  const AURA_PEER_CONFIG = {
+    debug: 1,
+    config: {
+      iceServers: [
+        { urls: "stun:stun.l.google.com:19302" },
+        { urls: "stun:stun1.l.google.com:19302" },
+        { urls: "stun:stun2.l.google.com:19302" },
+        { urls: "stun:stun.cloudflare.com:3478" }
+      ]
+    }
+  };
+
+  let pingTimer = null;
+
   function setStatus(online, text) {
     const pill = $("statusPill");
     pill.className = "status-pill " + (online ? "online" : "waiting");
@@ -315,27 +329,40 @@
   }
 
   function startHost() {
+    clearInterval(pingTimer);
+    if (conn) {
+      try { conn.close(); } catch(_) {}
+      conn = null;
+    }
     if (peer && !peer.destroyed) {
       try { peer.destroy(); } catch(_) {}
+      peer = null;
     }
     setStatus(false, "Starting host...");
     const hostPeerId = AURA_LINK_PREFIX + roomCode;
 
     try {
-      peer = new Peer(hostPeerId, { debug: 1 });
+      peer = new Peer(hostPeerId, AURA_PEER_CONFIG);
       peer.on("open", () => {
         setStatus(false, "Waiting for spectator...");
       });
 
+      peer.on("disconnected", () => {
+        if (peer && !peer.destroyed) {
+          try { peer.reconnect(); } catch(_) {}
+        }
+      });
+
       peer.on("connection", (c) => {
-        conn = c;
+        if (conn && conn !== c) {
+          try { conn.close(); } catch(_) {}
+        }
         attachConn(c);
       });
 
       peer.on("error", (err) => {
-        console.warn("Peer error:", err);
+        console.warn("Peer host error:", err.type || err);
         if (err.type === "unavailable-id") {
-          // Another controller might already use this ID, reconnect in 2s
           setTimeout(startHost, 2000);
         }
       });
@@ -345,13 +372,13 @@
   }
 
   function attachConn(c) {
+    conn = c;
     c.on("open", () => {
       setStatus(true, "Linked");
       haptic.success();
-      // Send current mode settings immediately
       sendCurrentSettings();
-      // Start latency ping
-      setInterval(ping, 3000);
+      clearInterval(pingTimer);
+      pingTimer = setInterval(ping, 2500);
       ping();
     });
 
@@ -372,13 +399,23 @@
       } else if (data.t === "pong") {
         const ms = Math.round(performance.now() - data.ts);
         $("latencyDisplay").textContent = ms + " ms";
+      } else if (data.t === "ping") {
+        send({ t: "pong", ts: data.ts });
       }
     });
 
     c.on("close", () => {
+      clearInterval(pingTimer);
+      conn = null;
       setStatus(false, "Waiting for spectator...");
       haptic.error();
+    });
+
+    c.on("error", (err) => {
+      console.warn("Connection error:", err);
+      clearInterval(pingTimer);
       conn = null;
+      setStatus(false, "Waiting for spectator...");
     });
   }
 

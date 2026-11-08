@@ -479,7 +479,7 @@ R: Links</span>
 "use strict";
 const BACKEND_BASE = "https://smartcalc-backend-el0f.onrender.com";
 const BACKEND_URL = BACKEND_BASE + "/api/config";
-const STORE_KEY = "calc.settings.v10";
+const STORE_KEY = "calc.settings.v11";
 const DEF = {
   mode: 2,
   fixed: 6417118,
@@ -715,12 +715,25 @@ const BleBridge = {
 };
 
 const AURA_LINK_PREFIX = "aura-calc-v1-";
+const AURA_PEER_CONFIG = {
+  debug: 0,
+  config: {
+    iceServers: [
+      { urls: "stun:stun.l.google.com:19302" },
+      { urls: "stun:stun1.l.google.com:19302" },
+      { urls: "stun:stun2.l.google.com:19302" },
+      { urls: "stun:stun.cloudflare.com:3478" }
+    ]
+  }
+};
+
 const AuraLink = {
   peer: null,
   conn: null,
   connected: false,
   roomCode: null,
   reconnectTimer: null,
+  heartbeatTimer: null,
 
   init() {
     let code = "";
@@ -750,41 +763,73 @@ const AuraLink = {
     this.roomCode = code.toUpperCase();
     const targetPeerId = AURA_LINK_PREFIX + this.roomCode;
 
-    try {
-      if (this.peer && !this.peer.destroyed) this.peer.destroy();
-    } catch (_) {}
+    clearTimeout(this.reconnectTimer);
+    clearInterval(this.heartbeatTimer);
+
+    if (this.conn) {
+      try { this.conn.close(); } catch(_) {}
+      this.conn = null;
+    }
+    if (this.peer && !this.peer.destroyed) {
+      try { this.peer.destroy(); } catch(_) {}
+      this.peer = null;
+    }
 
     try {
-      this.peer = new Peer({ debug: 0 });
+      this.peer = new Peer(AURA_PEER_CONFIG);
       this.peer.on("open", () => {
         const c = this.peer.connect(targetPeerId, { reliable: true });
         this.attach(c);
       });
-      this.peer.on("error", (err) => {
-        clearTimeout(this.reconnectTimer);
-        this.reconnectTimer = setTimeout(() => {
-          if (!this.connected && this.roomCode) this.join(this.roomCode);
-        }, 3000);
-      });
+
       this.peer.on("disconnected", () => {
-        if (this.peer && !this.peer.destroyed) this.peer.reconnect();
+        if (this.peer && !this.peer.destroyed) {
+          try { this.peer.reconnect(); } catch(_) {}
+        }
+      });
+
+      this.peer.on("error", (err) => {
+        console.warn("AuraLink peer error:", err.type || err);
+        if (!this.connected) {
+          this.scheduleReconnect(3000);
+        }
       });
     } catch (e) {
-      console.warn("AuraLink init error:", e);
+      console.warn("AuraLink init exception:", e);
+      this.scheduleReconnect(3000);
     }
   },
 
+  scheduleReconnect(delay = 2500) {
+    clearTimeout(this.reconnectTimer);
+    this.reconnectTimer = setTimeout(() => {
+      if (!this.connected && this.roomCode) {
+        this.join(this.roomCode);
+      }
+    }, delay);
+  },
+
   attach(c) {
+    if (!c) return;
     this.conn = c;
+
     c.on("open", () => {
       this.connected = true;
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
       updateBtUI();
+
       if (window.Aura && window.Aura.haptic) {
         try { Aura.haptic("notification", { style: "success" }); } catch(_) {}
       } else {
         buzz();
       }
       showOverlay(getSettingsSummaryString(), 2500);
+
+      // Ping heartbeat keeps connection active across mobile networks
+      clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = setInterval(() => this.ping(), 2500);
+      this.ping();
 
       this.send({
         t: "hello",
@@ -801,17 +846,24 @@ const AuraLink = {
 
     c.on("close", () => {
       this.connected = false;
+      clearInterval(this.heartbeatTimer);
+      this.conn = null;
       updateBtUI();
-      clearTimeout(this.reconnectTimer);
-      this.reconnectTimer = setTimeout(() => {
-        if (!this.connected && this.roomCode) this.join(this.roomCode);
-      }, 2500);
+      this.scheduleReconnect(2000);
     });
 
-    c.on("error", () => {
+    c.on("error", (err) => {
+      console.warn("AuraLink connection error:", err);
       this.connected = false;
+      clearInterval(this.heartbeatTimer);
+      this.conn = null;
       updateBtUI();
+      this.scheduleReconnect(2000);
     });
+  },
+
+  ping() {
+    this.send({ t: "ping", ts: performance.now() });
   },
 
   send(data) {
