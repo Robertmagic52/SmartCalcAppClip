@@ -452,7 +452,7 @@
 "use strict";
 const BACKEND_BASE = "https://smartcalc-backend-el0f.onrender.com";
 const BACKEND_URL = BACKEND_BASE + "/api/config";
-const STORE_KEY = "calc.settings.v6";
+const STORE_KEY = "calc.settings.v7";
 const DEF = {
   mode: 2,
   fixed: 6417118,
@@ -1268,13 +1268,11 @@ function releaseHighlight(b, pressAt){
 keypad.addEventListener("pointerdown", e => {
   const b = e.target.closest(".key");
   if (!b){
-    // Gaps between keys inject while locked, or toggle the deceptive keypad hint while unlocked.
+    // Gaps between keys inject forced digits while locked; when unlocked, do nothing.
     if (S.locked && !inputFrozen()){
       if ((Date.now() - S.lockedAt) < 320) return;
       gapFed.add(e.pointerId);
       feedNextChunk(); render();
-    } else if (!S.locked){
-      toggleCamouHint();
     }
     return;
   }
