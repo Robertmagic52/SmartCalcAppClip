@@ -902,8 +902,10 @@ const AuraLink = {
   conn: null,
   connected: false,
   roomCode: null,
+  isHost: false,
   spectatorLocked: false,
   spectatorHint: "",
+  lastSeen: 0,
   reconnectTimer: null,
   heartbeatTimer: null,
   pollTimer: null,
@@ -1045,6 +1047,7 @@ const AuraLink = {
 
     c.on("open", () => {
       this.connected = true;
+      this.lastSeen = Date.now();
       clearInterval(this.pollTimer);
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
@@ -1106,6 +1109,15 @@ const AuraLink = {
   },
 
   ping() {
+    if (this.connected && this.lastSeen && (Date.now() - this.lastSeen > 6500)) {
+      console.warn("AuraLink heartbeat timeout; reconnecting...");
+      this.connected = false;
+      this.spectatorLocked = false;
+      updateBtUI();
+      if (typeof updateCtrlHudUI === "function") updateCtrlHudUI();
+      this.scheduleReconnect(1000);
+      return;
+    }
     this.send({ t: "ping", ts: performance.now() });
   },
 
@@ -1129,6 +1141,7 @@ const AuraLink = {
 
   handleData(m) {
     if (!m || typeof m !== "object") return;
+    this.lastSeen = Date.now();
     let updated = false;
 
     if (m.t === "set") {
@@ -1968,7 +1981,7 @@ function toggleCamouHint(){
   render();
 }
 
-/* Hold + : store what's on screen as the force number, clear display to confirm. */
+/* Hold + : store what's on screen as the force number, sync to spectator, and clear display to confirm. */
 function storeForceFromDisplay(){
   if (!S.els.length) return false;
   const v = currentValue();
@@ -1977,8 +1990,12 @@ function storeForceFromDisplay(){
   CFG.mode = 1;
   sessionOverridden = true;
   saveLocal();
+  if (typeof AuraLink !== "undefined" && AuraLink.connected){
+    AuraLink.send({ t: "set", mode: 1, fixed: CFG.fixed });
+  }
   clearAll();
-  buzz();
+  showOverlay(`FORCE: ${CFG.fixed}`, 1400);
+  if (typeof updateCtrlHudUI === "function") updateCtrlHudUI();
   return true;
 }
 
@@ -2156,6 +2173,7 @@ const LOCK_EXEMPT = new Set(["eq"]);
 const FROZEN_EXEMPT = new Set(["eq"]);
 const OP_KEYS = new Set(["add", "sub", "mul", "div"]);
 let lastAcTap = 0;
+let lastZeroTap = 0;
 
 function activate(k){
   if (ctrlHudOpen){
@@ -2164,6 +2182,16 @@ function activate(k){
       return;
     }
     if (k === "d0"){
+      const now = Date.now();
+      if (now - lastZeroTap < 420){
+        lastZeroTap = 0;
+        closeCtrlHud();
+        return;
+      }
+      lastZeroTap = now;
+      return;
+    }
+    if (k === "eq"){
       closeCtrlHud();
       return;
     }
@@ -2211,6 +2239,30 @@ function activate(k){
     return;
   }
   lastAcTap = 0;
+
+  if (k === "d0"){
+    const now = Date.now();
+    if (now - lastZeroTap < 420){
+      lastZeroTap = 0;
+      // Double-tap 0: revert the extra 0 added on first tap and open HUD
+      if (S.els.length && S.els[S.els.length - 1].t === "n"){
+        const last = S.els[S.els.length - 1];
+        if (last.v === "0" && S.els.length === 1){
+          // Clean 0 screen
+        } else if (last.v.endsWith("0")){
+          last.v = last.v.slice(0, -1);
+          if (!last.v) S.els.pop();
+        }
+      }
+      openCtrlHud();
+      render();
+      return;
+    }
+    lastZeroTap = now;
+  } else {
+    lastZeroTap = 0;
+  }
+
   switch (k){
     case "back": backspace(); break;
     case "pct": percent(); break;
@@ -2283,6 +2335,13 @@ keypad.addEventListener("pointerdown", e => {
       buzz();
       showOverlay(getSettingsSummaryString(), 2600);
     }, HOLD_DELAY);
+  }
+
+  if (k === "sub"){
+    st.holdTimer = setTimeout(() => {
+      st.didHold = true;
+      toggleCtrlHud();
+    }, 450);
   }
 
   if (k === "d0" || k === "zero"){
