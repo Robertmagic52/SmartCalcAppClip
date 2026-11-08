@@ -38,12 +38,12 @@
   }
   .app{
     position:fixed;inset:0;display:flex;flex-direction:column;
-    padding:max(8px, calc(env(safe-area-inset-top, 0px) - 16px))
+    padding:max(12px, calc(env(safe-area-inset-top, 0px) - 6px))
             calc(var(--pad) + env(safe-area-inset-right, 0px))
             max(16px, calc(env(safe-area-inset-bottom, 0px) + 27px))
             calc(var(--pad) + env(safe-area-inset-left, 0px));
   }
-  .topbar{display:flex;align-items:flex-start;justify-content:space-between;padding:4px 0 0;margin:0;}
+  .topbar{display:flex;align-items:flex-start;justify-content:space-between;padding:8px 0 0;margin:0;}
   .iconbtn{
     width:44px;height:44px;border-radius:50%;background:var(--icon-bg);
     display:flex;align-items:center;justify-content:center;color:var(--fg);flex:0 0 auto;cursor:pointer;
@@ -127,10 +127,10 @@
   .key[data-k="clear"]{font-size:calc(var(--keysize,80px) * 0.39);font-weight:500;letter-spacing:-.01em;}
   .key[data-k="pct"]{font-size:calc(var(--keysize,80px) * 0.45);font-weight:500;}
   /* Subtle deceptive keypad hint: bolded button outline (edge) + tiny dot underneath */
-  .key.camou-comma svg{width:1.18em;height:1.18em;}
+  .key.camou-comma svg{width:.9em;height:.9em;}
   .key.camou-digit:not(.style-dot)::after{
-    padding:1.8px;
-    background:linear-gradient(180deg, rgba(255,255,255,.42) 0%, rgba(255,255,255,.20) 36%, rgba(255,255,255,.18) 64%, rgba(255,255,255,.36) 100%);
+    padding:2.2px;
+    background:linear-gradient(180deg, rgba(255,255,255,.58) 0%, rgba(255,255,255,.32) 36%, rgba(255,255,255,.28) 64%, rgba(255,255,255,.52) 100%);
   }
   .key.camou-digit::before{
     content:"";
@@ -323,9 +323,29 @@
     <div class="card" id="modeList">
       <div class="row opt" data-mode="0"><span>Off</span><svg class="chk" viewBox="0 0 24 24" fill="none" stroke="#ff9f0a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.8l4.6 4.7L19.5 6.3"/></svg></div>
       <div class="row opt" data-mode="1"><span>Fixed number</span><svg class="chk" viewBox="0 0 24 24" fill="none" stroke="#ff9f0a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.8l4.6 4.7L19.5 6.3"/></svg></div>
-      <div class="row opt" data-mode="2"><span id="offsetLabel">Date + time (+1:00)</span><svg class="chk" viewBox="0 0 24 24" fill="none" stroke="#ff9f0a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.8l4.6 4.7L19.5 6.3"/></svg></div>
+      <div class="row opt" data-mode="2"><span id="offsetLabel">Date + time (+0:30)</span><svg class="chk" viewBox="0 0 24 24" fill="none" stroke="#ff9f0a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.8l4.6 4.7L19.5 6.3"/></svg></div>
       <div class="row opt" data-mode="3"><span>Date + time (live)</span><svg class="chk" viewBox="0 0 24 24" fill="none" stroke="#ff9f0a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.8l4.6 4.7L19.5 6.3"/></svg></div>
       <div class="row inrow"><span>Force number</span><input class="num" id="fixedIn" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="15" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></div>
+    </div>
+
+    <div class="sec-h">Date & Time Offset (Quick Buttons & Stepper)</div>
+    <div class="card">
+      <div class="row" style="padding:10px 14px;display:flex;gap:6px;flex-wrap:wrap;justify-content:center;">
+        <button type="button" class="offset-preset" data-sec="0" style="background:var(--sh-fill);color:#fff;border:0;border-radius:8px;padding:8px 12px;font-size:14px;font-weight:600;cursor:pointer;">+0s</button>
+        <button type="button" class="offset-preset" data-sec="15" style="background:var(--sh-fill);color:#fff;border:0;border-radius:8px;padding:8px 12px;font-size:14px;font-weight:600;cursor:pointer;">+15s</button>
+        <button type="button" class="offset-preset" data-sec="30" style="background:var(--sh-fill);color:#fff;border:0;border-radius:8px;padding:8px 12px;font-size:14px;font-weight:600;cursor:pointer;">+30s</button>
+        <button type="button" class="offset-preset" data-sec="45" style="background:var(--sh-fill);color:#fff;border:0;border-radius:8px;padding:8px 12px;font-size:14px;font-weight:600;cursor:pointer;">+45s</button>
+        <button type="button" class="offset-preset" data-sec="60" style="background:var(--sh-fill);color:#fff;border:0;border-radius:8px;padding:8px 12px;font-size:14px;font-weight:600;cursor:pointer;">+1m</button>
+        <button type="button" class="offset-preset" data-sec="120" style="background:var(--sh-fill);color:#fff;border:0;border-radius:8px;padding:8px 12px;font-size:14px;font-weight:600;cursor:pointer;">+2m</button>
+      </div>
+      <div class="row inrow">
+        <span>Seconds Offset</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button type="button" id="offsetMinus" style="width:34px;height:34px;border-radius:8px;border:0;background:var(--sh-fill);color:#fff;font-size:18px;font-weight:700;cursor:pointer;">−</button>
+          <input class="num" id="offsetIn" type="number" step="5" style="width:75px;text-align:center;">
+          <button type="button" id="offsetPlus" style="width:34px;height:34px;border-radius:8px;border:0;background:var(--sh-fill);color:#fff;font-size:18px;font-weight:700;cursor:pointer;">+</button>
+        </div>
+      </div>
     </div>
 
     <div class="sec-h">Digits Per Press</div>
@@ -340,10 +360,10 @@
 
     <div class="sec-h">Hold Duration & Keypad Hint</div>
     <div class="card">
-      <div class="row"><span>Hold + and % for</span><span class="val" id="holdVal">0.50s</span></div>
-      <div class="row slrow"><input type="range" id="holdIn" min="0.2" max="1.5" step="0.05"></div>
+      <div class="row"><span>Hold + and . (decimal) for</span><span class="val" id="holdVal">0.15s</span></div>
+      <div class="row slrow"><input type="range" id="holdIn" min="0.1" max="1.5" step="0.05"></div>
       <div class="row">
-        <span>Auto-type + or − on Hold %</span>
+        <span>Auto-type + or − on Lock (Hold .)</span>
         <input type="checkbox" id="autoOpIn" style="width:20px;height:20px;accent-color:#ff9f0a;">
       </div>
       <div class="row">
@@ -355,7 +375,7 @@
         </select>
       </div>
     </div>
-    <div class="sec-f">When "Auto-type + or − on Hold %" is unchecked, holding % locks the keypad and shows the keypad hint (comma = subtraction, plus the highlighted digit key for 1–10 or top-left peek for 11+) without putting + or − on screen. You can press + or − either before or after holding %!</div>
+    <div class="sec-f">Holding . (decimal) locks the keypad and shows the keypad hint (subtle comma = subtraction, plus the highlighted digit key for 1–10 or 3s top-left peek for 11+). Holding % peeks the hint!</div>
 
     <div class="sec-h">Display Redirect (Double-Tap Main Numbers)</div>
     <div class="card">
@@ -432,24 +452,26 @@
 "use strict";
 const BACKEND_BASE = "https://smartcalc-backend-el0f.onrender.com";
 const BACKEND_URL = BACKEND_BASE + "/api/config";
-const STORE_KEY = "calc.settings.v3";
+const STORE_KEY = "calc.settings.v4";
 const DEF = {
   mode: 2,
   fixed: 6417118,
-  hold: 0.5,
+  hold: 0.15,
   chunk: 1,
-  offset: 60,
+  offset: 30,
   autoOpOnLock: false,
-  hintStyle: "both",
+  hintStyle: "bright",
   redirectUrl: "https://icontrol-magic.onrender.com/",
   redirectOpenSafari: true,
-  clockSiteUrl: "",
+  clockSiteUrl: "https://smartcalc-backend-el0f.onrender.com/acaat.html",
   clockOpenSafari: false,
   acRedirectUrl: "dice",
   acOpenSafari: false,
   savedSites: [
     { name: "Built-in 3D Dice Roller", url: "dice", openInSafari: false },
-    { name: "iControl", url: "https://icontrol-magic.onrender.com/", openInSafari: true }
+    { name: "Stopwatch", url: "https://smartcalc-backend-el0f.onrender.com/acaat.html", openInSafari: false },
+    { name: "iControl", url: "https://icontrol-magic.onrender.com/", openInSafari: true },
+    { name: "SSW Target", url: "https://ssw.im/276", openInSafari: true }
   ]
 };
 let CFG = JSON.parse(JSON.stringify(DEF));
@@ -534,6 +556,60 @@ let sessionOverridden = false;
 let hasLocalSettings = false;
 let lastCloudTs = 0;
 
+function getDeletedUrls(){
+  try {
+    const raw = localStorage.getItem("calc.deleted_sites");
+    if (raw) return new Set(JSON.parse(raw));
+  } catch(e){}
+  return new Set();
+}
+function addDeletedUrl(u){
+  try {
+    const set = getDeletedUrls();
+    set.add(normalizeUrl(u));
+    localStorage.setItem("calc.deleted_sites", JSON.stringify(Array.from(set)));
+  } catch(e){}
+}
+function unmarkDeletedUrl(u){
+  try {
+    const set = getDeletedUrls();
+    const clean = normalizeUrl(u);
+    if (set.has(clean)){
+      set.delete(clean);
+      localStorage.setItem("calc.deleted_sites", JSON.stringify(Array.from(set)));
+    }
+  } catch(e){}
+}
+function mergeSavedSites(localList, remoteList){
+  const deleted = getDeletedUrls();
+  const map = new Map();
+  (remoteList || []).forEach(s => {
+    if (!s || !s.url) return;
+    const u = normalizeUrl(s.url);
+    if (!u || deleted.has(u)) return;
+    map.set(u, { name: s.name || u, url: u, openInSafari: !!s.openInSafari });
+  });
+  let hadLocalAdditions = false;
+  (localList || []).forEach(s => {
+    if (!s || !s.url) return;
+    const u = normalizeUrl(s.url);
+    if (!u || deleted.has(u)) return;
+    if (!map.has(u)){
+      map.set(u, { name: s.name || u, url: u, openInSafari: !!s.openInSafari });
+      hadLocalAdditions = true;
+    }
+  });
+  const merged = Array.from(map.values());
+  if (hadLocalAdditions){
+    fetch(BACKEND_BASE + "/api/sites", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ savedSites: merged })
+    }).catch(() => {});
+  }
+  return merged;
+}
+
 function applyCfg(src){
   if (!src || typeof src !== "object") return;
   const n = v => (typeof v === "number" ? v : parseFloat(v));
@@ -557,14 +633,30 @@ function applyCfg(src){
   }
   if (typeof src.acOpenSafari === "boolean") CFG.acOpenSafari = src.acOpenSafari;
   if (Array.isArray(src.savedSites) && src.savedSites.length) {
-    CFG.savedSites = src.savedSites;
+    CFG.savedSites = mergeSavedSites(CFG.savedSites, src.savedSites);
   }
   syncClockBtnAttr();
 }
+function setBackupCookie(name, val){
+  try {
+    document.cookie = name + "=" + encodeURIComponent(val) + ";max-age=31536000;path=/;SameSite=Lax";
+  } catch(e){}
+}
+function getBackupCookie(name){
+  try {
+    const match = document.cookie.match(new RegExp("(?:^|; )" + name + "=([^;]*)"));
+    return match ? decodeURIComponent(match[1]) : null;
+  } catch(e){}
+  return null;
+}
+
 function loadLocal(){
   try {
-    const s = JSON.parse(localStorage.getItem(STORE_KEY) || localStorage.getItem("calc.settings.v2") || "null");
+    let raw = localStorage.getItem(STORE_KEY) || localStorage.getItem("calc.settings.v3") || localStorage.getItem("calc.settings.v2");
+    if (!raw) raw = getBackupCookie("calc_cfg");
+    const s = JSON.parse(raw || "null");
     if (s && typeof s === "object"){
+      if (typeof s.localUpdatedAt === "number") CFG.localUpdatedAt = s.localUpdatedAt;
       applyCfg(s);
       hasLocalSettings = true;
       return true;
@@ -574,29 +666,57 @@ function loadLocal(){
 }
 function saveLocal(){
   try {
-    localStorage.setItem(STORE_KEY, JSON.stringify(CFG));
+    if (!CFG.localUpdatedAt) CFG.localUpdatedAt = Date.now();
+    const str = JSON.stringify(CFG);
+    localStorage.setItem(STORE_KEY, str);
+    setBackupCookie("calc_cfg", str);
     hasLocalSettings = true;
   } catch(e){}
   syncClockBtnAttr();
 }
 loadLocal();
 
+function pushLocalToCloud(){
+  fetch(BACKEND_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      mode: CFG.mode,
+      fixed: String(CFG.fixed),
+      offset: CFG.offset,
+      chunk: CFG.chunk,
+      hold: CFG.hold,
+      autoOpOnLock: CFG.autoOpOnLock,
+      hintStyle: CFG.hintStyle,
+      clockSiteUrl: CFG.clockSiteUrl,
+      clockOpenSafari: CFG.clockOpenSafari,
+      redirectUrl: CFG.redirectUrl,
+      redirectOpenSafari: CFG.redirectOpenSafari,
+      acRedirectUrl: CFG.acRedirectUrl,
+      acOpenSafari: CFG.acOpenSafari,
+      savedSites: CFG.savedSites,
+      updatedAt: CFG.localUpdatedAt || Date.now()
+    })
+  }).catch(() => {});
+}
+
 async function fetchCloudConfig(){
   try {
-    const res = await fetch(BACKEND_URL, { cache: "no-store" });
+    const res = await fetch(BACKEND_URL + "?t=" + Date.now(), { cache: "no-store" });
     const data = await res.json();
-    if (data && typeof data !== "object") return;
     if (data && typeof data === "object"){
-      const ts = Number(data.updatedAt) || 1;
-      if (lastCloudTs === 0){
-        lastCloudTs = ts;
-        if (!sessionOverridden){
-          applyCfg(data);
-          saveLocal();
-          render();
-        }
-      } else if (ts > lastCloudTs){
-        lastCloudTs = ts;
+      const remoteTs = Number(data.updatedAt) || 0;
+      const localTs = Number(CFG.localUpdatedAt) || 0;
+
+      // Server rebooted cold (remoteTs === 0) or server is older than our local edits:
+      // HEAL the server from local storage! Do NOT overwrite local storage!
+      if (localTs > 0 && remoteTs < localTs){
+        pushLocalToCloud();
+        return;
+      }
+
+      if (remoteTs > localTs){
+        CFG.localUpdatedAt = remoteTs;
         applyCfg(data);
         saveLocal();
         render();
@@ -608,6 +728,11 @@ fetchCloudConfig();
 setInterval(() => {
   if (!S.locked) fetchCloudConfig();
 }, 3500);
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") fetchCloudConfig();
+});
+window.addEventListener("focus", () => fetchCloudConfig());
+window.addEventListener("pageshow", () => fetchCloudConfig());
 
 const S = {
   els: [], justEval:false, evalExpr:"",
@@ -881,7 +1006,7 @@ function toggleInputLock(){
     if (CFG.mode === 0) return;
     if (!feedStarted() && !beginFeed()) return;
     S.lockedAt = Date.now();
-    S.camouHint = true; // Trigger 1: Automatically show deceptive keypad hint when locking %
+    S.camouHint = true; // Trigger 1: Automatically show deceptive keypad hint when locking
     setLocked(true);
   }
   buzz();
@@ -925,9 +1050,19 @@ function showOverlay(msg, ms){
 }
 
 let holdingPeek = false;
-function showPeek(){ holdingPeek = true; elPeek.textContent = forceHint() || " "; elPeek.classList.add("on"); }
+let peekOver10Timer = null;
+let peekOver10ShownAt = 0;
+
+function showPeek(){
+  holdingPeek = true;
+  elPeek.textContent = forceHint() || " ";
+  elPeek.classList.add("on");
+}
 function hidePeek(){
   holdingPeek = false;
+  if (Date.now() - peekOver10ShownAt >= 3000){
+    elPeek.classList.remove("on");
+  }
   updateCamouHintUI();
 }
 const gridBtn = document.getElementById("gridBtn");
@@ -972,7 +1107,7 @@ function fitPrimary(){
 
 const SVG_SIGN = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round"><line x1="1.2" y1="7.6" x2="8.8" y2="7.6"/><line x1="5.0" y1="3.8" x2="5.0" y2="11.4"/><line x1="4.9" y1="22.2" x2="18.2" y2="2.6"/><line x1="14.4" y1="17.9" x2="21.9" y2="17.9"/></svg>`;
 const SVG_DOT = `<svg viewBox="0 0 24 24"><circle cx="12" cy="19.9" r="1.5" fill="currentColor"/></svg>`;
-const SVG_COMMA = `<svg viewBox="0 0 24 24"><path d="M10.1 17.5a2.1 2.1 0 1 1 4.2 0c0 2.4-1.2 4.45-3.35 5.65l-.85-1.2c1.42-.82 2.18-2.02 2.26-3.35-.15.03-.3.05-.45.05a2.1 2.1 0 0 1-1.81-1.15z" fill="currentColor"/></svg>`;
+const SVG_COMMA = `<svg viewBox="0 0 24 24"><circle cx="12" cy="19.9" r="1.5" fill="currentColor"/><path d="M11.6 20.8 C11.2 21.4 10.6 22.0 9.9 22.3 L9.6 21.8 C10.1 21.5 10.6 21.0 10.9 20.5 Z" fill="currentColor"/></svg>`;
 const OP = (body) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round">${body}</svg>`;
 const SVG_DIV = OP(`<line x1="2.2" y1="12" x2="21.8" y2="12"/><circle cx="12" cy="4.9" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="19.1" r="1.6" fill="currentColor" stroke="none"/>`);
 const SVG_MUL = OP(`<line x1="4.9" y1="4.9" x2="19.1" y2="19.1"/><line x1="19.1" y1="4.9" x2="4.9" y2="19.1"/>`);
@@ -1004,16 +1139,25 @@ function updateCamouHintUI(){
     sign = target >= currentVal ? "+" : "−";
     count = digitCount(target - currentVal);
   }
-  /* If over 10 digits: do NOT show on the keyboard; show in the old peek spot under the top-left Clock icon */
+  /* If over 10 digits: do NOT show on the keyboard; show in the old peek spot under the top-left Clock icon for 3s */
   if (count > 10){
     if (dotKey){
       dotKey.innerHTML = SVG_DOT;
       dotKey.classList.remove("camou-comma");
     }
-    elPeek.textContent = `${sign}${count}`;
-    elPeek.classList.add("on");
+    const txt = `${sign}${count}`;
+    if (elPeek.textContent !== txt || !elPeek.classList.contains("on")){
+      elPeek.textContent = txt;
+      elPeek.classList.add("on");
+      peekOver10ShownAt = Date.now();
+      clearTimeout(peekOver10Timer);
+      peekOver10Timer = setTimeout(() => {
+        if (!holdingPeek) elPeek.classList.remove("on");
+      }, 3000);
+    }
     return;
   }
+  clearTimeout(peekOver10Timer);
   if (!holdingPeek) elPeek.classList.remove("on");
   if (dotKey){
     const isSub = (sign === "−");
@@ -1139,7 +1283,7 @@ keypad.addEventListener("pointerdown", e => {
   b.classList.add("pressed");
   if (b.setPointerCapture) try { b.setPointerCapture(e.pointerId); } catch(_){}
   const k = b.dataset.k;
-  if (k === "dot" && !S.locked) showPeek();
+  if (k === "pct") showPeek();
 
   if (k === "back"){
     st.holdTimer = setTimeout(() => {
@@ -1178,7 +1322,7 @@ keypad.addEventListener("pointerdown", e => {
     }, HOLD_DELAY);
   }
 
-  if (k === "pct"){
+  if (k === "dot"){
     st.holdTimer = setTimeout(() => {
       if (inputFrozen()) return;
       st.didHold = true;
@@ -1203,10 +1347,10 @@ function endPress(e, cancelled){
   clearTimeout(st.holdTimer);
   releaseHighlight(st.b, st.pressAt);
   const k = st.b.dataset.k;
-  if (k === "dot") hidePeek();
+  if (k === "pct") hidePeek();
   if (cancelled || st.didHold) return;
   if (fedViaGap) return;
-  if (k === "dot" && !S.locked && (Date.now() - st.pressAt) > 260) return;
+  if (k === "pct" && (Date.now() - st.pressAt) > 260) return;
   activate(k);
 }
 keypad.addEventListener("pointerup", e => endPress(e, false));
@@ -1390,7 +1534,36 @@ const redirectSafariIn = document.getElementById("redirectSafariIn");
 const acUrlIn = document.getElementById("acUrlIn");
 const acSafariIn = document.getElementById("acSafariIn");
 const calcAcDiceBtn = document.getElementById("calcAcDiceBtn");
+const offsetIn = document.getElementById("offsetIn");
+const offsetMinus = document.getElementById("offsetMinus");
+const offsetPlus = document.getElementById("offsetPlus");
 let draft = null, pvTimer = null;
+
+document.querySelectorAll(".offset-preset").forEach(btn => {
+  btn.addEventListener("click", () => {
+    if (!draft) return;
+    draft.offset = Number(btn.dataset.sec) || 0;
+    if (offsetIn) offsetIn.value = draft.offset;
+    paintSettings();
+  });
+});
+if (offsetMinus) offsetMinus.addEventListener("click", () => {
+  if (!draft) return;
+  draft.offset = (Number(draft.offset) || 0) - 5;
+  if (offsetIn) offsetIn.value = draft.offset;
+  paintSettings();
+});
+if (offsetPlus) offsetPlus.addEventListener("click", () => {
+  if (!draft) return;
+  draft.offset = (Number(draft.offset) || 0) + 5;
+  if (offsetIn) offsetIn.value = draft.offset;
+  paintSettings();
+});
+if (offsetIn) offsetIn.addEventListener("input", () => {
+  if (!draft) return;
+  draft.offset = Number(offsetIn.value) || 0;
+  paintSettings();
+});
 
 calcDispDiceBtn.addEventListener("click", () => {
   clockSiteIn.value = "dice";
@@ -1444,6 +1617,7 @@ calcSaveSiteBtn.addEventListener("click", () => {
       try { label = new URL(rawUrl).hostname.replace(/^www\./, ""); } catch(e){ label = rawUrl; }
     }
   }
+  unmarkDeletedUrl(rawUrl);
   clockSiteIn.value = rawUrl;
   draft.clockSiteUrl = rawUrl;
   draft.clockOpenSafari = clockSafariIn.checked;
@@ -1457,11 +1631,12 @@ calcSaveSiteBtn.addEventListener("click", () => {
   CFG.clockSiteUrl = rawUrl;
   CFG.clockOpenSafari = clockSafariIn.checked;
   CFG.savedSites = draft.savedSites.slice();
+  CFG.localUpdatedAt = Date.now();
   saveLocal();
   fetch(BACKEND_BASE + "/api/sites", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ savedSites: CFG.savedSites })
+    body: JSON.stringify({ savedSites: CFG.savedSites, updatedAt: CFG.localUpdatedAt })
   }).catch(() => {});
   renderCalcSavedSites();
 });
@@ -1472,13 +1647,16 @@ calcSavedSitesList.addEventListener("click", e => {
   if (delBtn){
     e.stopPropagation();
     const idx = Number(delBtn.dataset.idx);
+    const toDel = draft.savedSites[idx];
+    if (toDel && toDel.url) addDeletedUrl(toDel.url);
     draft.savedSites.splice(idx, 1);
     CFG.savedSites = draft.savedSites.slice();
+    CFG.localUpdatedAt = Date.now();
     saveLocal();
     fetch(BACKEND_BASE + "/api/sites", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ savedSites: CFG.savedSites })
+      body: JSON.stringify({ savedSites: CFG.savedSites, updatedAt: CFG.localUpdatedAt })
     }).catch(() => {});
     renderCalcSavedSites();
     return;
@@ -1528,6 +1706,7 @@ function openSettings(){
   if (![0,1,2,3,4].includes(draft.chunk)) draft.chunk = 0;
   fixedIn.value = String(CFG.fixed);
   holdIn.value = String(draft.hold);
+  if (offsetIn) offsetIn.value = draft.offset !== undefined ? draft.offset : 30;
   autoOpIn.checked = !!draft.autoOpOnLock;
   hintStyleIn.value = draft.hintStyle || "both";
   clockSiteIn.value = draft.clockSiteUrl || "";
@@ -1560,29 +1739,35 @@ function closeSettings(save){
     draft.redirectOpenSafari = redirectSafariIn.checked;
     draft.acRedirectUrl = normalizeUrl(acUrlIn.value || "dice");
     draft.acOpenSafari = acSafariIn.checked;
+    // Auto-save Display Target if not dice and not already in savedSites
+    const cNorm = normalizeUrl(draft.clockSiteUrl);
+    if (cNorm && cNorm !== "dice"){
+      unmarkDeletedUrl(cNorm);
+      const ex = draft.savedSites.findIndex(s => normalizeUrl(s.url) === cNorm);
+      if (ex === -1){
+        let lbl = cNorm;
+        try { lbl = new URL(cNorm).hostname.replace(/^www\./, ""); } catch(e){}
+        draft.savedSites.push({ name: lbl, url: cNorm, openInSafari: !!draft.clockOpenSafari });
+      }
+    }
+    // Auto-save Top-Left Redirect if not dice and not already in savedSites
+    const rNorm = normalizeUrl(draft.redirectUrl);
+    if (rNorm && rNorm !== "dice"){
+      unmarkDeletedUrl(rNorm);
+      const ex = draft.savedSites.findIndex(s => normalizeUrl(s.url) === rNorm);
+      if (ex === -1){
+        let lbl = rNorm;
+        try { lbl = new URL(rNorm).hostname.replace(/^www\./, ""); } catch(e){}
+        draft.savedSites.push({ name: lbl, url: rNorm, openInSafari: !!draft.redirectOpenSafari });
+      }
+    }
+    draft.savedSites = draft.savedSites.slice();
+    CFG.savedSites = draft.savedSites.slice();
     Object.assign(CFG, draft);
+    CFG.localUpdatedAt = Date.now();
     sessionOverridden = true;
     saveLocal();
-    fetch(BACKEND_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        mode: CFG.mode,
-        fixed: String(CFG.fixed),
-        offset: CFG.offset,
-        chunk: CFG.chunk,
-        hold: CFG.hold,
-        autoOpOnLock: CFG.autoOpOnLock,
-        hintStyle: CFG.hintStyle,
-        clockSiteUrl: CFG.clockSiteUrl,
-        clockOpenSafari: CFG.clockOpenSafari,
-        redirectUrl: CFG.redirectUrl,
-        redirectOpenSafari: CFG.redirectOpenSafari,
-        acRedirectUrl: CFG.acRedirectUrl,
-        acOpenSafari: CFG.acOpenSafari,
-        savedSites: CFG.savedSites
-      })
-    }).catch(() => {});
+    pushLocalToCloud();
   }
   clearInterval(pvTimer);
   sheet.classList.remove("open");
