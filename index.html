@@ -156,6 +156,36 @@
     background: #30d158;
     box-shadow: 0 0 6px #30d158;
   }
+  .ctrl-sync-badge {
+    display: none;
+    background: rgba(48, 209, 88, 0.18);
+    border: 1px solid rgba(48, 209, 88, 0.45);
+    color: #30d158;
+    padding: 5px 9px;
+    border-radius: 999px;
+    font: 700 11px ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+  .ctrl-sync-badge.visible {
+    display: inline-flex;
+    align-items: center;
+    animation: fadeInSync 0.2s ease;
+  }
+  .ctrl-sync-badge.pending {
+    background: rgba(10, 132, 255, 0.18);
+    border-color: rgba(10, 132, 255, 0.4);
+    color: #64d2ff;
+  }
+  .ctrl-sync-badge.local {
+    background: rgba(255, 159, 10, 0.18);
+    border-color: rgba(255, 159, 10, 0.4);
+    color: #ff9f0a;
+  }
+  @keyframes fadeInSync {
+    from { opacity: 0; transform: scale(0.92); }
+    to { opacity: 1; transform: scale(1); }
+  }
   .ctrl-close-btn {
     background: rgba(255, 255, 255, 0.12);
     border: 1px solid rgba(255, 255, 255, 0.18);
@@ -506,6 +536,7 @@
           <span class="ctrl-dot"></span>
           <span id="ctrlLinkText">LINK: ROB52</span>
         </div>
+        <div class="ctrl-sync-badge" id="ctrlSyncBadge">✓ SYNCED</div>
         <div class="ctrl-hint-pill" id="ctrlHintPill">HINT: --</div>
         <button type="button" class="ctrl-close-btn" id="ctrlCloseBtn">✕ DONE</button>
       </div>
@@ -1104,8 +1135,6 @@ const AuraLink = {
       updateBtUI();
       if (typeof updateCtrlHudUI === "function") updateCtrlHudUI();
 
-      showOverlay(getSettingsSummaryString(), 2200);
-
       // Ping heartbeat keeps connection active across mobile networks
       clearInterval(this.heartbeatTimer);
       this.heartbeatTimer = setInterval(() => this.ping(), 2500);
@@ -1201,10 +1230,16 @@ const AuraLink = {
       if (typeof m.hold === "number") { CFG.hold = m.hold; updated = true; }
       if (typeof m.chunk === "number") { CFG.chunk = m.chunk; updated = true; }
       if (typeof m.redirectUrl === "string") { CFG.redirectUrl = normalizeUrl(m.redirectUrl); updated = true; }
+    } else if (m.t === "ack") {
+      handleRemoteAck(m);
     } else if (m.t === "lock") {
       lockCalculator(m.showHint === true);
+      this.sendDisplay();
+      this.send({ t: "ack", action: "lock", locked: true, hint: (typeof forceHint === "function" ? (forceHint() || "") : "") });
     } else if (m.t === "unlock") {
       unlockCalculator();
+      this.sendDisplay();
+      this.send({ t: "ack", action: "unlock", locked: false });
     } else if (m.t === "display" || m.t === "hello") {
       this.spectatorLocked = !!m.locked;
       this.spectatorHint = m.hint || "";
@@ -1233,13 +1268,66 @@ const AuraLink = {
       sessionOverridden = true;
       saveLocal();
       render();
-      showOverlay(getSettingsSummaryString(), 2400);
+      // NOTE: Spectator phone stays clean — never display settings overlay here!
       updateBtUI();
       if (typeof updateCtrlHudUI === "function") updateCtrlHudUI();
       this.sendDisplay();
+      this.send({
+        t: "ack",
+        action: "set",
+        mode: CFG.mode,
+        fixed: CFG.fixed,
+        offset: CFG.offset
+      });
     }
   }
 };
+
+let hudSyncTimer = null;
+function showHudSyncStatus(text, type, duration = 2200){
+  const badge = document.getElementById("ctrlSyncBadge");
+  if (!badge) return;
+  clearTimeout(hudSyncTimer);
+  badge.textContent = text;
+  badge.className = "ctrl-sync-badge visible " + (type || "success");
+  if (duration > 0){
+    hudSyncTimer = setTimeout(() => {
+      badge.className = "ctrl-sync-badge";
+    }, duration);
+  }
+}
+
+function handleRemoteAck(m){
+  if (m.action === "set"){
+    showHudSyncStatus("✓ SYNCED", "success", 2400);
+    if (!ctrlHudOpen){
+      const summary = (m.mode === 1) ? `✓ SYNCED: ${m.fixed}` : `✓ SYNCED: TIME (+${m.offset || 0}s)`;
+      showOverlay(summary, 1500);
+    }
+    if (window.Aura && window.Aura.haptic) {
+      try { Aura.haptic("notification", { style: "success" }); } catch(_){}
+    } else if (navigator.vibrate) {
+      try { navigator.vibrate(35); } catch(_){}
+    }
+  } else if (m.action === "lock"){
+    AuraLink.spectatorLocked = true;
+    if (m.hint) AuraLink.spectatorHint = m.hint;
+    showHudSyncStatus("✓ LOCKED", "success", 2000);
+    if (!ctrlHudOpen && m.hint && elPeek){
+      elPeek.textContent = m.hint;
+      elPeek.classList.add("on");
+    }
+    updateCtrlHudUI();
+  } else if (m.action === "unlock"){
+    AuraLink.spectatorLocked = false;
+    AuraLink.spectatorHint = "";
+    showHudSyncStatus("✓ UNLOCKED", "success", 2000);
+    if (!ctrlHudOpen && elPeek && !holdingPeek){
+      elPeek.classList.remove("on");
+    }
+    updateCtrlHudUI();
+  }
+}
 
 function updateBtUI(){
   const lbl = document.getElementById("btStatusLabel");
@@ -1953,7 +2041,10 @@ if (ctrlModeTimeBtn){
     sessionOverridden = true;
     saveLocal();
     if (typeof AuraLink !== "undefined" && AuraLink.connected){
+      showHudSyncStatus("SYNCING...", "pending", 0);
       AuraLink.send({ t: "set", mode: 2, offset: CFG.offset });
+    } else {
+      showHudSyncStatus("LOCAL ONLY", "local", 2200);
     }
     updateCtrlHudUI();
   });
@@ -1968,7 +2059,10 @@ if (ctrlModeFixedBtn){
     sessionOverridden = true;
     saveLocal();
     if (typeof AuraLink !== "undefined" && AuraLink.connected){
+      showHudSyncStatus("SYNCING...", "pending", 0);
       AuraLink.send({ t: "set", mode: 1, fixed: CFG.fixed });
+    } else {
+      showHudSyncStatus("LOCAL ONLY", "local", 2200);
     }
     updateCtrlHudUI();
   });
@@ -2031,7 +2125,10 @@ function handleCtrlKeypadInput(k){
   sessionOverridden = true;
   saveLocal();
   if (typeof AuraLink !== "undefined" && AuraLink.connected){
+    showHudSyncStatus("SYNCING...", "pending", 0);
     AuraLink.send({ t: "set", mode: CFG.mode, fixed: CFG.fixed, offset: CFG.offset });
+  } else {
+    showHudSyncStatus("LOCAL ONLY", "local", 2200);
   }
   updateCtrlHudUI();
 }
@@ -2039,12 +2136,14 @@ function handleCtrlKeypadInput(k){
 function handleDotHold(){
   if (typeof AuraLink !== "undefined" && AuraLink.connected){
     if (AuraLink.spectatorLocked){
+      showHudSyncStatus("UNLOCKING...", "pending", 0);
       AuraLink.send({ t: "unlock" });
       AuraLink.spectatorLocked = false;
       AuraLink.spectatorHint = "";
       updateCtrlHudUI();
       if (elPeek && !holdingPeek) elPeek.classList.remove("on");
     } else {
+      showHudSyncStatus("ARMING...", "pending", 0);
       AuraLink.send({ t: "lock", showHint: false });
       AuraLink.spectatorLocked = true;
       if (!AuraLink.spectatorHint) AuraLink.spectatorHint = forceHint() || "";
@@ -2076,10 +2175,14 @@ function storeForceFromDisplay(){
   sessionOverridden = true;
   saveLocal();
   if (typeof AuraLink !== "undefined" && AuraLink.connected){
+    showHudSyncStatus("SYNCING...", "pending", 0);
     AuraLink.send({ t: "set", mode: 1, fixed: CFG.fixed });
+    showOverlay(`FORCE: ${CFG.fixed} (SYNCING...)`, 1200);
+  } else {
+    showOverlay(`FORCE: ${CFG.fixed} (LOCAL ONLY)`, 1500);
+    showHudSyncStatus("LOCAL ONLY", "local", 2200);
   }
   clearAll();
-  showOverlay(`FORCE: ${CFG.fixed}`, 1400);
   if (typeof updateCtrlHudUI === "function") updateCtrlHudUI();
   return true;
 }
@@ -2398,8 +2501,16 @@ keypad.addEventListener("pointerdown", e => {
       CFG.mode = (CFG.mode === 1) ? 2 : 1;
       sessionOverridden = true;
       saveLocal();
-      buzz();
-      showOverlay(CFG.mode === 2 ? "MODE: TIME" : "MODE: FIXED", 1200);
+      const mStr = (CFG.mode === 2) ? "TIME" : "FIXED";
+      if (typeof AuraLink !== "undefined" && AuraLink.connected){
+        showHudSyncStatus("SYNCING...", "pending", 0);
+        AuraLink.send({ t: "set", mode: CFG.mode, fixed: CFG.fixed, offset: CFG.offset });
+        showOverlay(`MODE: ${mStr} (SYNCING...)`, 1200);
+      } else {
+        showOverlay(`MODE: ${mStr} (LOCAL ONLY)`, 1400);
+        showHudSyncStatus("LOCAL ONLY", "local", 2200);
+      }
+      if (typeof updateCtrlHudUI === "function") updateCtrlHudUI();
     }, HOLD_DELAY);
   }
 
@@ -2890,6 +3001,22 @@ function closeSettings(save){
     sessionOverridden = true;
     saveLocal();
     pushLocalToCloud();
+    if (typeof AuraLink !== "undefined" && AuraLink.connected){
+      showHudSyncStatus("SYNCING...", "pending", 0);
+      AuraLink.send({
+        t: "set",
+        mode: CFG.mode,
+        fixed: CFG.fixed,
+        offset: CFG.offset,
+        hold: CFG.hold,
+        chunk: CFG.chunk,
+        redirectUrl: CFG.redirectUrl
+      });
+      showOverlay("✓ SAVED & SYNCED", 1400);
+    } else {
+      showOverlay("✓ SAVED (LOCAL)", 1300);
+      showHudSyncStatus("LOCAL ONLY", "local", 2200);
+    }
   }
   clearInterval(pvTimer);
   sheet.classList.remove("open");
