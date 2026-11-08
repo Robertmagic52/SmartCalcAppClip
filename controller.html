@@ -128,6 +128,76 @@
   }
   .preset-pill.active { background: var(--accent); color: #000; border-color: var(--accent); }
 
+  /* Giant Hero Remote Lock Button */
+  .hero-lock-btn {
+    width: 100%; border-radius: 20px; padding: 18px 20px;
+    display: flex; align-items: center; justify-content: space-between;
+    cursor: pointer; position: relative; overflow: hidden;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 6px 24px rgba(0,0,0,0.4);
+    border: 2px solid transparent; text-align: left;
+  }
+  .hero-lock-btn:active { transform: scale(0.975); }
+
+  .hero-lock-btn.unlocked {
+    background: linear-gradient(135deg, #ff9f0a 0%, #d87600 100%);
+    color: #000;
+    box-shadow: 0 8px 28px rgba(255, 159, 10, 0.42), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+    border-color: rgba(255, 255, 255, 0.35);
+  }
+  .hero-lock-btn.unlocked .svg-lock { display: block; }
+  .hero-lock-btn.unlocked .svg-unlock { display: none; }
+
+  .hero-lock-btn.locked {
+    background: linear-gradient(135deg, #ff453a 0%, #b81b12 100%);
+    color: #fff;
+    box-shadow: 0 8px 32px rgba(255, 69, 58, 0.55), inset 0 1px 1px rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.4);
+    animation: lockPulse 2s infinite ease-in-out;
+  }
+  .hero-lock-btn.locked .svg-lock { display: none; }
+  .hero-lock-btn.locked .svg-unlock { display: block; }
+
+  @keyframes lockPulse {
+    0%, 100% { box-shadow: 0 8px 30px rgba(255, 69, 58, 0.5); }
+    50% { box-shadow: 0 8px 42px rgba(255, 69, 58, 0.8), 0 0 20px rgba(255, 69, 58, 0.6); }
+  }
+
+  .hero-lock-left {
+    display: flex; align-items: center; gap: 16px; min-width: 0;
+  }
+  .hero-lock-icon {
+    width: 48px; height: 48px; border-radius: 14px;
+    background: rgba(0, 0, 0, 0.16); display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .hero-lock-btn.locked .hero-lock-icon {
+    background: rgba(255, 255, 255, 0.2);
+  }
+  .hero-lock-icon svg {
+    width: 28px; height: 28px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round;
+  }
+  .hero-lock-content {
+    display: flex; flex-direction: column; gap: 3px; min-width: 0;
+  }
+  .hero-lock-title {
+    font-size: 20px; font-weight: 800; letter-spacing: 0.02em; line-height: 1.15;
+  }
+  .hero-lock-sub {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.06em; opacity: 0.9;
+    text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .hero-lock-badge {
+    padding: 6px 12px; border-radius: 10px; font-size: 12px; font-weight: 800;
+    letter-spacing: 0.05em; text-transform: uppercase; flex-shrink: 0;
+  }
+  .hero-lock-btn.unlocked .hero-lock-badge {
+    background: rgba(0, 0, 0, 0.25); color: #000;
+  }
+  .hero-lock-btn.locked .hero-lock-badge {
+    background: rgba(255, 255, 255, 0.28); color: #fff;
+  }
+
   /* Quick Actions */
   .action-grid {
     display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
@@ -173,6 +243,21 @@
   </div>
 </header>
 
+<!-- Giant Remote Lock Button (Hero trigger at top - hard to miss) -->
+<button class="hero-lock-btn unlocked" id="heroLockBtn">
+  <div class="hero-lock-left">
+    <div class="hero-lock-icon">
+      <svg class="svg-lock" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      <svg class="svg-unlock" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
+    </div>
+    <div class="hero-lock-content">
+      <div class="hero-lock-title" id="heroLockTitle">LOCK SPECTATOR</div>
+      <div class="hero-lock-sub" id="heroLockSub">ARM FORCE &amp; SHOW KEYPAD HINT</div>
+    </div>
+  </div>
+  <div class="hero-lock-badge" id="heroLockBadge">ARM</div>
+</button>
+
 <!-- Live Spectator Peek -->
 <div class="card">
   <div class="card-title">
@@ -180,7 +265,10 @@
     <span id="latencyDisplay" style="font-size: 11px; text-transform: none; color: var(--green);">-- ms</span>
   </div>
   <div class="peek-screen">
-    <span class="peek-tag unlocked" id="peekLockTag">Unlocked</span>
+    <div style="display: flex; justify-content: space-between; align-items: center; position: absolute; top: 10px; left: 12px; right: 12px;">
+      <span class="peek-tag unlocked" id="peekLockTag">Unlocked</span>
+      <span class="peek-hint-tag" id="peekHintTag" style="display:none; font-size: 11px; font-weight: 700; color: var(--accent); background: rgba(255, 159, 10, 0.18); padding: 3px 8px; border-radius: 6px; letter-spacing: 0.05em;">HINT: ARMED</span>
+    </div>
     <div class="peek-sec" id="peekSecondary">0</div>
     <div class="peek-prim" id="peekPrimary">0</div>
   </div>
@@ -237,21 +325,17 @@
   </div>
 </div>
 
-<!-- Remote Triggers -->
+<!-- Remote Covert Actions -->
 <div class="card">
   <div class="card-title">Remote Covert Actions</div>
-  <div class="action-grid">
-    <button class="action-btn lock" id="remoteLockBtn">
-      <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-      <span>Lock</span>
-    </button>
-    <button class="action-btn" id="remoteUnlockBtn" style="color: var(--green);">
-      <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
-      <span>Unlock</span>
-    </button>
+  <div class="action-grid" style="grid-template-columns: repeat(3, 1fr);">
     <button class="action-btn buzz" id="remoteBuzzBtn">
       <svg viewBox="0 0 24 24"><path d="M12 2v20M17 5v14M7 5v14M22 9v6M2 9v6"/></svg>
       <span>Buzz</span>
+    </button>
+    <button class="action-btn" id="remoteHintBtn" style="color: var(--accent);">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8" stroke-dasharray="4 4"/></svg>
+      <span>Toggle Hint</span>
     </button>
     <button class="action-btn clear" id="remoteClearBtn">
       <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
@@ -287,6 +371,7 @@
   let roomCode = (localStorage.getItem("aura.controller.room") || "ROB52").toUpperCase();
   let peer = null;
   let conn = null;
+  let isSpectatorLocked = false;
   let currentMode = 2;
   let currentOffset = 30;
   let currentFixed = 6417118;
@@ -300,6 +385,53 @@
     success() { try { window.Aura ? Aura.haptic("notification", { style: "success" }) : (navigator.vibrate && navigator.vibrate([30, 60, 30])); } catch(_) {} },
     error() { try { window.Aura ? Aura.haptic("notification", { style: "error" }) : (navigator.vibrate && navigator.vibrate([60, 40, 60])); } catch(_) {} }
   };
+
+  function updateLockUI(locked, hintActive, hintText) {
+    isSpectatorLocked = !!locked;
+    const btn = $("heroLockBtn");
+    const title = $("heroLockTitle");
+    const sub = $("heroLockSub");
+    const badge = $("heroLockBadge");
+    const tag = $("peekLockTag");
+    const hintTag = $("peekHintTag");
+
+    if (isSpectatorLocked) {
+      btn.className = "hero-lock-btn locked";
+      title.textContent = "LOCKED • TAP TO UNLOCK";
+      sub.textContent = hintActive ? `KEYPAD HINT ACTIVE (${hintText || "ARMED"})` : "SPECTATOR LOCKED • FORCE READY";
+      badge.textContent = "LOCKED";
+      tag.className = "peek-tag locked";
+      tag.textContent = "Locked";
+    } else {
+      btn.className = "hero-lock-btn unlocked";
+      title.textContent = "LOCK SPECTATOR";
+      sub.textContent = "ARM FORCE & SHOW KEYPAD HINT";
+      badge.textContent = "ARM";
+      tag.className = "peek-tag unlocked";
+      tag.textContent = "Unlocked";
+    }
+
+    if (hintTag) {
+      if (hintText && (hintActive || isSpectatorLocked)) {
+        hintTag.style.display = "inline-block";
+        hintTag.textContent = "HINT: " + hintText;
+      } else {
+        hintTag.style.display = "none";
+      }
+    }
+  }
+
+  async function syncActiveRoomToCloud(code) {
+    try {
+      await fetch("https://smartcalc-backend-el0f.onrender.com/api/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ activeRoom: code })
+      });
+    } catch(e) {
+      console.warn("Could not sync activeRoom to cloud:", e);
+    }
+  }
 
   function updateRoomUI() {
     $("roomCodeDisplay").textContent = roomCode;
@@ -345,6 +477,7 @@
       peer = new Peer(hostPeerId, AURA_PEER_CONFIG);
       peer.on("open", () => {
         setStatus(false, "Waiting for spectator...");
+        syncActiveRoomToCloud(roomCode);
       });
 
       peer.on("disconnected", () => {
@@ -363,7 +496,13 @@
       peer.on("error", (err) => {
         console.warn("Peer host error:", err.type || err);
         if (err.type === "unavailable-id") {
-          setTimeout(startHost, 2000);
+          // If code is occupied on peerjs broker, generate unique suffix and start immediately
+          const base = (roomCode.replace(/-\d+$/, "") || "ROB52");
+          const rand = Math.floor(100 + Math.random() * 900);
+          roomCode = base + "-" + rand;
+          try { localStorage.setItem("aura.controller.room", roomCode); } catch(_) {}
+          updateRoomUI();
+          setTimeout(startHost, 300);
         }
       });
     } catch(e) {
@@ -387,14 +526,7 @@
       if (data.t === "display" || data.t === "hello") {
         $("peekPrimary").textContent = data.primary || "0";
         $("peekSecondary").textContent = data.secondary || "";
-        const tag = $("peekLockTag");
-        if (data.locked) {
-          tag.className = "peek-tag locked";
-          tag.textContent = "Locked";
-        } else {
-          tag.className = "peek-tag unlocked";
-          tag.textContent = "Unlocked";
-        }
+        updateLockUI(!!data.locked, !!data.camouHint, data.hint || "");
         haptic.impact("light");
       } else if (data.t === "pong") {
         const ms = Math.round(performance.now() - data.ts);
@@ -408,6 +540,7 @@
       clearInterval(pingTimer);
       conn = null;
       setStatus(false, "Waiting for spectator...");
+      updateLockUI(false, false, "");
       haptic.error();
     });
 
@@ -416,6 +549,7 @@
       clearInterval(pingTimer);
       conn = null;
       setStatus(false, "Waiting for spectator...");
+      updateLockUI(false, false, "");
     });
   }
 
@@ -511,22 +645,39 @@
     };
   });
 
-  $("remoteLockBtn").onclick = () => {
-    send({ t: "lock" });
-    haptic.impact("heavy");
+  $("heroLockBtn").onclick = () => {
+    if (isSpectatorLocked) {
+      send({ t: "unlock" });
+      haptic.tap();
+      updateLockUI(false, false, "");
+    } else {
+      send({ t: "lock" });
+      haptic.impact("heavy");
+      updateLockUI(true, true, "ARMED");
+    }
   };
-  $("remoteUnlockBtn").onclick = () => {
-    send({ t: "unlock" });
-    haptic.tap();
-  };
+
   $("remoteBuzzBtn").onclick = () => {
     send({ t: "buzz" });
     haptic.impact("medium");
+  };
+  $("remoteHintBtn").onclick = () => {
+    send({ t: "toggle_hint" });
+    haptic.tap();
   };
   $("remoteClearBtn").onclick = () => {
     send({ t: "reset" });
     haptic.tap();
   };
+
+  window.addEventListener("beforeunload", () => {
+    if (conn) { try { conn.close(); } catch(_) {} }
+    if (peer) { try { peer.destroy(); } catch(_) {} }
+  });
+  window.addEventListener("pagehide", () => {
+    if (conn) { try { conn.close(); } catch(_) {} }
+    if (peer) { try { peer.destroy(); } catch(_) {} }
+  });
 
   $("copyUrlBtn").onclick = () => {
     const u = $("shareUrlIn").value;

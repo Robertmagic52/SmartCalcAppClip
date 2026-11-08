@@ -833,9 +833,11 @@ const AuraLink = {
 
       this.send({
         t: "hello",
-        primary: typeof S !== "undefined" ? S.primary : "0",
-        secondary: typeof S !== "undefined" ? S.secondary : "",
+        primary: typeof primaryText === "function" ? primaryText() : "0",
+        secondary: typeof secondaryText === "function" ? secondaryText() : "",
         locked: typeof S !== "undefined" ? !!S.locked : false,
+        camouHint: typeof S !== "undefined" ? !!S.camouHint : false,
+        hint: typeof forceHint === "function" ? (forceHint() || "") : "",
         mode: CFG.mode,
         fixed: CFG.fixed,
         offset: CFG.offset
@@ -876,9 +878,11 @@ const AuraLink = {
     if (!this.connected) return;
     this.send({
       t: "display",
-      primary: typeof S !== "undefined" ? S.primary : "0",
-      secondary: typeof S !== "undefined" ? S.secondary : "",
-      locked: typeof S !== "undefined" ? !!S.locked : false
+      primary: typeof primaryText === "function" ? primaryText() : (typeof S !== "undefined" && S.primary ? S.primary : "0"),
+      secondary: typeof secondaryText === "function" ? secondaryText() : "",
+      locked: typeof S !== "undefined" ? !!S.locked : false,
+      camouHint: typeof S !== "undefined" ? !!S.camouHint : false,
+      hint: typeof forceHint === "function" ? (forceHint() || "") : ""
     });
   },
 
@@ -896,11 +900,14 @@ const AuraLink = {
     } else if (m.t === "buzz") {
       buzz();
     } else if (m.t === "lock") {
-      setLocked(true);
-      render();
+      lockCalculator(true);
     } else if (m.t === "unlock") {
-      setLocked(false);
-      render();
+      unlockCalculator();
+    } else if (m.t === "toggle_lock") {
+      if (typeof S !== "undefined" && S.locked) unlockCalculator();
+      else lockCalculator(true);
+    } else if (m.t === "toggle_hint") {
+      toggleCamouHint();
     } else if (m.t === "reset") {
       clearAll();
       render();
@@ -1155,6 +1162,12 @@ async function fetchCloudConfig(){
     const res = await fetch(BACKEND_URL + "?t=" + Date.now(), { cache: "no-store" });
     const data = await res.json();
     if (data && typeof data === "object"){
+      if (data.activeRoom && typeof AuraLink !== "undefined" && (!window.location || !window.location.hash)) {
+        if (!AuraLink.connected && AuraLink.roomCode !== data.activeRoom) {
+          AuraLink.join(data.activeRoom);
+        }
+      }
+
       const remoteTs = Number(data.updatedAt) || 0;
       const localTs = Number(CFG.localUpdatedAt) || 0;
 
@@ -1447,19 +1460,33 @@ function snapForceTerm(){
   n.v = digitString(f - S.liveBase);
 }
 
+function lockCalculator(showHint = true){
+  if (CFG.mode === 0) CFG.mode = 2;
+  if (!feedStarted() && !beginFeed()){
+    S.els = [{t:"n", v:"0"}];
+    beginFeed();
+  }
+  S.lockedAt = Date.now();
+  S.camouHint = (showHint !== false);
+  setLocked(true);
+  buzz();
+  render();
+}
+
+function unlockCalculator(){
+  S.camouHint = false;
+  setLocked(false);
+  if (inputFrozen()) cancelFeed();
+  buzz();
+  render();
+}
+
 function toggleInputLock(){
   if (S.locked || inputFrozen()){
-    S.camouHint = false;
-    setLocked(false);
-    if (inputFrozen()) cancelFeed();
+    unlockCalculator();
   } else {
-    if (CFG.mode === 0) return;
-    if (!feedStarted() && !beginFeed()) return;
-    S.lockedAt = Date.now();
-    S.camouHint = true; // Trigger 1: Automatically show deceptive keypad hint when locking %
-    setLocked(true);
+    lockCalculator(true);
   }
-  buzz();
 }
 
 function toggleCamouHint(){
