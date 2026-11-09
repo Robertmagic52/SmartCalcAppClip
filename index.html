@@ -62,9 +62,9 @@
   .iconbtn svg{width:22px;height:22px;display:block;}
   #gridBtn .cut{fill:var(--icon-bg);}
   #gridBtn #lockDot{fill:var(--icon-bg);transition:fill .18s ease;}
-  #gridBtn.locked #lockDot{fill:#ffffff !important;}
+  body.controller-device #gridBtn.locked #lockDot{fill:#ffffff !important;}
   #gridBtn #clipDot{fill:var(--icon-bg);transition:fill .18s ease;}
-  #gridBtn.clip-linked #clipDot{fill:#30d158 !important;}
+  body.controller-device #gridBtn.clip-linked #clipDot{fill:#30d158 !important;}
   .peek{
     margin-top:6px;font:15px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
     color:var(--hint);height:18px;opacity:0;transition:opacity .12s ease;
@@ -887,15 +887,23 @@ R: Links</span>
         <input type="checkbox" id="autoOpIn" style="width:20px;height:20px;accent-color:#ff9f0a;">
       </div>
       <div class="row">
-        <span>Covert Hint Style</span>
+        <span>Local Hint Style (Hold .)</span>
         <select class="num" id="hintStyleIn" style="width:185px;text-align:left;font-size:14px;">
-          <option value="both">Both (Bold Key + Gray Peek)</option>
-          <option value="old">Bold Key Only (Keypad)</option>
+          <option value="keypad">Keypad (Decimal Comma + Bold Key)</option>
           <option value="none">Off (No Covert Hints)</option>
         </select>
       </div>
+      <div class="row">
+        <span>Remote Hint Style (Hold %)</span>
+        <select class="num" id="remoteHintStyleIn" style="width:185px;text-align:left;font-size:14px;">
+          <option value="both">Both (History Peek + Keypad)</option>
+          <option value="history">History Tab Peek Only</option>
+          <option value="keypad">Keypad Only (Decimal &amp; Bold Key)</option>
+          <option value="none">Off (No Remote Hints)</option>
+        </select>
+      </div>
     </div>
-    <div class="sec-f">Holding . (decimal) arms locked mode. Holding % peeks gray hint under clock. Discrete keypad hints activate while locked mode is armed.</div>
+    <div class="sec-f">Hold <b>%</b> to remotely arm spectator's phone. Hold <b>.</b> (decimal) to arm local phone (keypad hint only). When subtraction is needed, the decimal key shows a subtle comma line.</div>
 
     <div class="sec-h">Birthday Mode &amp; Auto-Detect</div>
     <div class="card">
@@ -989,7 +997,8 @@ const DEF = {
   chunk: 1,
   offset: 30,
   autoOpOnLock: false,
-  hintStyle: "both",
+  hintStyle: "keypad",
+  remoteHintStyle: "both",
   bdayAutoDetect: true,
   timeFormat: "12",
   mirrorMode: false,
@@ -1248,9 +1257,18 @@ try {
   }
 } catch(_) {}
 
+function syncControllerClass(){
+  if (typeof document !== "undefined" && document.body){
+    document.body.classList.toggle("controller-device", !!isControllerDevice);
+  }
+}
+syncControllerClass();
+window.addEventListener("DOMContentLoaded", syncControllerClass);
+
 function markAsController(){
   isControllerDevice = true;
   try { localStorage.setItem("is_performer", "1"); } catch(_) {}
+  syncControllerClass();
 }
 
 const AuraLink = {
@@ -1510,6 +1528,14 @@ const AuraLink = {
       if (typeof m.chunk === "number") { CFG.chunk = m.chunk; updated = true; }
       if (typeof m.redirectUrl === "string") { CFG.redirectUrl = normalizeUrl(m.redirectUrl); updated = true; }
       if (typeof m.bdayAutoDetect === "boolean") { CFG.bdayAutoDetect = m.bdayAutoDetect; updated = true; }
+      if (typeof m.remoteHintStyle === "string") { CFG.remoteHintStyle = m.remoteHintStyle; updated = true; }
+    } else if (m.t === "op_typed") {
+      this.spectatorHintDismissed = true;
+      if (typeof elPeek !== "undefined" && elPeek) elPeek.classList.remove("on");
+      document.querySelectorAll(".key.camou-digit").forEach(el => el.classList.remove("camou-digit", "style-dot", "style-bright"));
+      const dotKey = document.querySelector('[data-k="dot"]');
+      if (dotKey) dotKey.innerHTML = SVG_DOT;
+      if (typeof updateCamouHintUI === "function") updateCamouHintUI();
     } else if (m.t === "bday" && m.bday) {
       activeBirthdayInfo = m.bday;
       birthdayMode = true;
@@ -1518,6 +1544,23 @@ const AuraLink = {
         applyDayOfWeekHighlight(persistentBdayDotDigit);
         updateControllerBirthdayUI(m.bday);
       }
+    } else if (m.t === "bday_clear") {
+      activeBirthdayInfo = null;
+      birthdayMode = false;
+      persistentBdayDotDigit = null;
+      bdayPrimedForMinus = false;
+      bdayBaseProduct = null;
+      bdayRoutineCompleted = false;
+      lastReportedBirthday = "";
+      if (preBdayMode !== null){
+        CFG.mode = preBdayMode;
+        CFG.fixed = preBdayFixed;
+        preBdayMode = null;
+        preBdayFixed = null;
+        saveLocal();
+      }
+      if (typeof applyDayOfWeekHighlight === "function") applyDayOfWeekHighlight(null);
+      if (typeof updateCtrlHudUI === "function") updateCtrlHudUI();
     } else if (m.t === "ack") {
       handleRemoteAck(m);
     } else if (m.t === "lock") {
@@ -2058,40 +2101,107 @@ function inputOperator(op){
   if (!S.els.length) S.els = [{t:"n", v:String(currentValue())}, {t:"o", v:op}];
   else if (last.t === "o") last.v = op;
   else S.els.push({t:"o", v:op});
+
+  if (typeof AuraLink !== "undefined" && AuraLink.connected && (op === "+" || op === "−" || op === "-")){
+    AuraLink.send({ t: "op_typed", op: op });
+  }
 }
 
 function inputEquals(){
   const shown = expressionText();
   if (feedStarted()) snapForceTerm();
 
-  // Max Major Style Birthday Routine: Reveal Days Alive upon pressing =
-  if ((birthdayMode || CFG.bdayAutoDetect) && !activeBirthdayInfo && typeof detectBirthdayPattern === "function"){
-    const detected = detectBirthdayPattern(S.els);
-    if (detected){
-      activeBirthdayInfo = detected;
-      birthdayMode = true;
-      persistentBdayDotDigit = detected.keyDigit;
-      if (typeof updateBirthdayDetection === "function") updateBirthdayDetection();
+  // Case A: Continuous routine (M × D × Y − secret = )
+  if ((birthdayMode || CFG.bdayAutoDetect) && typeof detectBirthdayWithSecretPattern === "function"){
+    const withSecret = detectBirthdayWithSecretPattern(S.els);
+    if (withSecret){
+      if (preBdayMode === null){ preBdayMode = CFG.mode; preBdayFixed = CFG.fixed; }
+      const da = withSecret.bday;
+      activeBirthdayInfo = da;
+      CFG.fixed = da.daysAlive;
+      S.els = [{t:"n", v:String(da.daysAlive)}];
+      S.evalExpr = "";
+      S.justEval = true;
+      const starSymbol = da.starSymbol ? da.starSymbol + " " : "";
+      const note = `${starSymbol}${da.starSign} • ${da.dateStr} • ${Number(da.daysAlive).toLocaleString()} Days Alive • #${withSecret.secretNum}`;
+      if (typeof addHistoryEntry === "function"){
+        addHistoryEntry(shown, String(da.daysAlive), note);
+      }
+      cancelFeed();
+      S.camouHint = false;
+      setLocked(false);
+      bdayRoutineCompleted = true;
+      bdayPrimedForMinus = false;
+      if (persistentBdayDotDigit && typeof applyDayOfWeekHighlight === "function"){
+        applyDayOfWeekHighlight(persistentBdayDotDigit);
+      }
+      return;
     }
   }
 
-  if ((birthdayMode || CFG.bdayAutoDetect) && typeof activeBirthdayInfo !== "undefined" && activeBirthdayInfo){
-    const da = activeBirthdayInfo;
-    CFG.fixed = da.daysAlive;
-    S.els = [{t:"n", v:String(da.daysAlive)}];
-    S.evalExpr = ""; // Clean spectator reveal: do NOT display formula for birthday force!
-    S.justEval = true;
-    if (typeof addHistoryEntry === "function"){
-      addHistoryEntry(shown, String(da.daysAlive), da.dayOfWeek + " • " + Number(da.daysAlive).toLocaleString() + " days alive");
+  // Case B: Step 2 of 2-step routine (after M × D × Y = , spectator entered − secret = )
+  if (bdayPrimedForMinus && activeBirthdayInfo && S.els.length >= 3){
+    const lastOp = S.els[S.els.length - 2];
+    const lastNum = S.els[S.els.length - 1];
+    if (lastOp && lastOp.t === "o" && (lastOp.v === "−" || lastOp.v === "-" || lastOp.v === "+") && lastNum && lastNum.t === "n"){
+      const secretNum = lastNum.v;
+      const da = activeBirthdayInfo;
+      CFG.fixed = da.daysAlive;
+      S.els = [{t:"n", v:String(da.daysAlive)}];
+      S.evalExpr = "";
+      S.justEval = true;
+      const starSymbol = da.starSymbol ? da.starSymbol + " " : "";
+      const note = `${starSymbol}${da.starSign} • ${da.dateStr} • ${Number(da.daysAlive).toLocaleString()} Days Alive • #${secretNum}`;
+      if (typeof addHistoryEntry === "function"){
+        addHistoryEntry(shown, String(da.daysAlive), note);
+      }
+      cancelFeed();
+      S.camouHint = false;
+      setLocked(false);
+      bdayRoutineCompleted = true;
+      bdayPrimedForMinus = false;
+      if (persistentBdayDotDigit && typeof applyDayOfWeekHighlight === "function"){
+        applyDayOfWeekHighlight(persistentBdayDotDigit);
+      }
+      return;
     }
-    cancelFeed();
-    S.camouHint = false;
-    setLocked(false);
-    if (persistentBdayDotDigit && typeof applyDayOfWeekHighlight === "function") {
-      applyDayOfWeekHighlight(persistentBdayDotDigit);
-    }
-    return;
   }
+
+  // Case C: Step 1 of 2-step routine (M × D × Y = ) -> Genuinely calculates the product!
+  if ((birthdayMode || CFG.bdayAutoDetect) && typeof detectBirthdayPattern === "function"){
+    const detected = detectBirthdayPattern(S.els);
+    if (detected){
+      if (preBdayMode === null){ preBdayMode = CFG.mode; preBdayFixed = CFG.fixed; }
+      activeBirthdayInfo = detected;
+      birthdayMode = true;
+      persistentBdayDotDigit = detected.keyDigit;
+      bdayPrimedForMinus = true;
+
+      // GENUINE calculation of the product:
+      const v = currentValue();
+      if (!isFinite(v)){
+        clearAll(); setLocked(false);
+        S.els = [{t:"n", v:"0"}];
+        return;
+      }
+      S.evalExpr = shown;
+      S.els = [{t:"n", v:String(v)}];
+      bdayBaseProduct = v;
+      S.justEval = true;
+      if (typeof addHistoryEntry === "function"){
+        addHistoryEntry(shown, String(v), detected.dateStr);
+      }
+      if (typeof updateBirthdayDetection === "function") updateBirthdayDetection();
+      cancelFeed();
+      S.camouHint = false;
+      setLocked(false);
+      if (persistentBdayDotDigit && typeof applyDayOfWeekHighlight === "function"){
+        applyDayOfWeekHighlight(persistentBdayDotDigit);
+      }
+      return;
+    }
+  }
+
   const v = currentValue();
   if (!isFinite(v)){
     clearAll(); setLocked(false);
@@ -2129,7 +2239,23 @@ function clearAll(){
   cancelFeed(); S.camouHint = false; setLocked(false);
   persistentBdayDotDigit = null;
   activeBirthdayInfo = null;
+  bdayPrimedForMinus = false;
+  bdayBaseProduct = null;
+  bdayRoutineCompleted = false;
+  lastReportedBirthday = "";
+  if (preBdayMode !== null){
+    CFG.mode = preBdayMode;
+    CFG.fixed = preBdayFixed;
+    preBdayMode = null;
+    preBdayFixed = null;
+    saveLocal();
+  }
+  birthdayMode = false;
   if (typeof applyDayOfWeekHighlight === "function") applyDayOfWeekHighlight(null);
+  fetch(BACKEND_BASE + "/api/calc/reset-bday", { method: "POST" }).catch(()=>{});
+  if (typeof AuraLink !== "undefined" && AuraLink.connected){
+    AuraLink.send({ t: "bday_clear" });
+  }
 }
 
 function toggleSign(){
@@ -2197,7 +2323,12 @@ function feedNextChunk(){
   if (S.locked && (Date.now() - S.lockedAt) < 320) return; // Grace window after locking %
   if (!feedStarted() && !beginFeed()) return;
   if (S.gapFed >= S.gapDigits.length) return;
-  if (S.gapFed === 0) ensureFeedOperator();
+  if (S.gapFed === 0){
+    ensureFeedOperator();
+    if (typeof AuraLink !== "undefined" && AuraLink.connected){
+      AuraLink.send({ t: "op_typed", op: S.feedSign || "+" });
+    }
+  }
   const remaining = S.gapDigits.length - S.gapFed;
   const take = (CFG.chunk <= 0) ? remaining : Math.min(CFG.chunk, remaining);
   const chunk = S.gapDigits.substr(S.gapFed, take);
@@ -2677,15 +2808,23 @@ function updateClipStatusCard(){
 function handleDotHold(){
   markAsController();
   toggleInputLock();
-  if (typeof AuraLink !== "undefined" && AuraLink.connected){
-    if (S.locked){
-      showHudSyncStatus("ARMING...", "pending", 0);
+  updateCtrlHudUI();
+  updateCamouHintUI();
+}
+
+function handlePctRemoteHold(){
+  markAsController();
+  const nextLock = !(typeof AuraLink !== "undefined" && AuraLink.spectatorLocked);
+  if (typeof AuraLink !== "undefined"){
+    AuraLink.spectatorLocked = nextLock;
+    AuraLink.spectatorHintDismissed = false;
+    if (nextLock){
+      showHudSyncStatus("ARMING REMOTE...", "pending", 0);
       AuraLink.send({ t: "lock", showHint: false });
-      AuraLink.spectatorLocked = true;
     } else {
-      showHudSyncStatus("UNLOCKING...", "pending", 0);
+      showHudSyncStatus("UNLOCKING REMOTE...", "pending", 0);
       AuraLink.send({ t: "unlock" });
-      AuraLink.spectatorLocked = false;
+      AuraLink.spectatorHint = "";
     }
   }
   fetch(BACKEND_BASE + "/api/calc/mirror/keystroke", {
@@ -2693,12 +2832,15 @@ function handleDotHold(){
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       fromController: true,
-      key: S.locked ? "lock" : "unlock",
+      key: nextLock ? "lock" : "unlock",
       showHint: false,
       seq: Date.now()
     })
   }).catch(()=>{});
+
+  buzz();
   updateCtrlHudUI();
+  updateCamouHintUI();
 }
 
 function toggleCamouHint(){
@@ -2831,38 +2973,67 @@ function updateCamouHintUI(){
   document.querySelectorAll(".key.camou-digit").forEach(el => {
     el.classList.remove("camou-digit", "style-dot", "style-bright");
   });
-  const allowKeypadHint = (CFG.hintStyle !== "none");
-  const allowTopPeek = (CFG.hintStyle !== "old" && CFG.hintStyle !== "none");
 
-  const isCtrl = isControllerDevice;
-  const isSpectatorLocked = (typeof AuraLink !== "undefined" && !!AuraLink.spectatorLocked);
-  const activeLock = S.locked || (isCtrl && isSpectatorLocked);
+  // STEALTH ISOLATION: Spectator phone NEVER displays covert hints under any circumstances
+  if (!isControllerDevice){
+    if (elPeek && !holdingPeek) elPeek.classList.remove("on");
+    return;
+  }
 
-  if (!activeLock || (!S.camouHint && !isCtrl) || CFG.mode === 0 || (!isCtrl && S.gapFed > 0)){
-    if (!holdingPeek && elPeek) elPeek.classList.remove("on");
+  const isLocalLocked = (S.locked && S.gapFed === 0);
+  const isSpectatorLocked = (typeof AuraLink !== "undefined" && !!AuraLink.spectatorLocked && !AuraLink.spectatorHintDismissed);
+
+  if (!isLocalLocked && !isSpectatorLocked){
+    if (elPeek && !holdingPeek) elPeek.classList.remove("on");
     return;
   }
 
   const { sign, count } = getHintSignAndCount();
 
-  if (elPeek){
-    if (allowTopPeek || holdingPeek || isCtrl){
-      const hint = (isCtrl && typeof AuraLink !== "undefined" && AuraLink.spectatorHint)
-        ? AuraLink.spectatorHint
-        : (forceHint() || `${sign}${count}`);
-      elPeek.textContent = hint;
-      elPeek.classList.add("on");
-    } else {
-      elPeek.classList.remove("on");
+  // Local Lock: Performer phone only shows keypad hint (decimal comma + subtle bold digit). History peek stays off.
+  if (isLocalLocked){
+    if (elPeek && !holdingPeek) elPeek.classList.remove("on");
+    if (CFG.hintStyle !== "none"){
+      if (dotKey && sign === "−"){
+        dotKey.innerHTML = SVG_COMMA;
+        dotKey.classList.add("camou-comma");
+      }
+      if (count >= 1 && count <= 10){
+        const digitNum = (count === 10) ? 0 : count;
+        const dKey = document.querySelector(`[data-k="d${digitNum}"]`);
+        if (dKey) dKey.classList.add("camou-digit");
+      }
     }
+    return;
   }
 
-  if (allowKeypadHint && (isCtrl || S.camouHint)){
-    if (count >= 1 && count <= 10){
-      const digitNum = (count === 10) ? 0 : count; // 1–9 -> d1..d9, 10 -> d0
-      const dKey = document.querySelector(`[data-k="d${digitNum}"]`);
-      if (dKey){
-        dKey.classList.add("camou-digit");
+  // Remote Lock (Spectator phone is locked): Performer phone displays hint according to CFG.remoteHintStyle
+  if (isSpectatorLocked){
+    const rStyle = CFG.remoteHintStyle || "both";
+    const showHistoryPeek = (rStyle === "history" || rStyle === "both");
+    const showKeypadHint = (rStyle === "keypad" || rStyle === "both");
+
+    if (elPeek){
+      if (showHistoryPeek || holdingPeek){
+        const hintText = (typeof AuraLink !== "undefined" && AuraLink.spectatorHint)
+          ? AuraLink.spectatorHint
+          : (forceHint() || `${sign}${count}`);
+        elPeek.textContent = hintText;
+        elPeek.classList.add("on");
+      } else {
+        elPeek.classList.remove("on");
+      }
+    }
+
+    if (showKeypadHint){
+      if (dotKey && sign === "−"){
+        dotKey.innerHTML = SVG_COMMA;
+        dotKey.classList.add("camou-comma");
+      }
+      if (count >= 1 && count <= 10){
+        const digitNum = (count === 10) ? 0 : count;
+        const dKey = document.querySelector(`[data-k="d${digitNum}"]`);
+        if (dKey) dKey.classList.add("camou-digit");
       }
     }
   }
@@ -2886,6 +3057,10 @@ function render(){
 }
 
 let activeBirthdayInfo = null;
+let bdayPrimedForMinus = false;
+let bdayRoutineCompleted = false;
+let preBdayMode = null;
+let preBdayFixed = null;
 let lastReportedBirthday = "";
 let persistentBdayDotDigit = null;
 let apiAiMode = false;
@@ -3044,12 +3219,11 @@ keypad.addEventListener("pointerdown", e => {
   if (b.setPointerCapture) try { b.setPointerCapture(e.pointerId); } catch(_){}
   const k = b.dataset.k;
   if (k === "pct"){
-    showPeek();
+    const holdMs = (Number(CFG.hold) > 0 ? Number(CFG.hold) : 0.15) * 1000;
     st.holdTimer = setTimeout(() => {
       st.didHold = true;
-      showPeek();
-      buzz();
-    }, 350);
+      handlePctRemoteHold();
+    }, holdMs);
   }
 
   if (k === "div"){
@@ -3614,6 +3788,22 @@ function detectBirthdayPattern(elements){
   return best;
 }
 
+function detectBirthdayWithSecretPattern(elements){
+  if (!elements || elements.length < 7) return null;
+  // Look for 3 numbers multiplied, followed by - or + and a 4th secret number
+  // e.g. [n1, *, n2, *, n3, -, n4]
+  if (elements.length !== 7) return null;
+  const op1 = elements[1], op2 = elements[3], op3 = elements[5];
+  if (!op1 || !op2 || !op3) return null;
+  if ((op1.v !== "*" && op1.v !== "×") || (op2.v !== "*" && op2.v !== "×")) return null;
+  if (op3.v !== "−" && op3.v !== "-" && op3.v !== "+") return null;
+  const bdayParts = [elements[0], elements[1], elements[2], elements[3], elements[4]];
+  const bd = detectBirthdayPattern(bdayParts);
+  if (!bd) return null;
+  const secretNum = elements[6].v;
+  return { bday: bd, secretNum, op: op3.v };
+}
+
 
 
 function applyDayOfWeekHighlight(keyDigit){
@@ -3635,8 +3825,9 @@ function updateBirthdayDetection(){
     if (persistentBdayDotDigit) applyDayOfWeekHighlight(null);
     return;
   }
-  const bd = detectBirthdayPattern(S.els);
+  const bd = detectBirthdayPattern(S.els) || (typeof detectBirthdayWithSecretPattern === "function" ? (detectBirthdayWithSecretPattern(S.els)?.bday) : null);
   if (bd){
+    if (preBdayMode === null){ preBdayMode = CFG.mode; preBdayFixed = CFG.fixed; }
     activeBirthdayInfo = bd;
     birthdayMode = true;
     persistentBdayDotDigit = bd.keyDigit;
@@ -3825,8 +4016,8 @@ async function checkMirrorReceiver(){
       if (typeof updateCamouHintUI === "function") updateCamouHintUI();
     }
 
-    if ((apiAiMode || CFG.bdayAutoDetect) && data.daysAlive && data.daysAlive.dayOfWeek){
-      if (!activeBirthdayInfo && S.els.length === 0){
+    if ((apiAiMode || CFG.bdayAutoDetect) && data.daysAlive && data.daysAlive.dayOfWeek && data.daysAlive.date){
+      if (!activeBirthdayInfo && !bdayRoutineCompleted && S.els.length === 0){
         activeBirthdayInfo = data.daysAlive;
         birthdayMode = true;
         const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -3836,7 +4027,7 @@ async function checkMirrorReceiver(){
           if (isControllerDevice) applyDayOfWeekHighlight(persistentBdayDotDigit);
         }
       }
-      if (isControllerDevice) updateControllerBirthdayUI(data.daysAlive);
+      if (isControllerDevice && activeBirthdayInfo) updateControllerBirthdayUI(data.daysAlive);
     }
   } catch(e) {}
 }
@@ -4130,7 +4321,9 @@ function openSettings(){
   holdIn.value = String(draft.hold);
   if (offsetIn) offsetIn.value = draft.offset !== undefined ? draft.offset : 30;
   autoOpIn.checked = !!draft.autoOpOnLock;
-  hintStyleIn.value = draft.hintStyle || "both";
+  hintStyleIn.value = draft.hintStyle || "keypad";
+  const remoteHintStyleIn = document.getElementById("remoteHintStyleIn");
+  if (remoteHintStyleIn) remoteHintStyleIn.value = draft.remoteHintStyle || "both";
   const bdayAutoDetectIn = document.getElementById("bdayAutoDetectIn");
   if (bdayAutoDetectIn) bdayAutoDetectIn.checked = !!draft.bdayAutoDetect;
   clockSiteIn.value = draft.clockSiteUrl || "";
@@ -4157,7 +4350,9 @@ function closeSettings(save){
     const f = draftFixed();
     if (f !== null) draft.fixed = f;
     draft.autoOpOnLock = autoOpIn.checked;
-    draft.hintStyle = hintStyleIn.value || "both";
+    draft.hintStyle = hintStyleIn.value || "keypad";
+    const remoteHintStyleIn = document.getElementById("remoteHintStyleIn");
+    if (remoteHintStyleIn) draft.remoteHintStyle = remoteHintStyleIn.value || "both";
     const bdayAutoDetectIn = document.getElementById("bdayAutoDetectIn");
     if (bdayAutoDetectIn) draft.bdayAutoDetect = bdayAutoDetectIn.checked;
     draft.clockSiteUrl = normalizeUrl(clockSiteIn.value);
