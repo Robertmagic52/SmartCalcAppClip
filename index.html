@@ -101,17 +101,17 @@
   /* Covert Performer Controller HUD */
   .ctrl-hud {
     position: absolute;
-    inset: 4px 0 4px 0;
-    background: rgba(22, 24, 30, 0.95);
+    inset: 0 0 0 0;
+    background: rgba(22, 24, 30, 0.96);
     border: 1px solid rgba(255, 255, 255, 0.14);
-    border-radius: 20px;
+    border-radius: 18px;
     backdrop-filter: blur(28px);
     -webkit-backdrop-filter: blur(28px);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.65), inset 0 1px 1px rgba(255, 255, 255, 0.2);
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    padding: 12px 14px;
+    padding: 10px 12px;
     box-sizing: border-box;
     z-index: 15;
     opacity: 0;
@@ -202,16 +202,16 @@
     transform: scale(0.96);
   }
   .ctrl-hero-row {
-    margin: 8px 0;
+    margin: 6px 0;
     display: flex;
     width: 100%;
   }
   .ctrl-arm-btn {
     flex: 1;
     width: 100%;
-    height: 52px;
+    height: 48px;
     border-radius: 14px;
-    font: 700 15px/1 -apple-system, BlinkMacSystemFont, sans-serif;
+    font: 700 14px/1 -apple-system, BlinkMacSystemFont, sans-serif;
     letter-spacing: 0.06em;
     display: flex;
     align-items: center;
@@ -264,50 +264,12 @@
     border-color: rgba(48, 209, 88, 0.45);
     box-shadow: 0 0 10px rgba(48, 209, 88, 0.35);
   }
-  .ctrl-inject-banner {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: rgba(48, 209, 88, 0.10);
-    border: 1px solid rgba(48, 209, 88, 0.28);
-    border-radius: 10px;
-    padding: 7px 10px;
-    margin: 8px 0 2px 0;
-    gap: 8px;
-  }
-  .ctrl-inject-left {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    overflow: hidden;
-    white-space: nowrap;
-  }
-  .ctrl-inject-icon { font-size: 13px; }
-  .ctrl-inject-title {
-    font: 700 10px ui-monospace, SFMono-Regular, Menlo, monospace;
-    color: #30d158;
-    letter-spacing: 0.05em;
-  }
-  .ctrl-inject-val {
-    font: 600 12px -apple-system, sans-serif;
-    color: #ffffff;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .ctrl-inject-price {
-    font: 700 12px ui-monospace, SFMono-Regular, Menlo, monospace;
-    color: #ff9f0a;
-    background: rgba(255, 159, 10, 0.15);
-    padding: 2px 6px;
-    border-radius: 6px;
-    white-space: nowrap;
-  }
   .ctrl-row-main {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
-    margin-top: 8px;
+    gap: 10px;
+    margin-top: 4px;
   }
   .ctrl-modes {
     display: flex;
@@ -585,16 +547,6 @@
         <div class="ctrl-sync-badge" id="ctrlSyncBadge">✓ SYNCED</div>
         <div class="ctrl-hint-pill" id="ctrlHintPill">HINT: --</div>
         <button type="button" class="ctrl-close-btn" id="ctrlCloseBtn">✕ DONE</button>
-      </div>
-
-      <!-- Covert Inject API Live Peek Banner -->
-      <div class="ctrl-inject-banner" id="ctrlInjectBanner">
-        <div class="ctrl-inject-left">
-          <span class="ctrl-inject-icon">📡</span>
-          <span class="ctrl-inject-title">INJECT:</span>
-          <span class="ctrl-inject-val" id="ctrlInjectVal">—</span>
-        </div>
-        <span class="ctrl-inject-price" id="ctrlInjectPrice" style="display:none;"></span>
       </div>
 
       <div class="ctrl-hero-row">
@@ -2014,45 +1966,23 @@ function updateCtrlHudUI(){
       : `<span class="ctrl-arm-icon">⚡</span><span class="ctrl-arm-label">ARM SPECTATOR (LOCK)</span>`;
   }
 
-  // Compute immediate target number and hint
+  // Compute immediate hint (without target text clutter)
   let hintVal = "";
   if (isLinked && AuraLink.spectatorHint){
     hintVal = AuraLink.spectatorHint;
-  } else if (isLocked){
+  }
+  if (!hintVal && isLocked){
     hintVal = (typeof forceHint === "function" ? forceHint() : "") || (typeof getSimpleHint === "function" ? getSimpleHint() : "");
   }
 
-  let targetNumber = 0;
-  try {
-    targetNumber = (typeof currentForceValue === "function") ? currentForceValue() : (CFG.mode === 1 ? CFG.fixed : 0);
-  } catch(_) {
-    targetNumber = (CFG.mode === 1 ? CFG.fixed : 0);
-  }
-  const formattedTarget = Number(targetNumber) ? Number(targetNumber).toLocaleString() : String(targetNumber);
-
   if (ctrlHintPill){
     if (isLocked) {
+      const displayHint = hintVal || (typeof getSimpleHint === "function" ? getSimpleHint() : "") || "--";
       ctrlHintPill.className = "ctrl-hint-pill locked";
-      ctrlHintPill.textContent = hintVal ? `LOCKED: ${hintVal} (${formattedTarget})` : `LOCKED: ${formattedTarget}`;
+      ctrlHintPill.textContent = "HINT: " + displayHint;
     } else {
       ctrlHintPill.className = "ctrl-hint-pill ready";
-      ctrlHintPill.textContent = `TARGET: ${formattedTarget}`;
-    }
-  }
-
-  // Inject Raw Value Live Banner in HUD
-  const injValEl = document.getElementById("ctrlInjectVal");
-  const injPriceEl = document.getElementById("ctrlInjectPrice");
-  if (injValEl) {
-    if (CFG.injectInput) {
-      injValEl.textContent = `"${CFG.injectInput}"`;
-      if (injPriceEl) {
-        injPriceEl.textContent = CFG.injectPrice ? `$${Number(CFG.injectPrice).toLocaleString()}` : "";
-        injPriceEl.style.display = "inline-block";
-      }
-    } else {
-      injValEl.textContent = "(No search polled yet)";
-      if (injPriceEl) injPriceEl.style.display = "none";
+      ctrlHintPill.textContent = "HINT: --";
     }
   }
 
