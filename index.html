@@ -1307,9 +1307,13 @@ syncControllerClass();
 window.addEventListener("DOMContentLoaded", syncControllerClass);
 
 function markAsController(){
+  const wasCtrl = isControllerDevice;
   isControllerDevice = true;
   try { localStorage.setItem("is_performer", "1"); } catch(_) {}
   syncControllerClass();
+  if (!wasCtrl && typeof AuraLink !== "undefined" && AuraLink.roomCode){
+    AuraLink.join(AuraLink.roomCode);
+  }
 }
 
 function isStealthSpectatorDevice(){
@@ -1333,6 +1337,9 @@ const AuraLink = {
   reconnectTimer: null,
   heartbeatTimer: null,
   pollTimer: null,
+  targetId: null,
+  hasAnnouncedConnected: false,
+  lastAnnouncedTime: 0,
 
   init() {
     let code = "";
@@ -1361,11 +1368,12 @@ const AuraLink = {
     if (!code || typeof Peer === "undefined") return;
     this.roomCode = code.toUpperCase();
     this.cleanup();
-    this.tryRegister(true);
+    this.tryRegister();
   },
 
   cleanup() {
     clearTimeout(this.reconnectTimer);
+    this.reconnectTimer = null;
     clearInterval(this.heartbeatTimer);
     clearInterval(this.pollTimer);
     if (this.conn) {
@@ -1378,10 +1386,14 @@ const AuraLink = {
     }
   },
 
-  tryRegister(asHost) {
-    this.isHost = asHost;
-    const myId = asHost ? (AURA_LINK_PREFIX + this.roomCode) : (AURA_LINK_PREFIX + "guest-" + this.roomCode);
-    const targetId = asHost ? (AURA_LINK_PREFIX + "guest-" + this.roomCode) : (AURA_LINK_PREFIX + this.roomCode);
+  tryRegister() {
+    const isCtrl = !!isControllerDevice;
+    const role = isCtrl ? "ctrl" : "spec";
+    const targetRole = isCtrl ? "spec" : "ctrl";
+    const myId = `${AURA_LINK_PREFIX}${role}-${this.roomCode}`;
+    const targetId = `${AURA_LINK_PREFIX}${targetRole}-${this.roomCode}`;
+    this.targetId = targetId;
+    this.isHost = isCtrl;
 
     try {
       this.peer = new Peer(myId, AURA_PEER_CONFIG);
@@ -1395,7 +1407,7 @@ const AuraLink = {
       });
 
       this.peer.on("open", () => {
-        this.startConnectLoop(targetId);
+        this.startConnectLoop(this.targetId);
       });
 
       this.peer.on("disconnected", () => {
@@ -1407,24 +1419,23 @@ const AuraLink = {
       this.peer.on("error", (err) => {
         console.warn("AuraLink peer error:", err.type || err);
         if (err.type === "unavailable-id") {
-          if (asHost) {
-            if (this.peer && !this.peer.destroyed) {
-              try { this.peer.destroy(); } catch(_) {}
-            }
-            this.tryRegister(false);
-            return;
-          } else {
-            if (this.peer && !this.peer.destroyed) {
-              try { this.peer.destroy(); } catch(_) {}
-            }
-            this.peer = new Peer(AURA_PEER_CONFIG);
-            this.peer.on("connection", (c) => this.attach(c));
-            this.peer.on("open", () => this.startConnectLoop(AURA_LINK_PREFIX + this.roomCode));
-            return;
+          // If the role-specific ID is already registered (e.g. multiple tabs of same role),
+          // assign an ephemeral sub-ID and connect to target
+          if (this.peer && !this.peer.destroyed) {
+            try { this.peer.destroy(); } catch(_) {}
           }
+          const ephemeralId = `${AURA_LINK_PREFIX}${role}-${this.roomCode}-${Math.random().toString(36).substring(2, 6)}`;
+          try {
+            this.peer = new Peer(ephemeralId, AURA_PEER_CONFIG);
+            this.peer.on("connection", (c) => this.attach(c));
+            this.peer.on("open", () => this.startConnectLoop(this.targetId));
+          } catch(e) {
+            console.warn("AuraLink ephemeral fallback error:", e);
+          }
+          return;
         }
         if (!this.connected) {
-          this.scheduleReconnect(2500);
+          this.scheduleReconnect(3000);
         }
       });
     } catch (e) {
@@ -1435,19 +1446,23 @@ const AuraLink = {
 
   startConnectLoop(targetPeerId) {
     clearInterval(this.pollTimer);
+    let attempts = 0;
+    const legacyId = AURA_LINK_PREFIX + this.roomCode;
     const tryConnect = () => {
       if (this.connected || (this.conn && this.conn.open)) {
         clearInterval(this.pollTimer);
         return;
       }
       if (!this.peer || this.peer.destroyed) return;
-      // Close stale pending connection before trying again
       if (this.conn && !this.conn.open) {
         try { this.conn.close(); } catch(_) {}
         this.conn = null;
       }
+      // Alternate between preferred target ID and legacy host ID for backward compatibility
+      const target = (attempts % 3 === 2) ? legacyId : (targetPeerId || this.targetId || legacyId);
+      attempts++;
       try {
-        const c = this.peer.connect(targetPeerId, { reliable: true });
+        const c = this.peer.connect(target, { reliable: true });
         this.attach(c);
       } catch(_) {}
     };
@@ -1460,7 +1475,14 @@ const AuraLink = {
     clearTimeout(this.reconnectTimer);
     this.reconnectTimer = setTimeout(() => {
       if (!this.connected && this.roomCode) {
-        this.join(this.roomCode);
+        if (this.peer && !this.peer.destroyed) {
+          if (this.peer.disconnected) {
+            try { this.peer.reconnect(); } catch(_) {}
+          }
+          this.startConnectLoop(this.targetId);
+        } else {
+          this.join(this.roomCode);
+        }
       }
     }, delay);
   },
@@ -1475,11 +1497,15 @@ const AuraLink = {
       clearInterval(this.pollTimer);
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
+      if (typeof lastClipOnlineTime !== "undefined") lastClipOnlineTime = Date.now();
       updateBtUI();
       if (typeof updateCtrlHudUI === "function") updateCtrlHudUI();
       if (typeof updateClipLinkIndicator === "function") updateClipLinkIndicator();
 
-      if (isControllerDevice){
+      const now = Date.now();
+      if (isControllerDevice && (!this.hasAnnouncedConnected || (now - this.lastAnnouncedTime > 30000))){
+        this.hasAnnouncedConnected = true;
+        this.lastAnnouncedTime = now;
         buzz([50, 70, 50]);
         showOverlay("SPECTATOR CONNECTED", 1400);
       }
@@ -1513,8 +1539,11 @@ const AuraLink = {
       updateBtUI();
       if (typeof updateCtrlHudUI === "function") updateCtrlHudUI();
       if (typeof updateClipLinkIndicator === "function") updateClipLinkIndicator();
-      if (this.roomCode && this.peer && !this.peer.destroyed) {
-        this.startConnectLoop(AURA_LINK_PREFIX + this.roomCode);
+      if (this.peer && !this.peer.destroyed) {
+        if (this.peer.disconnected) {
+          try { this.peer.reconnect(); } catch(_) {}
+        }
+        this.startConnectLoop(this.targetId);
       } else {
         this.scheduleReconnect(2000);
       }
@@ -1530,8 +1559,11 @@ const AuraLink = {
       updateBtUI();
       if (typeof updateCtrlHudUI === "function") updateCtrlHudUI();
       if (typeof updateClipLinkIndicator === "function") updateClipLinkIndicator();
-      if (this.roomCode && this.peer && !this.peer.destroyed) {
-        this.startConnectLoop(AURA_LINK_PREFIX + this.roomCode);
+      if (this.peer && !this.peer.destroyed) {
+        if (this.peer.disconnected) {
+          try { this.peer.reconnect(); } catch(_) {}
+        }
+        this.startConnectLoop(this.targetId);
       } else {
         this.scheduleReconnect(2000);
       }
@@ -1539,10 +1571,14 @@ const AuraLink = {
   },
 
   ping() {
-    if (this.connected && this.lastSeen && (Date.now() - this.lastSeen > 6500)) {
+    if (this.connected && this.lastSeen && (Date.now() - this.lastSeen > 18000)) {
       console.warn("AuraLink heartbeat timeout; reconnecting...");
       this.connected = false;
       this.spectatorLocked = false;
+      if (this.conn) {
+        try { this.conn.close(); } catch(_) {}
+        this.conn = null;
+      }
       updateBtUI();
       if (typeof updateCtrlHudUI === "function") updateCtrlHudUI();
       if (typeof updateClipLinkIndicator === "function") updateClipLinkIndicator();
@@ -1653,7 +1689,8 @@ const AuraLink = {
       if (typeof updateCamouHintUI === "function") updateCamouHintUI();
 
       // Instant 10ms Live Mirror Display via WebRTC:
-      if (mirrorMode && !ctrlHudOpen && m.primary !== undefined) {
+      // Only mirror display on explicit "display" packets, never on uninitialized "hello" handshake!
+      if (m.t === "display" && mirrorMode && !ctrlHudOpen && m.primary !== undefined) {
         if (elPrimary && elPrimary.textContent !== m.primary) {
           elPrimary.textContent = m.primary;
           fitPrimary();
@@ -2993,6 +3030,9 @@ if (ctrlResetRoleBtn){
     try { localStorage.removeItem("is_performer"); } catch(_) {}
     isControllerDevice = false;
     syncControllerClass();
+    if (typeof AuraLink !== "undefined" && AuraLink.roomCode){
+      AuraLink.join(AuraLink.roomCode);
+    }
     updateClipLinkIndicator();
     closeCtrlHud();
     buzz();
@@ -3120,11 +3160,16 @@ if (clipStatusCard){
   });
 }
 
+let lastClipOnlineTime = 0;
 function updateClipLinkIndicator(){
   const gridBtn = document.getElementById("gridBtn");
   const isAura = (typeof AuraLink !== "undefined" && AuraLink.connected);
   const isHeartbeat = (typeof lastHeartbeatData !== "undefined" && lastHeartbeatData && !!lastHeartbeatData.spectatorConnected);
-  const isOnline = isAura || isHeartbeat;
+  if (isAura || isHeartbeat) {
+    lastClipOnlineTime = Date.now();
+  }
+  // 5-second hysteresis prevents signal bars and green dot from flickering on mobile packet delays
+  const isOnline = (isAura || isHeartbeat) || (Date.now() - lastClipOnlineTime < 5000);
   const isCtrl = isControllerDevice || ctrlHudOpen || (window.location.search.indexOf("ctrl") >= 0);
 
   if (gridBtn){
@@ -3150,7 +3195,11 @@ function updateClipLinkIndicator(){
 
 function updateClipStatusCard(){
   const isAura = (typeof AuraLink !== "undefined" && AuraLink.connected);
-  const isClipOnline = isAura || (typeof lastHeartbeatData !== "undefined" && lastHeartbeatData && !!lastHeartbeatData.spectatorConnected);
+  const isHeartbeat = (typeof lastHeartbeatData !== "undefined" && lastHeartbeatData && !!lastHeartbeatData.spectatorConnected);
+  if (isAura || isHeartbeat) {
+    lastClipOnlineTime = Date.now();
+  }
+  const isClipOnline = (isAura || isHeartbeat) || (Date.now() - lastClipOnlineTime < 5000);
   updateClipLinkIndicator();
 
   const mainAppEl = document.getElementById("csValMainApp");
@@ -4027,9 +4076,12 @@ function updateHeartbeatUI(){
   const isCtrl = isControllerDevice || ctrlHudOpen || (window.location.search.indexOf("ctrl") >= 0);
   const isAura = (typeof AuraLink !== "undefined" && AuraLink.connected);
   const isPaired = isAura || (lastHeartbeatData && (isCtrl ? lastHeartbeatData.spectatorConnected : lastHeartbeatData.controllerConnected));
-  const isLive = isPaired && (Date.now() - lastHeartbeatOk < 6500);
+  if (isPaired && (Date.now() - lastHeartbeatOk < 20000)){
+    if (typeof lastClipOnlineTime !== "undefined") lastClipOnlineTime = Date.now();
+  }
+  const isLive = isPaired && (Date.now() - lastHeartbeatOk < 20000);
 
-  if (sig){
+  if (sig && isCtrl){
     sig.querySelectorAll(".cbar").forEach((b, idx) => {
       if (idx < 2) {
         b.style.fill = "#ffffff";
@@ -4446,6 +4498,15 @@ function broadcastMirrorKeystroke(key){
     // Spectator mirroring to magician peek:
     const secVal = isClearing ? "" : (bdaySecretNumber || lastCompletedSecretNumber || "");
     const bToSend = isClearing ? (lastCompletedBirthdayInfo || null) : (activeBirthdayInfo || lastCompletedBirthdayInfo || null);
+    if (typeof AuraLink !== "undefined" && AuraLink.connected){
+      AuraLink.send({
+        t: "display",
+        primary: disp,
+        secondary: expr,
+        locked: isClearing ? false : !!S.locked,
+        hint: isClearing ? "" : (typeof forceHint === "function" ? (forceHint() || "") : "")
+      });
+    }
     fetch(BACKEND_BASE + "/api/calc/mirror/keystroke", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
