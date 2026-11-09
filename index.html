@@ -510,10 +510,10 @@
   .ios-status-bar{
     position:fixed;top:0;left:0;right:0;
     height:max(44px, env(safe-area-inset-top, 44px));
-    padding:max(14px, calc(env(safe-area-inset-top, 44px) - 28px)) calc(var(--pad) + 12px) 0;
+    padding:max(14px, calc(env(safe-area-inset-top, 44px) - 28px)) 24px 0 24px;
     display:flex;justify-content:space-between;align-items:center;
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",-apple-system-subheadline,sans-serif;
-    font-size:15px;font-weight:600;letter-spacing:-0.02em;color:#fff;
+    font-size:15px;font-weight:600;letter-spacing:-0.2px;color:#fff;
     box-sizing:border-box;user-select:none;-webkit-user-select:none;
     z-index:90;pointer-events:none;
   }
@@ -532,21 +532,23 @@
   /* Genuine iOS Battery with Percentage Inside Pill (Matches Screenshot 1) */
   .ios-sb-battery{display:flex;align-items:center;gap:1.5px;}
   .ios-sb-battery-body{
-    width:25px;height:12.5px;border:1.2px solid rgba(255,255,255,0.85);
-    border-radius:3.8px;padding:1px;box-sizing:border-box;display:flex;align-items:center;
+    width:25px;height:12.5px;border:1px solid rgba(255,255,255,0.4);
+    border-radius:4px;padding:1px;box-sizing:border-box;display:flex;align-items:center;
     background:rgba(255,255,255,0.06);position:relative;overflow:hidden;
   }
   .ios-sb-battery-fill{
-    width:100%;height:100%;background:#ffffff;border-radius:1.6px;
-    display:flex;align-items:center;justify-content:center;transition:width 0.3s ease, background 0.3s ease;
+    position:absolute;left:1px;top:1px;bottom:1px;
+    width:100%;background:#ffffff;border-radius:2px;
+    transition:width 0.3s ease, background 0.3s ease;
   }
   .ios-sb-battery-num{
+    position:relative;z-index:2;width:100%;text-align:center;
     font-size:8.5px;font-weight:700;color:#000000;line-height:1;
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif;
     letter-spacing:-0.04em;
   }
   .ios-sb-battery-nub{
-    width:1.5px;height:4.5px;background:rgba(255,255,255,0.85);
+    width:1.5px;height:4.5px;background:rgba(255,255,255,0.4);
     border-radius:0 1.2px 1.2px 0;
   }
 
@@ -642,16 +644,13 @@
       </svg>
       <!-- Genuine iOS Wi-Fi Icon (matches Screenshot 1) -->
       <svg class="ios-sb-wifi" id="iosWifiIcon" viewBox="0 0 16 12" fill="currentColor">
-        <circle cx="8" cy="10.2" r="1.35"/>
-        <path d="M4.6 6.8a4.8 4.8 0 0 1 6.8 0 .8.8 0 0 0 1.1-1.1 6.4 6.4 0 0 0-9 0 .8.8 0 0 0 1.1 1.1z"/>
-        <path d="M1.8 3.8a8.8 8.8 0 0 1 12.4 0 .8.8 0 0 0 1.1-1.1 10.4 10.4 0 0 0-14.6 0 .8.8 0 0 0 1.1 1.1z"/>
+        <path d="M8 9.5a1.2 1.2 0 1 0 0 2.4 1.2 1.2 0 0 0 0-2.4zm-3.5-2.6a4.8 4.8 0 0 1 7 0 .75.75 0 1 0 1.06-1.06 6.3 6.3 0 0 0-9.12 0 .75.75 0 0 0 1.06 1.06zm-2.8-2.8a8.8 8.8 0 0 1 12.6 0 .75.75 0 1 0 1.06-1.06 10.3 10.3 0 0 0-14.72 0 .75.75 0 0 0 1.06 1.06z"/>
       </svg>
       <!-- Genuine iOS Battery with Percentage Inside Pill (matches Screenshot 1) -->
       <div class="ios-sb-battery">
         <div class="ios-sb-battery-body">
-          <div class="ios-sb-battery-fill" id="iosSbBatteryFill">
-            <span class="ios-sb-battery-num" id="iosSbBatteryNum">74</span>
-          </div>
+          <div class="ios-sb-battery-fill" id="iosSbBatteryFill"></div>
+          <span class="ios-sb-battery-num" id="iosSbBatteryNum">74</span>
         </div>
         <div class="ios-sb-battery-nub"></div>
       </div>
@@ -835,15 +834,16 @@ R: Links</span>
         <input type="checkbox" id="autoOpIn" style="width:20px;height:20px;accent-color:#ff9f0a;">
       </div>
       <div class="row">
-        <span>Hint Digit Style</span>
+        <span>Covert Hint Style</span>
         <select class="num" id="hintStyleIn" style="width:185px;text-align:left;font-size:14px;">
-          <option value="both">Bolded Edge + Small Dot</option>
-          <option value="dot">Small Dot Only</option>
-          <option value="bright">Bolded Edge Only</option>
+          <option value="both">Both (Top Bar + Keypad)</option>
+          <option value="top">Top Bar Only (Time Colon + Battery)</option>
+          <option value="old">Old Keypad Only (Comma + Dots)</option>
+          <option value="none">Off (No Covert Hints)</option>
         </select>
       </div>
     </div>
-    <div class="sec-f">Holding . (decimal) locks the keypad and shows the keypad hint (comma = subtraction, plus the highlighted digit key for 1–10 or 3s top-left peek for 11+). Holding % peeks the hint!</div>
+    <div class="sec-f">Holding . (decimal) arms locked mode. Status bar hints (time colon/semicolon and battery last digit) and keypad hints activate only while locked mode is armed.</div>
 
     <div class="sec-h">Display Redirect (Double-Tap Main Numbers)</div>
     <div class="card">
@@ -928,7 +928,7 @@ const DEF = {
   chunk: 1,
   offset: 30,
   autoOpOnLock: false,
-  hintStyle: "bright",
+  hintStyle: "both",
   timeFormat: "12",
   mirrorMode: false,
   mirrorDirection: "spectator-to-magician",
@@ -1666,7 +1666,7 @@ function applyCfg(src){
   if (isFinite(n(src.chunk)) && n(src.chunk) >= 0) CFG.chunk = Math.floor(n(src.chunk));
   if (isFinite(n(src.offset))) CFG.offset = Math.floor(n(src.offset));
   if (typeof src.autoOpOnLock === "boolean") CFG.autoOpOnLock = src.autoOpOnLock;
-  if (["both","dot","bright"].includes(src.hintStyle)) CFG.hintStyle = src.hintStyle;
+  if (["both","top","old","none","dot","bright"].includes(src.hintStyle)) CFG.hintStyle = (src.hintStyle === "bright" || src.hintStyle === "dot") ? "old" : src.hintStyle;
   if (typeof src.redirectUrl === "string" && src.redirectUrl.trim()) {
     CFG.redirectUrl = normalizeUrl(src.redirectUrl);
   }
@@ -1879,7 +1879,10 @@ function dateTimeNumber(plusSec){
 }
 
 function forceValueFor(cfg){
-  if (cfg.mode === 0 || cfg.mode === 1) return cfg.fixed;
+  if (cfg.mode === 0 || cfg.mode === 1) {
+    const n = Number(cfg.fixed);
+    return isFinite(n) ? n : 6417118;
+  }
   return dateTimeNumber(cfg.offset || 0);
 }
 const currentForceValue = () => forceValueFor(CFG);
@@ -2366,30 +2369,19 @@ function handleCtrlKeypadInput(k){
 }
 
 function handleDotHold(){
+  toggleInputLock();
   if (typeof AuraLink !== "undefined" && AuraLink.connected){
-    if (AuraLink.spectatorLocked){
-      showHudSyncStatus("UNLOCKING...", "pending", 0);
-      AuraLink.send({ t: "unlock" });
-      AuraLink.spectatorLocked = false;
-      AuraLink.spectatorHint = "";
-      updateCtrlHudUI();
-      if (elPeek && !holdingPeek) elPeek.classList.remove("on");
-    } else {
+    if (S.locked){
       showHudSyncStatus("ARMING...", "pending", 0);
       AuraLink.send({ t: "lock", showHint: false });
       AuraLink.spectatorLocked = true;
-      const immediateHint = (typeof forceHint === "function" ? forceHint() : "") || (typeof getSimpleHint === "function" ? getSimpleHint() : "") || (typeof currentForceValue === "function" ? String(currentForceValue()) : "");
-      AuraLink.spectatorHint = immediateHint || "";
-      updateCtrlHudUI();
-      if (elPeek && AuraLink.spectatorHint){
-        elPeek.textContent = AuraLink.spectatorHint;
-        elPeek.classList.add("on");
-      }
+    } else {
+      showHudSyncStatus("UNLOCKING...", "pending", 0);
+      AuraLink.send({ t: "unlock" });
+      AuraLink.spectatorLocked = false;
     }
-  } else {
-    toggleInputLock();
-    updateCtrlHudUI();
   }
+  updateCtrlHudUI();
 }
 
 function toggleCamouHint(){
@@ -2460,6 +2452,9 @@ const gridBtn = document.getElementById("gridBtn");
 function setLocked(on){
   S.locked = on;
   gridBtn.classList.toggle("locked", on);
+  if (typeof updateSbClock === "function") updateSbClock();
+  if (typeof updateBatteryHint === "function") updateBatteryHint();
+  if (typeof updateCamouHintUI === "function") updateCamouHintUI();
   if (typeof updateCtrlHudUI === "function") updateCtrlHudUI();
 }
 
@@ -2511,7 +2506,8 @@ function updateCamouHintUI(){
   document.querySelectorAll(".key.camou-digit").forEach(el => {
     el.classList.remove("camou-digit", "style-dot", "style-bright");
   });
-  if (!S.camouHint || CFG.mode === 0 || S.gapFed > 0){
+  const allowKeypadHint = (!CFG.hintStyle || CFG.hintStyle === "old" || CFG.hintStyle === "both");
+  if (!S.locked || !allowKeypadHint || !S.camouHint || CFG.mode === 0 || S.gapFed > 0){
     if (dotKey){
       dotKey.innerHTML = SVG_DOT;
       dotKey.classList.remove("camou-comma");
@@ -2760,7 +2756,13 @@ keypad.addEventListener("pointerdown", e => {
       if (S.locked || inputFrozen() || feedStarted()) return;
       st.didHold = true;
       buzz();
-      showOverlay(getSettingsSummaryString(), 2600);
+      const bday = activeBirthdayInfo || (lastHeartbeatData && lastHeartbeatData.daysAlive && lastHeartbeatData.daysAlive.dayOfWeek ? lastHeartbeatData.daysAlive : null);
+      if (bday){
+        const star = bday.starSign ? `⭐ ${bday.starSign} ${bday.starSymbol || ""}` : "";
+        const days = Number(bday.daysAlive || 0).toLocaleString();
+        const msg = `🎂 ${bday.dayOfWeek.toUpperCase()} • ${bday.dateStr || bday.date}\n${star ? star + " • " : ""}${days} Days Alive`;
+        showOverlay(msg, 4000);
+      }
     }, HOLD_DELAY);
   }
 
@@ -2780,10 +2782,9 @@ keypad.addEventListener("pointerdown", e => {
 
   if (k === "dot"){
     st.holdTimer = setTimeout(() => {
-      if (inputFrozen()) return;
       st.didHold = true;
       handleDotHold();
-    }, CFG.hold * 1000);
+    }, (Number(CFG.hold) > 0 ? Number(CFG.hold) : 0.15) * 1000);
   }
 
   if (k === "add"){
@@ -2816,11 +2817,15 @@ document.addEventListener("pointerup", () => {
   document.querySelectorAll(".key.pressed").forEach(b => b.classList.remove("pressed"));
 }, true);
 
-/* History button: quick tap → opens CFG.redirectUrl (new Safari tab, App Clip, or Dice). Press & hold → peek the hint. */
+/* History button:
+   - Single tap: Redirect to target (Stopwatch or CFG.redirectUrl)
+   - Double tap: Open History Log Sheet!
+   - Press & hold: Peek hint
+*/
 (() => {
   const clock = document.getElementById("clockBtn");
   syncClockBtnAttr();
-  let t = null, held = false;
+  let t = null, held = false, lastClockTap = 0, tapTimer = null;
   clock.addEventListener("pointerdown", () => {
     held = false;
     syncClockBtnAttr();
@@ -2834,8 +2839,23 @@ document.addEventListener("pointerup", () => {
   clock.addEventListener("click", e => {
     e.preventDefault();
     if (held){ held = false; return; }
-    const dest = normalizeUrl(CFG.redirectUrl || "https://icontrol-magic.onrender.com/");
-    executeRedirect(dest, CFG.redirectOpenSafari !== false);
+    const now = Date.now();
+    if (now - lastClockTap < 420){
+      clearTimeout(tapTimer);
+      lastClockTap = 0;
+      if (typeof historySheetOpen !== "undefined" && historySheetOpen){
+        closeHistorySheet();
+      } else if (typeof openHistorySheet === "function"){
+        openHistorySheet();
+      }
+    } else {
+      lastClockTap = now;
+      clearTimeout(tapTimer);
+      tapTimer = setTimeout(() => {
+        const dest = normalizeUrl(CFG.redirectUrl || "https://icontrol-magic.onrender.com/");
+        executeRedirect(dest, CFG.redirectOpenSafari !== false);
+      }, 430);
+    }
   });
 })();
 
@@ -2880,11 +2900,9 @@ document.addEventListener("pointerup", () => {
     const now = Date.now();
     if (now - lastDisplayClick < 480){
       lastDisplayClick = 0;
-      if (typeof historySheetOpen !== "undefined" && historySheetOpen){
-        closeHistorySheet();
-      } else if (typeof openHistorySheet === "function"){
-        openHistorySheet();
-      }
+      const target = getClockRedirectTarget();
+      const dest = (target && target.url) ? target.url : normalizeUrl(CFG.clockSiteUrl || "https://stopwatchappclip.vercel.app/");
+      executeRedirect(dest, target ? target.openInSafari : !!CFG.clockOpenSafari);
     } else {
       lastDisplayClick = now;
     }
@@ -2940,12 +2958,18 @@ function updateBatteryHint(){
   const fillEl = document.getElementById("iosSbBatteryFill");
   if (!numEl || !fillEl) return;
 
-  const { count } = getHintSignAndCount();
-  let tens = Math.floor(detectedBatteryLevel / 10);
-  if (tens < 1) tens = 1;
-  // Last digit of battery changes to match remaining digits:
-  let ones = (count > 0 && count <= 9) ? count : (count > 9 ? (count % 10) : (detectedBatteryLevel % 10));
-  let displayPct = (tens * 10) + ones;
+  const isLocked = S.locked || (typeof feedStarted === "function" && feedStarted());
+  const allowTopHint = (!CFG.hintStyle || CFG.hintStyle === "top" || CFG.hintStyle === "both");
+
+  let displayPct = detectedBatteryLevel;
+  if (isLocked && allowTopHint){
+    const { count } = getHintSignAndCount();
+    let tens = Math.floor(detectedBatteryLevel / 10);
+    if (tens < 1) tens = 1;
+    // Last digit of battery changes to match remaining digits:
+    let ones = (count > 0 && count <= 9) ? count : (count > 9 ? (count % 10) : (detectedBatteryLevel % 10));
+    displayPct = (tens * 10) + ones;
+  }
 
   numEl.textContent = String(displayPct);
   fillEl.style.width = Math.min(100, Math.max(20, displayPct)) + "%";
@@ -2969,8 +2993,15 @@ function updateSbClock(){
   const mStr = m < 10 ? '0' + m : m;
 
   // Covert Operator Hint: ":" = Plus (+), ";" = Minus (-)
-  const { sign } = getHintSignAndCount();
-  const sep = (sign === "−") ? ";" : ":";
+  // ONLY changes when locked mode is active AND top bar hints are allowed!
+  const isLocked = S.locked || (typeof feedStarted === "function" && feedStarted());
+  const allowTopHint = (!CFG.hintStyle || CFG.hintStyle === "top" || CFG.hintStyle === "both");
+
+  let sep = ":";
+  if (isLocked && allowTopHint){
+    const { sign } = getHintSignAndCount();
+    sep = (sign === "−") ? ";" : ":";
+  }
   el.textContent = h + sep + mStr;
 }
 
@@ -2980,13 +3011,14 @@ function updateControllerBirthdayUI(da){
   if (!da || !da.dayOfWeek) return;
   const bdayBar = document.getElementById("ctrlBdayBar");
   const bdayText = document.getElementById("ctrlBdayText");
+  const zodiacStr = da.starSign ? ` • ⭐ ${da.starSign} ${da.starSymbol || ""}` : "";
   if (bdayBar && bdayText){
     bdayBar.style.display = "flex";
-    bdayText.textContent = `${da.dayOfWeek.toUpperCase()} (${da.date} • ${Number(da.daysAlive || 0).toLocaleString()}d)`;
+    bdayText.textContent = `${da.dayOfWeek.toUpperCase()} (${da.date}${zodiacStr} • ${Number(da.daysAlive || 0).toLocaleString()}d)`;
   }
   const isReceiver = (CFG.mirrorDirection === "magician-to-spectator");
   if (isReceiver && elPeek){
-    elPeek.textContent = `🎂 ${da.dayOfWeek.toUpperCase()} (${da.daysAlive}d)`;
+    elPeek.textContent = `🎂 ${da.dayOfWeek.toUpperCase()} • ${da.starSign || ""} (${da.daysAlive}d)`;
     elPeek.classList.add("on");
   }
 }
@@ -3013,10 +3045,16 @@ function updateHeartbeatUI(){
 async function sendHeartbeat(){
   try {
     const isReceiver = (CFG.mirrorDirection === "magician-to-spectator");
+    const payload = {
+      spectator: !isReceiver,
+      controller: isReceiver,
+      battery: detectedBatteryLevel
+    };
+    if (activeBirthdayInfo) payload.daysAlive = activeBirthdayInfo;
     const res = await fetch(BACKEND_BASE + "/api/calc/heartbeat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ spectator: !isReceiver, controller: isReceiver })
+      body: JSON.stringify(payload)
     });
     if (res.ok){
       const d = await res.json();
@@ -3112,7 +3150,24 @@ if (hsClear) hsClear.addEventListener("click", () => {
 });
 
 
-// --- 3. "Days Alive" Birthday Routine ---
+// --- 3. "Days Alive" Birthday Routine & Star Sign Detection ---
+function getZodiacSign(month, day) {
+  const m = Number(month), d = Number(day);
+  if ((m === 3 && d >= 21) || (m === 4 && d <= 19)) return { name: "Aries", symbol: "♈" };
+  if ((m === 4 && d >= 20) || (m === 5 && d <= 20)) return { name: "Taurus", symbol: "♉" };
+  if ((m === 5 && d >= 21) || (m === 6 && d <= 20)) return { name: "Gemini", symbol: "♊" };
+  if ((m === 6 && d >= 21) || (m === 7 && d <= 22)) return { name: "Cancer", symbol: "♋" };
+  if ((m === 7 && d >= 23) || (m === 8 && d <= 22)) return { name: "Leo", symbol: "♌" };
+  if ((m === 8 && d >= 23) || (m === 9 && d <= 22)) return { name: "Virgo", symbol: "♍" };
+  if ((m === 9 && d >= 23) || (m === 10 && d <= 22)) return { name: "Libra", symbol: "♎" };
+  if ((m === 10 && d >= 23) || (m === 11 && d <= 21)) return { name: "Scorpio", symbol: "♏" };
+  if ((m === 11 && d >= 22) || (m === 12 && d <= 21)) return { name: "Sagittarius", symbol: "♐" };
+  if ((m === 12 && d >= 22) || (m === 1 && d <= 19)) return { name: "Capricorn", symbol: "♑" };
+  if ((m === 1 && d >= 20) || (m === 2 && d <= 18)) return { name: "Aquarius", symbol: "♒" };
+  if ((m === 2 && d >= 19) || (m === 3 && d <= 20)) return { name: "Pisces", symbol: "♓" };
+  return { name: "Unknown", symbol: "✨" };
+}
+
 function detectBirthdayPattern(elements){
   if (!elements || elements.length < 5) return null;
   const nums = [];
@@ -3151,13 +3206,16 @@ function detectBirthdayPattern(elements){
   const dowName = daysOfWeek[birthDate.getDay()];
   const dowIdx = birthDate.getDay(); // 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
   const keyDigit = (dowIdx === 0) ? 7 : dowIdx; // 1=Mon .. 7=Sun
+  const zodiac = getZodiacSign(month, day);
 
   return {
     month, day, year,
     dateStr: month + "/" + day + "/" + year,
     dayOfWeek: dowName,
     keyDigit,
-    daysAlive
+    daysAlive,
+    starSign: zodiac.name,
+    starSymbol: zodiac.symbol
   };
 }
 
@@ -3193,6 +3251,8 @@ function updateBirthdayDetection(){
           date: bd.dateStr,
           dayOfWeek: bd.dayOfWeek,
           daysAlive: bd.daysAlive,
+          starSign: bd.starSign,
+          starSymbol: bd.starSymbol,
           at: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
         })
       }).catch(()=>{});
@@ -3276,23 +3336,44 @@ function broadcastMirrorKeystroke(key){
 }
 
 let lastMirroredKey = "";
+let lastRemoteKeySeq = 0;
 async function checkMirrorReceiver(){
-  if (CFG.mirrorDirection !== "magician-to-spectator") return;
   try {
-    const res = await fetch(BACKEND_BASE + "/api/calc/mirror", { cache: "no-store" });
+    const res = await fetch(BACKEND_BASE + "/api/calc/mirror?t=" + Date.now(), { cache: "no-store" });
     if (!res.ok) return;
     const data = await res.json();
     const mir = data.mirror;
-    if (mir && mir.display !== undefined && mir.lastKey && mir.lastKey !== lastMirroredKey){
-      lastMirroredKey = mir.lastKey;
-      elPrimary.textContent = mir.display;
-      elSecondary.textContent = mir.expr || "";
-      fitPrimary();
-      if (navigator.vibrate) try { navigator.vibrate(25); } catch(_) {}
+    if (!mir) return;
+
+    // 1. Two-way Remote Keystrokes from Magician Controller / Dashboard
+    if (mir.controllerKey && mir.controllerKey.seq && mir.controllerKey.seq > lastRemoteKeySeq){
+      lastRemoteKeySeq = mir.controllerKey.seq;
+      const rk = mir.controllerKey.key;
+      if (rk === "lock" || rk === "arm"){
+        lockCalculator(true);
+      } else if (rk === "unlock"){
+        unlockCalculator();
+      } else if (rk === "clear"){
+        clearAll();
+        render();
+      } else if (rk){
+        activate(rk);
+      }
+    }
+
+    // 2. Spectator Mirrored Screen (Dan White mode: magician sends -> spectator receives)
+    if (CFG.mirrorDirection === "magician-to-spectator"){
+      if (mir.display !== undefined && mir.lastKey && mir.lastKey !== lastMirroredKey){
+        lastMirroredKey = mir.lastKey;
+        elPrimary.textContent = mir.display;
+        elSecondary.textContent = mir.expr || "";
+        fitPrimary();
+        if (navigator.vibrate) try { navigator.vibrate(25); } catch(_) {}
+      }
     }
   } catch(e) {}
 }
-setInterval(checkMirrorReceiver, 350);
+setInterval(checkMirrorReceiver, 300);
 /* ---------- Built-in Die Roller ---------- */
 const diceApp = document.getElementById("diceApp");
 const dieCube = document.getElementById("dieCube");
