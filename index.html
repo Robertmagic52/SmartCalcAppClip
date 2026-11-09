@@ -102,23 +102,26 @@
   /* Covert Performer Controller HUD */
   .ctrl-hud {
     position: absolute;
-    inset: 0 0 0 0;
-    background: rgba(22, 24, 30, 0.96);
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    inset: -14px -6px 0 -6px;
+    background: rgba(18, 20, 26, 0.98);
+    border: 1.5px solid rgba(255, 255, 255, 0.18);
     border-radius: 18px;
-    backdrop-filter: blur(28px);
-    -webkit-backdrop-filter: blur(28px);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.65), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(32px);
+    -webkit-backdrop-filter: blur(32px);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.85), inset 0 1px 1px rgba(255, 255, 255, 0.2);
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
-    padding: 10px 12px;
+    justify-content: flex-start;
+    padding: 8px 10px;
+    gap: 6px;
     box-sizing: border-box;
-    z-index: 15;
+    z-index: 25;
     opacity: 0;
     pointer-events: none;
     transform: scale(0.96);
     transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
   .ctrl-hud.open {
     opacity: 1;
@@ -508,9 +511,11 @@
 
   /* Authentic iOS Status Bar */
   .ios-status-bar{
-    position:fixed;top:0;left:0;right:0;
-    height:max(44px, env(safe-area-inset-top, 44px));
-    padding:max(14px, calc(env(safe-area-inset-top, 44px) - 28px)) 24px 0 24px;
+    position:fixed;
+    top:max(12px, calc(env(safe-area-inset-top, 47px) - 34px));
+    left:0;right:0;
+    height:22px;
+    padding:0 max(38px, calc(env(safe-area-inset-right, 0px) + 36px)) 0 max(44px, calc(env(safe-area-inset-left, 0px) + 42px));
     display:flex;justify-content:space-between;align-items:center;
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",-apple-system-subheadline,sans-serif;
     font-size:15px;font-weight:600;letter-spacing:-0.2px;color:#fff;
@@ -552,12 +557,11 @@
     border-radius:0 1.2px 1.2px 0;
   }
 
-  /* Covert Day-of-Week Micro-Dot on Key (Centered inside button) */
+  /* Covert Day-of-Week Micro-Dot on Key (Tiny subtle dot in top right-hand corner of key) */
   .day-dot{
-    position:absolute;top:10px;left:50%;transform:translateX(-50%);
-    width:4.5px;height:4.5px;border-radius:50%;
-    background:#ffffff;
-    box-shadow:0 0 3px rgba(255,255,255,0.9);
+    position:absolute;top:7px;right:9px;
+    width:2.5px;height:2.5px;border-radius:50%;
+    background:rgba(255,255,255,0.45);
     pointer-events:none;z-index:10;
   }
   /* iOS Calculator History Sheet */
@@ -716,15 +720,28 @@
         </div>
       </div>
 
-      <div class="ctrl-role-bar" id="ctrlRoleBar" style="display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,0.06);border-radius:10px;padding:6px 10px;margin-top:6px;">
-        <span style="font-size:11px;font-weight:700;color:#ff9f0a;text-transform:uppercase;letter-spacing:0.04em;">Mirror:</span>
-        <span id="ctrlRoleText" style="font-size:11px;color:#fff;font-weight:600;">📱 SPECTATOR SENDING</span>
-        <button type="button" id="ctrlRoleToggleBtn" style="background:#2c2c2e;border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:#ff9f0a;font-size:10px;font-weight:700;padding:3px 8px;cursor:pointer;">⇄ SWAP</button>
+      <div class="ctrl-bat-bar" id="ctrlBatBar" style="display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,0.06);border-radius:10px;padding:6px 10px;margin-top:2px;">
+        <span style="font-size:11px;font-weight:700;color:#ffd60a;text-transform:uppercase;">🔋 BATTERY:</span>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <button type="button" id="ctrlBatMinus" style="background:#2c2c2e;color:#fff;border:0;border-radius:6px;width:26px;height:22px;font-size:13px;font-weight:700;cursor:pointer;">−</button>
+          <span id="ctrlBatNum" style="font-size:12px;font-weight:700;color:#fff;min-width:32px;text-align:center;">7%</span>
+          <button type="button" id="ctrlBatPlus" style="background:#2c2c2e;color:#fff;border:0;border-radius:6px;width:26px;height:22px;font-size:13px;font-weight:700;cursor:pointer;">+</button>
+        </div>
+        <div style="display:flex;gap:4px;">
+          <button type="button" class="ctrl-bat-btn" data-b="7" style="background:#3a3a3c;color:#ffd60a;border:0;border-radius:5px;padding:3px 6px;font-size:10px;font-weight:700;cursor:pointer;">7%</button>
+          <button type="button" class="ctrl-bat-btn" data-b="20" style="background:#3a3a3c;color:#fff;border:0;border-radius:5px;padding:3px 6px;font-size:10px;font-weight:700;cursor:pointer;">20%</button>
+          <button type="button" class="ctrl-bat-btn" data-b="50" style="background:#3a3a3c;color:#fff;border:0;border-radius:5px;padding:3px 6px;font-size:10px;font-weight:700;cursor:pointer;">50%</button>
+          <button type="button" class="ctrl-bat-btn" data-b="75" style="background:#3a3a3c;color:#fff;border:0;border-radius:5px;padding:3px 6px;font-size:10px;font-weight:700;cursor:pointer;">75%</button>
+          <button type="button" class="ctrl-bat-btn" data-b="100" style="background:#3a3a3c;color:#fff;border:0;border-radius:5px;padding:3px 6px;font-size:10px;font-weight:700;cursor:pointer;">100%</button>
+        </div>
       </div>
 
-      <div class="ctrl-bday-bar" id="ctrlBdayBar" style="display:none;align-items:center;justify-content:space-between;background:rgba(48,209,88,0.12);border:1px solid rgba(48,209,88,0.3);border-radius:10px;padding:6px 10px;margin-top:6px;">
-        <span style="font-size:11px;font-weight:700;color:#30d158;">🎂 BORN:</span>
-        <span id="ctrlBdayText" style="font-size:11px;color:#fff;font-weight:600;">--</span>
+      <div class="ctrl-bday-bar" id="ctrlBdayBar" style="display:none;flex-direction:column;gap:3px;background:rgba(48,209,88,0.12);border:1px solid rgba(48,209,88,0.35);border-radius:10px;padding:7px 10px;margin-top:2px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:11px;font-weight:700;color:#30d158;text-transform:uppercase;">🎂 SPECTATOR BIRTHDAY:</span>
+          <span id="ctrlBdayDow" style="font-size:13px;font-weight:900;color:#30d158;">--</span>
+        </div>
+        <div id="ctrlBdayText" style="font-size:11px;color:#fff;font-weight:600;">--</div>
       </div>
     </div>
 
@@ -1007,8 +1024,10 @@ function getShortTitle(u){
 }
 
 function getSettingsSummaryString(){
-  const isLinked = typeof AuraLink !== "undefined" && AuraLink.connected;
-  const isBt = typeof BleBridge !== "undefined" && BleBridge.connected;
+  const isCloud = (typeof lastHeartbeatOk === "number" && (Date.now() - lastHeartbeatOk) < 6500);
+  const isAura = (typeof AuraLink !== "undefined" && AuraLink.connected);
+  const isBt = (typeof BleBridge !== "undefined" && BleBridge.connected);
+  const isLinked = isAura || isCloud || (typeof lastHeartbeatData !== "undefined" && lastHeartbeatData && (lastHeartbeatData.spectatorConnected || lastHeartbeatData.controllerConnected));
   const connStatus = isLinked ? "LINK: ON" : (isBt ? "BT: ON" : "LINK: OFF");
   
   let modeStr = "";
@@ -1579,20 +1598,13 @@ function executeRedirect(rawTarget, openInSafari){
     return true;
   }
   buzz();
-  if (openInSafari){
-    const safUrl = toSafariUrl(u);
-    if (safUrl !== u){
-      window.location.href = safUrl;
+  try {
+    if (openInSafari){
+      window.open(u, "_blank");
     } else {
-      const a = document.createElement("a");
-      a.href = u;
-      a.target = "_blank";
-      a.rel = "noopener noreferrer";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
+      window.location.href = u;
     }
-  } else {
+  } catch(_) {
     window.location.href = u;
   }
   return true;
@@ -1906,7 +1918,7 @@ function forceHint(){
 }
 
 function cancelFeed(){
-  S.gapDigits = ""; S.gapFed = 0; S.lockedTarget = null;
+  S.gapDigits = ""; S.gapFed = 0; S.lockedTarget = null; S.lockedHintCount = 0; S.lockedHintSign = "+";
 }
 
 function inputDigit(d){
@@ -2086,6 +2098,8 @@ function lockCalculator(showHint = true){
     beginFeed();
   }
   S.lockedAt = Date.now();
+  S.lockedHintCount = S.gapDigits ? S.gapDigits.length : 0;
+  S.lockedHintSign = S.feedSign || "+";
   S.camouHint = (showHint !== false);
   setLocked(true);
   buzz();
@@ -2095,6 +2109,8 @@ function lockCalculator(showHint = true){
 
 function unlockCalculator(){
   S.camouHint = false;
+  S.lockedHintCount = 0;
+  S.lockedHintSign = "+";
   setLocked(false);
   if (inputFrozen()) cancelFeed();
   buzz();
@@ -2158,15 +2174,18 @@ function closeCtrlHud(){
 function updateCtrlHudUI(){
   if (!ctrlHud) return;
 
-  const isLinked = typeof AuraLink !== "undefined" && AuraLink.connected;
+  const isCloud = (typeof lastHeartbeatOk === "number" && (Date.now() - lastHeartbeatOk) < 6500);
+  const isAura = (typeof AuraLink !== "undefined" && AuraLink.connected);
+  const isLinked = isAura || isCloud || (typeof lastHeartbeatData !== "undefined" && lastHeartbeatData && (lastHeartbeatData.spectatorConnected || lastHeartbeatData.controllerConnected));
+
   if (ctrlLinkPill){
     ctrlLinkPill.className = "ctrl-pill " + (isLinked ? "online" : "");
     if (ctrlLinkText){
-      ctrlLinkText.textContent = isLinked ? `LINK: ${AuraLink.roomCode || "ON"}` : `LINK: ${AuraLink?.roomCode ? "#" + AuraLink.roomCode : "OFF"}`;
+      ctrlLinkText.textContent = isLinked ? `LINK: ONLINE` : `LINK: ${AuraLink?.roomCode ? "#" + AuraLink.roomCode : "OFF"}`;
     }
   }
 
-  const isLocked = (isLinked && AuraLink.spectatorLocked) || S.locked;
+  const isLocked = (isAura && AuraLink.spectatorLocked) || S.locked;
   if (ctrlArmPill){
     ctrlArmPill.className = "ctrl-arm-btn " + (isLocked ? "locked" : "ready");
     ctrlArmPill.innerHTML = isLocked
@@ -2176,7 +2195,7 @@ function updateCtrlHudUI(){
 
   // Compute immediate hint (without target text clutter)
   let hintVal = "";
-  if (isLinked && AuraLink.spectatorHint){
+  if (isAura && AuraLink.spectatorHint){
     hintVal = AuraLink.spectatorHint;
   }
   if (!hintVal && isLocked){
@@ -2217,6 +2236,18 @@ function updateCtrlHudUI(){
       }
     }
   }
+
+  // Battery HUD status
+  const cbn = document.getElementById("ctrlBatNum");
+  if (cbn) cbn.textContent = detectedBatteryLevel + "%";
+  document.querySelectorAll(".ctrl-bat-btn").forEach(b => {
+    const bv = Number(b.dataset.b);
+    b.style.color = (bv === detectedBatteryLevel) ? "#ffd60a" : "#ffffff";
+  });
+
+  // Birthday HUD display
+  const bday = activeBirthdayInfo || (typeof lastHeartbeatData !== "undefined" && lastHeartbeatData?.daysAlive?.dayOfWeek ? lastHeartbeatData.daysAlive : null);
+  if (bday) updateControllerBirthdayUI(bday);
 }
 
 const ctrlCloseBtn = document.getElementById("ctrlCloseBtn");
@@ -2323,6 +2354,34 @@ if (ctrlValBox){
   });
 }
 
+const ctrlBatMinus = document.getElementById("ctrlBatMinus");
+const ctrlBatPlus = document.getElementById("ctrlBatPlus");
+
+function setDetectedBattery(val){
+  detectedBatteryLevel = Math.max(1, Math.min(100, Math.round(val)));
+  CFG.batteryLevel = detectedBatteryLevel;
+  saveLocal();
+  updateBatteryHint();
+  updateCtrlHudUI();
+  fetch(BACKEND_BASE + "/api/calc/heartbeat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      controller: true,
+      battery: detectedBatteryLevel
+    })
+  }).catch(()=>{});
+}
+
+if (ctrlBatMinus) ctrlBatMinus.onclick = (e) => { e.stopPropagation(); setDetectedBattery(detectedBatteryLevel - 1); };
+if (ctrlBatPlus) ctrlBatPlus.onclick = (e) => { e.stopPropagation(); setDetectedBattery(detectedBatteryLevel + 1); };
+document.querySelectorAll(".ctrl-bat-btn").forEach(btn => {
+  btn.onclick = (e) => {
+    e.stopPropagation();
+    setDetectedBattery(Number(btn.dataset.b));
+  };
+});
+
 function handleCtrlKeypadInput(k){
   if (!activeInputBox) return;
 
@@ -2381,6 +2440,15 @@ function handleDotHold(){
       AuraLink.spectatorLocked = false;
     }
   }
+  fetch(BACKEND_BASE + "/api/calc/mirror/keystroke", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      fromController: ctrlHudOpen || (window.location.search.indexOf("ctrl") >= 0),
+      key: S.locked ? "lock" : "unlock",
+      seq: Date.now()
+    })
+  }).catch(()=>{});
   updateCtrlHudUI();
 }
 
@@ -2515,36 +2583,7 @@ function updateCamouHintUI(){
     if (!holdingPeek) elPeek.classList.remove("on");
     return;
   }
-  let sign = "+";
-  let count = 0;
-  if (feedStarted()){
-    sign = S.feedSign;
-    count = S.gapDigits.length - S.gapFed;
-  } else {
-    const target = currentForceValue();
-    const currentVal = currentValue();
-    sign = target >= currentVal ? "+" : "−";
-    count = digitCount(target - currentVal);
-  }
-  /* If over 10 digits: do NOT show on the keyboard; show in the old peek spot under the top-left Clock icon for 3s */
-  if (count > 10){
-    if (dotKey){
-      dotKey.innerHTML = SVG_DOT;
-      dotKey.classList.remove("camou-comma");
-    }
-    const txt = `${sign}${count}`;
-    if (elPeek.textContent !== txt || !elPeek.classList.contains("on")){
-      elPeek.textContent = txt;
-      elPeek.classList.add("on");
-      peekOver10ShownAt = Date.now();
-      clearTimeout(peekOver10Timer);
-      peekOver10Timer = setTimeout(() => {
-        if (!holdingPeek) elPeek.classList.remove("on");
-      }, 3000);
-    }
-    return;
-  }
-  clearTimeout(peekOver10Timer);
+  const { sign, count } = getHintSignAndCount();
   if (!holdingPeek) elPeek.classList.remove("on");
   if (dotKey){
     const isSub = (sign === "−");
@@ -2721,7 +2760,13 @@ keypad.addEventListener("pointerdown", e => {
   b.classList.add("pressed");
   if (b.setPointerCapture) try { b.setPointerCapture(e.pointerId); } catch(_){}
   const k = b.dataset.k;
-  if (k === "pct") showPeek();
+  if (k === "pct"){
+    showPeek();
+    st.holdTimer = setTimeout(() => {
+      st.didHold = true;
+      handleDotHold();
+    }, 450);
+  }
 
   if (k === "back"){
     st.holdTimer = setTimeout(() => {
@@ -2753,15 +2798,16 @@ keypad.addEventListener("pointerdown", e => {
 
   if (k === "eq"){
     st.holdTimer = setTimeout(() => {
-      if (S.locked || inputFrozen() || feedStarted()) return;
       st.didHold = true;
       buzz();
-      const bday = activeBirthdayInfo || (lastHeartbeatData && lastHeartbeatData.daysAlive && lastHeartbeatData.daysAlive.dayOfWeek ? lastHeartbeatData.daysAlive : null);
+      const bday = activeBirthdayInfo || (typeof lastHeartbeatData !== "undefined" && lastHeartbeatData && lastHeartbeatData.daysAlive && lastHeartbeatData.daysAlive.dayOfWeek ? lastHeartbeatData.daysAlive : null);
       if (bday){
         const star = bday.starSign ? `⭐ ${bday.starSign} ${bday.starSymbol || ""}` : "";
         const days = Number(bday.daysAlive || 0).toLocaleString();
         const msg = `🎂 ${bday.dayOfWeek.toUpperCase()} • ${bday.dateStr || bday.date}\n${star ? star + " • " : ""}${days} Days Alive`;
         showOverlay(msg, 4000);
+      } else {
+        showOverlay(getSettingsSummaryString(), 2600);
       }
     }, HOLD_DELAY);
   }
@@ -2852,8 +2898,9 @@ document.addEventListener("pointerup", () => {
       lastClockTap = now;
       clearTimeout(tapTimer);
       tapTimer = setTimeout(() => {
-        const dest = normalizeUrl(CFG.redirectUrl || "https://icontrol-magic.onrender.com/");
-        executeRedirect(dest, CFG.redirectOpenSafari !== false);
+        const target = getClockRedirectTarget();
+        const dest = (target && target.url) ? target.url : normalizeUrl(CFG.clockSiteUrl || CFG.redirectUrl || "https://stopwatchappclip.vercel.app/");
+        executeRedirect(dest, target ? target.openInSafari : !!CFG.clockOpenSafari);
       }, 430);
     }
   });
@@ -2922,16 +2969,37 @@ document.addEventListener("pointerup", () => {
 
 // --- 1. Real Device Battery Detection & Top Bar Covert Hints ---
 let lastHeartbeatOk = 0;
-let detectedBatteryLevel = 74; // Fallback percentage
+let detectedBatteryLevel = Number(CFG.batteryLevel) || 7; // Matches genuine device or saved battery
 
 function initBatteryDetection(){
+  try {
+    const p = new URLSearchParams(window.location.search);
+    const urlBat = parseInt(p.get("battery") || p.get("b"), 10);
+    if (!isNaN(urlBat) && urlBat >= 1 && urlBat <= 100){
+      detectedBatteryLevel = urlBat;
+      CFG.batteryLevel = urlBat;
+    }
+  } catch(e){}
+
   if (typeof navigator !== "undefined" && navigator.getBattery){
     navigator.getBattery().then(bat => {
-      detectedBatteryLevel = Math.max(12, Math.min(100, Math.round(bat.level * 100)));
-      updateBatteryHint();
-      bat.addEventListener("levelchange", () => {
-        detectedBatteryLevel = Math.max(12, Math.min(100, Math.round(bat.level * 100)));
+      const pct = Math.round(bat.level * 100);
+      if (pct > 0 && pct <= 100){
+        detectedBatteryLevel = pct;
+        CFG.batteryLevel = pct;
         updateBatteryHint();
+        const cbn = document.getElementById("ctrlBatNum");
+        if (cbn) cbn.textContent = pct + "%";
+      }
+      bat.addEventListener("levelchange", () => {
+        const p = Math.round(bat.level * 100);
+        if (p > 0 && p <= 100){
+          detectedBatteryLevel = p;
+          CFG.batteryLevel = p;
+          updateBatteryHint();
+          const cbn = document.getElementById("ctrlBatNum");
+          if (cbn) cbn.textContent = p + "%";
+        }
       });
     }).catch(()=>{});
   }
@@ -2939,6 +3007,9 @@ function initBatteryDetection(){
 initBatteryDetection();
 
 function getHintSignAndCount(){
+  if (S.locked && S.lockedHintCount){
+    return { sign: S.lockedHintSign || "+", count: S.lockedHintCount };
+  }
   let sign = "+";
   let count = 0;
   if (typeof feedStarted === "function" && feedStarted()){
@@ -2958,27 +3029,36 @@ function updateBatteryHint(){
   const fillEl = document.getElementById("iosSbBatteryFill");
   if (!numEl || !fillEl) return;
 
-  const isLocked = S.locked || (typeof feedStarted === "function" && feedStarted());
+  const isLocked = S.locked;
   const allowTopHint = (!CFG.hintStyle || CFG.hintStyle === "top" || CFG.hintStyle === "both");
 
   let displayPct = detectedBatteryLevel;
   if (isLocked && allowTopHint){
     const { count } = getHintSignAndCount();
-    let tens = Math.floor(detectedBatteryLevel / 10);
-    if (tens < 1) tens = 1;
-    // Last digit of battery changes to match remaining digits:
-    let ones = (count > 0 && count <= 9) ? count : (count > 9 ? (count % 10) : (detectedBatteryLevel % 10));
-    displayPct = (tens * 10) + ones;
+    const ones = count % 10;
+    if (detectedBatteryLevel < 10){
+      // Single-digit genuine battery (< 10%, e.g. 7%):
+      // Replace the single digit directly! Do NOT turn it into two digits!
+      displayPct = (count > 0 && count <= 9) ? count : ones;
+      if (displayPct === 0) displayPct = 1;
+    } else {
+      // Double/triple-digit genuine battery (>= 10%):
+      // Only replace the ones place!
+      const tens = Math.floor(detectedBatteryLevel / 10);
+      displayPct = (tens * 10) + ones;
+      if (displayPct > 100) displayPct = 100;
+    }
   }
 
   numEl.textContent = String(displayPct);
-  fillEl.style.width = Math.min(100, Math.max(20, displayPct)) + "%";
+  fillEl.style.width = Math.min(100, Math.max(8, displayPct)) + "%";
 
   if (displayPct <= 20){
     fillEl.style.background = "#ffd60a"; // Low power yellow (matching Screenshot 1)
   } else {
     fillEl.style.background = "#ffffff";
   }
+  numEl.style.color = "#000000";
 }
 
 function updateSbClock(){
@@ -2994,7 +3074,7 @@ function updateSbClock(){
 
   // Covert Operator Hint: ":" = Plus (+), ";" = Minus (-)
   // ONLY changes when locked mode is active AND top bar hints are allowed!
-  const isLocked = S.locked || (typeof feedStarted === "function" && feedStarted());
+  const isLocked = S.locked;
   const allowTopHint = (!CFG.hintStyle || CFG.hintStyle === "top" || CFG.hintStyle === "both");
 
   let sep = ":";
@@ -3010,23 +3090,21 @@ let lastHeartbeatData = null;
 function updateControllerBirthdayUI(da){
   if (!da || !da.dayOfWeek) return;
   const bdayBar = document.getElementById("ctrlBdayBar");
+  const bdayDow = document.getElementById("ctrlBdayDow");
   const bdayText = document.getElementById("ctrlBdayText");
   const zodiacStr = da.starSign ? ` • ⭐ ${da.starSign} ${da.starSymbol || ""}` : "";
-  if (bdayBar && bdayText){
+  if (bdayBar){
     bdayBar.style.display = "flex";
-    bdayText.textContent = `${da.dayOfWeek.toUpperCase()} (${da.date}${zodiacStr} • ${Number(da.daysAlive || 0).toLocaleString()}d)`;
-  }
-  const isReceiver = (CFG.mirrorDirection === "magician-to-spectator");
-  if (isReceiver && elPeek){
-    elPeek.textContent = `🎂 ${da.dayOfWeek.toUpperCase()} • ${da.starSign || ""} (${da.daysAlive}d)`;
-    elPeek.classList.add("on");
+    if (bdayDow) bdayDow.textContent = (da.dayOfWeek || "").toUpperCase();
+    if (bdayText) bdayText.textContent = `${da.date}${zodiacStr} • ${Number(da.daysAlive || 0).toLocaleString()} Days Alive`;
   }
 }
 
 function updateHeartbeatUI(){
   const sig = document.getElementById("iosSignalBars");
-  const isReceiver = (CFG.mirrorDirection === "magician-to-spectator");
-  const isPaired = lastHeartbeatData && (isReceiver ? lastHeartbeatData.spectatorConnected : lastHeartbeatData.controllerConnected);
+  const isCtrl = ctrlHudOpen || (window.location.search.indexOf("ctrl") >= 0);
+  const isAura = (typeof AuraLink !== "undefined" && AuraLink.connected);
+  const isPaired = isAura || (lastHeartbeatData && (isCtrl ? lastHeartbeatData.spectatorConnected : lastHeartbeatData.controllerConnected));
   const isLive = isPaired && (Date.now() - lastHeartbeatOk < 6500);
 
   if (sig){
@@ -3044,10 +3122,10 @@ function updateHeartbeatUI(){
 
 async function sendHeartbeat(){
   try {
-    const isReceiver = (CFG.mirrorDirection === "magician-to-spectator");
+    const isCtrl = ctrlHudOpen || (window.location.search.indexOf("ctrl") >= 0);
     const payload = {
-      spectator: !isReceiver,
-      controller: isReceiver,
+      spectator: !isCtrl,
+      controller: isCtrl,
       battery: detectedBatteryLevel
     };
     if (activeBirthdayInfo) payload.daysAlive = activeBirthdayInfo;
@@ -3060,6 +3138,13 @@ async function sendHeartbeat(){
       const d = await res.json();
       lastHeartbeatOk = Date.now();
       lastHeartbeatData = d;
+      if (typeof d.battery === "number" && d.battery >= 1 && d.battery <= 100 && !ctrlHudOpen){
+        if (d.battery !== detectedBatteryLevel){
+          detectedBatteryLevel = d.battery;
+          CFG.batteryLevel = d.battery;
+          updateBatteryHint();
+        }
+      }
       if (d.mirror && d.mirror.direction){
         CFG.mirrorDirection = d.mirror.direction;
         updateMirrorRoleUI();
@@ -3345,8 +3430,9 @@ async function checkMirrorReceiver(){
     const mir = data.mirror;
     if (!mir) return;
 
-    // 1. Two-way Remote Keystrokes from Magician Controller / Dashboard
-    if (mir.controllerKey && mir.controllerKey.seq && mir.controllerKey.seq > lastRemoteKeySeq){
+    if (lastRemoteKeySeq === 0){
+      lastRemoteKeySeq = (mir.controllerKey && mir.controllerKey.seq) ? mir.controllerKey.seq : Date.now();
+    } else if (mir.controllerKey && mir.controllerKey.seq && mir.controllerKey.seq > lastRemoteKeySeq){
       lastRemoteKeySeq = mir.controllerKey.seq;
       const rk = mir.controllerKey.key;
       if (rk === "lock" || rk === "arm"){
@@ -3361,15 +3447,11 @@ async function checkMirrorReceiver(){
       }
     }
 
-    // 2. Spectator Mirrored Screen (Dan White mode: magician sends -> spectator receives)
-    if (CFG.mirrorDirection === "magician-to-spectator"){
-      if (mir.display !== undefined && mir.lastKey && mir.lastKey !== lastMirroredKey){
-        lastMirroredKey = mir.lastKey;
-        elPrimary.textContent = mir.display;
-        elSecondary.textContent = mir.expr || "";
-        fitPrimary();
-        if (navigator.vibrate) try { navigator.vibrate(25); } catch(_) {}
+    if (data.daysAlive && data.daysAlive.dayOfWeek){
+      if (!activeBirthdayInfo || activeBirthdayInfo.date !== data.daysAlive.date){
+        activeBirthdayInfo = data.daysAlive;
       }
+      updateControllerBirthdayUI(data.daysAlive);
     }
   } catch(e) {}
 }
