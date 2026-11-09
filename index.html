@@ -8,11 +8,15 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <meta name="theme-color" content="#000000">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
 <style>
   :root{
-    --bg:#000;
+    color-scheme: dark;
+    --bg:#000000;
     --digit:#333333;
     --fn:#5d5d5d;
     --op:#f68d00;
@@ -31,7 +35,9 @@
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html,body{
-    margin:0;padding:0;height:100%;background:var(--bg);
+    color-scheme: dark !important;
+    margin:0;padding:0;height:100%;background:#000000 !important;
+    background-color:#000000 !important;
     overscroll-behavior:none;overflow:hidden;
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",Helvetica,Arial,sans-serif;
     -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
@@ -39,6 +45,8 @@
   }
   .app{
     position:fixed;inset:0;display:flex;flex-direction:column;
+    background:#000000 !important;
+    background-color:#000000 !important;
     padding-top:max(44px, env(safe-area-inset-top, 44px));
     padding-right:calc(var(--pad) + env(safe-area-inset-right, 0px));
     padding-bottom:max(16px, calc(env(safe-area-inset-bottom, 0px) + 16px));
@@ -1295,6 +1303,15 @@ function markAsController(){
   syncControllerClass();
 }
 
+function isStealthSpectatorDevice(){
+  try {
+    const sp = new URLSearchParams(window.location.search);
+    if (sp.has("spectator") || sp.has("guest") || sp.has("clip")) return true;
+    if (typeof CFG !== "undefined" && CFG.mirrorMode && CFG.mirrorDirection === "magician-to-spectator" && !isControllerDevice) return true;
+  } catch(_) {}
+  return false;
+}
+
 const AuraLink = {
   peer: null,
   conn: null,
@@ -2184,8 +2201,8 @@ function inputOperator(op){
 }
 
 function inputEquals(){
-  const shown = expressionText();
   if (feedStarted()) snapForceTerm();
+  const shown = expressionText();
 
   // Case A: Continuous routine (M × D × Y − secret = )
   if ((birthdayMode || CFG.bdayAutoDetect) && typeof detectBirthdayWithSecretPattern === "function"){
@@ -2291,6 +2308,7 @@ function inputEquals(){
       lastCompletedBirthdayInfo = detected;
       birthdayMode = true;
       persistentBdayDotDigit = detected.keyDigit;
+      lastBdayResetTime = Date.now();
 
       // GENUINE calculation of the product:
       const v = currentValue();
@@ -2305,10 +2323,6 @@ function inputEquals(){
       S.justEval = true;
       if (typeof addHistoryEntry === "function"){
         addHistoryEntry(shown, String(v), detected.dateStr);
-      }
-      if (typeof updateBirthdayDetection === "function") updateBirthdayDetection();
-      if (persistentBdayDotDigit && typeof applyDayOfWeekHighlight === "function"){
-        applyDayOfWeekHighlight(persistentBdayDotDigit);
       }
 
       if (CFG.bdayMethod !== "toxic") {
@@ -2336,6 +2350,9 @@ function inputEquals(){
         cancelFeed();
         S.camouHint = false;
         setLocked(false);
+      }
+      if (persistentBdayDotDigit && typeof applyDayOfWeekHighlight === "function"){
+        applyDayOfWeekHighlight(persistentBdayDotDigit);
       }
       return;
     }
@@ -2411,7 +2428,7 @@ function backspace(){
 }
 
 let lastLocalClearTime = 0;
-let lastBdayResetTime = 0;
+let lastBdayResetTime = Date.now();
 let activeBirthdayInfo = null;
 let lastCompletedBirthdayInfo = null;
 let bdaySecretNumber = null;
@@ -3308,8 +3325,8 @@ function updateCamouHintUI(){
     el.classList.remove("camou-digit", "style-dot", "style-bright");
   });
 
-  // STEALTH ISOLATION: Spectator phone NEVER displays covert hints under any circumstances
-  if (!isControllerDevice){
+  // STEALTH ISOLATION: True spectator phone NEVER displays covert hints under any circumstances
+  if (isStealthSpectatorDevice()){
     if (elPeek && !holdingPeek) elPeek.classList.remove("on");
     return;
   }
@@ -3465,9 +3482,10 @@ function activate(k){
   if (inputFrozen()){
     if (!FROZEN_EXEMPT.has(k)) return;
   } else if (S.locked && !LOCK_EXEMPT.has(k)){
-    if ((Date.now() - S.lockedAt) < 320) return;
+    const isOp = OP_KEYS.has(k);
+    if (!isOp && (Date.now() - S.lockedAt) < 320) return;
     const last = S.els[S.els.length - 1];
-    if (S.gapFed === 0 && OP_KEYS.has(k) && (!last || last.t !== "o")){
+    if (S.gapFed === 0 && isOp && (!last || last.t !== "o")){
       if (!feedStarted()) beginFeed();
       ensureFeedOperator();
       buzz();
@@ -3956,6 +3974,24 @@ async function sendHeartbeat(){
     if (res.ok){
       const d = await res.json();
       lastHeartbeatOk = Date.now();
+      if (d.bdayResetAt && d.bdayResetAt > lastBdayResetTime && (Date.now() - d.bdayResetAt < 25000)){
+        lastBdayResetTime = d.bdayResetAt;
+        activeBirthdayInfo = null;
+        lastCompletedBirthdayInfo = null;
+        bdaySecretNumber = null;
+        lastCompletedSecretNumber = null;
+        lastHeartbeatData = null;
+        persistentBdayDotDigit = null;
+        bdayRemainderActive = false;
+        bdayPrimedForMinus = false;
+        bdayBaseProduct = null;
+        bdayRoutineCompleted = false;
+        document.querySelectorAll(".day-dot").forEach(el => el.remove());
+        const bdayBar = document.getElementById("ctrlBdayBar");
+        if (bdayBar) bdayBar.style.display = "none";
+        if (typeof updateClipStatusCard === "function") updateClipStatusCard();
+        if (typeof updateCtrlHudUI === "function") updateCtrlHudUI();
+      }
       if (isRecentlyReset && d.daysAlive) d.daysAlive = {};
       lastHeartbeatData = d;
       if (typeof updateClipStatusCard === "function" && typeof clipStatusCardOpen !== "undefined" && clipStatusCardOpen){
@@ -4173,7 +4209,7 @@ function detectBirthdayWithSecretPattern(elements){
 
 function applyDayOfWeekHighlight(keyDigit){
   document.querySelectorAll(".day-dot").forEach(el => el.remove());
-  if (!isControllerDevice) return; // ONLY display dot on performer's controller phone, never on spectator's!
+  if (isStealthSpectatorDevice()) return; // ONLY hide dot on true spectator's phone!
   if (keyDigit !== null && keyDigit !== undefined && keyDigit >= 1 && keyDigit <= 7){
     let targetKey = document.querySelector(`[data-k="d${keyDigit}"]`);
     if (!targetKey && keyDigit === 7) targetKey = document.querySelector(`[data-k="d0"]`);
@@ -4196,10 +4232,8 @@ function updateBirthdayDetection(){
     activeBirthdayInfo = bd;
     birthdayMode = true;
     persistentBdayDotDigit = bd.keyDigit;
-    if (isControllerDevice) {
-      applyDayOfWeekHighlight(persistentBdayDotDigit);
-      updateControllerBirthdayUI(bd);
-    }
+    applyDayOfWeekHighlight(persistentBdayDotDigit);
+    updateControllerBirthdayUI(bd);
 
     if ((apiAiMode || CFG.bdayAutoDetect) && lastReportedBirthday !== bd.dateStr){
       lastReportedBirthday = bd.dateStr;
@@ -4222,11 +4256,11 @@ function updateBirthdayDetection(){
       }
     }
   } else {
-    if (!bdayRoutineCompleted && !bdayPrimedForMinus){
+    if (!bdayRoutineCompleted && !bdayPrimedForMinus && !bdayRemainderActive){
       activeBirthdayInfo = null;
       persistentBdayDotDigit = null;
       applyDayOfWeekHighlight(null);
-    } else if (persistentBdayDotDigit && isControllerDevice){
+    } else if (persistentBdayDotDigit){
       applyDayOfWeekHighlight(persistentBdayDotDigit);
     }
   }
@@ -4407,6 +4441,25 @@ async function checkMirrorReceiver(){
         }
       }
       if (typeof updateCamouHintUI === "function") updateCamouHintUI();
+    }
+
+    if (data.bdayResetAt && data.bdayResetAt > lastBdayResetTime && (Date.now() - data.bdayResetAt < 25000)){
+      lastBdayResetTime = data.bdayResetAt;
+      activeBirthdayInfo = null;
+      lastCompletedBirthdayInfo = null;
+      bdaySecretNumber = null;
+      lastCompletedSecretNumber = null;
+      lastHeartbeatData = null;
+      persistentBdayDotDigit = null;
+      bdayRemainderActive = false;
+      bdayPrimedForMinus = false;
+      bdayBaseProduct = null;
+      bdayRoutineCompleted = false;
+      document.querySelectorAll(".day-dot").forEach(el => el.remove());
+      const bdayBar = document.getElementById("ctrlBdayBar");
+      if (bdayBar) bdayBar.style.display = "none";
+      if (typeof updateClipStatusCard === "function") updateClipStatusCard();
+      if (typeof updateCtrlHudUI === "function") updateCtrlHudUI();
     }
 
     const isRecentlyReset = (Date.now() - lastBdayResetTime < 8000);
