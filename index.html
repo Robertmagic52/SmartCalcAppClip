@@ -63,6 +63,8 @@
   #gridBtn .cut{fill:var(--icon-bg);}
   #gridBtn #lockDot{fill:var(--icon-bg);transition:fill .18s ease;}
   #gridBtn.locked #lockDot{fill:#ffffff !important;}
+  #gridBtn #clipDot{fill:var(--icon-bg);transition:fill .18s ease;}
+  #gridBtn.clip-linked #clipDot{fill:#30d158 !important;}
   .peek{
     margin-top:6px;font:15px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
     color:var(--hint);height:18px;opacity:0;transition:opacity .12s ease;
@@ -677,7 +679,7 @@
         <rect class="cut" x="7.0" y="3.7" width="10.0" height="4.2" rx="1.2"/>
         <circle class="cut" cx="8.3" cy="11.2" r="1.25"/>
         <circle class="cut" cx="12" cy="11.2" r="1.25"/>
-        <circle class="cut" cx="15.7" cy="11.2" r="1.25"/>
+        <circle class="cut" id="clipDot" cx="15.7" cy="11.2" r="1.25"/>
         <circle class="cut" cx="8.3" cy="15.2" r="1.25"/>
         <circle class="cut" id="lockDot" cx="12" cy="15.2" r="1.25"/>
         <circle class="cut" cx="15.7" cy="15.2" r="1.25"/>
@@ -895,6 +897,15 @@ R: Links</span>
     </div>
     <div class="sec-f">Holding . (decimal) arms locked mode. Holding % peeks gray hint under clock. Discrete keypad hints activate while locked mode is armed.</div>
 
+    <div class="sec-h">Birthday Mode &amp; Auto-Detect</div>
+    <div class="card">
+      <div class="row">
+        <span>Auto-Detect Birthday (M × D × Y)</span>
+        <input type="checkbox" id="bdayAutoDetectIn" style="width:20px;height:20px;accent-color:#ff9f0a;">
+      </div>
+    </div>
+    <div class="sec-f">When enabled, entering Month × Day × Year (or Day × Month × Year) automatically detects the spectator's birthday, calculates their day of the week, days alive, and star sign without needing to hold ×.</div>
+
     <div class="sec-h">Display Redirect (Double-Tap Main Numbers)</div>
     <div class="card">
       <div class="row inrow">
@@ -979,6 +990,7 @@ const DEF = {
   offset: 30,
   autoOpOnLock: false,
   hintStyle: "both",
+  bdayAutoDetect: true,
   timeFormat: "12",
   mirrorMode: false,
   mirrorDirection: "spectator-to-magician",
@@ -1397,6 +1409,7 @@ const AuraLink = {
       this.reconnectTimer = null;
       updateBtUI();
       if (typeof updateCtrlHudUI === "function") updateCtrlHudUI();
+      if (typeof updateClipLinkIndicator === "function") updateClipLinkIndicator();
 
       // Ping heartbeat keeps connection active across mobile networks
       clearInterval(this.heartbeatTimer);
@@ -1426,6 +1439,7 @@ const AuraLink = {
       this.conn = null;
       updateBtUI();
       if (typeof updateCtrlHudUI === "function") updateCtrlHudUI();
+      if (typeof updateClipLinkIndicator === "function") updateClipLinkIndicator();
       if (this.roomCode && this.peer && !this.peer.destroyed) {
         this.startConnectLoop(AURA_LINK_PREFIX + this.roomCode);
       } else {
@@ -1442,6 +1456,7 @@ const AuraLink = {
       this.conn = null;
       updateBtUI();
       if (typeof updateCtrlHudUI === "function") updateCtrlHudUI();
+      if (typeof updateClipLinkIndicator === "function") updateClipLinkIndicator();
       if (this.roomCode && this.peer && !this.peer.destroyed) {
         this.startConnectLoop(AURA_LINK_PREFIX + this.roomCode);
       } else {
@@ -1457,6 +1472,7 @@ const AuraLink = {
       this.spectatorLocked = false;
       updateBtUI();
       if (typeof updateCtrlHudUI === "function") updateCtrlHudUI();
+      if (typeof updateClipLinkIndicator === "function") updateClipLinkIndicator();
       this.scheduleReconnect(1000);
       return;
     }
@@ -1493,6 +1509,15 @@ const AuraLink = {
       if (typeof m.hold === "number") { CFG.hold = m.hold; updated = true; }
       if (typeof m.chunk === "number") { CFG.chunk = m.chunk; updated = true; }
       if (typeof m.redirectUrl === "string") { CFG.redirectUrl = normalizeUrl(m.redirectUrl); updated = true; }
+      if (typeof m.bdayAutoDetect === "boolean") { CFG.bdayAutoDetect = m.bdayAutoDetect; updated = true; }
+    } else if (m.t === "bday" && m.bday) {
+      activeBirthdayInfo = m.bday;
+      birthdayMode = true;
+      persistentBdayDotDigit = m.bday.keyDigit;
+      if (isControllerDevice) {
+        applyDayOfWeekHighlight(persistentBdayDotDigit);
+        updateControllerBirthdayUI(m.bday);
+      }
     } else if (m.t === "ack") {
       handleRemoteAck(m);
     } else if (m.t === "lock") {
@@ -1515,6 +1540,7 @@ const AuraLink = {
           elPeek.classList.remove("on");
         }
       }
+      if (typeof updateCamouHintUI === "function") updateCamouHintUI();
     } else if (m.t === "key") {
       if (!isControllerDevice && m.key) {
         if (m.key === "lock" || m.key === "arm") {
@@ -1594,6 +1620,7 @@ function handleRemoteAck(m){
       elPeek.classList.add("on");
     }
     updateCtrlHudUI();
+    if (typeof updateCamouHintUI === "function") updateCamouHintUI();
   } else if (m.action === "unlock"){
     AuraLink.spectatorLocked = false;
     AuraLink.spectatorHint = "";
@@ -1602,6 +1629,7 @@ function handleRemoteAck(m){
       elPeek.classList.remove("on");
     }
     updateCtrlHudUI();
+    if (typeof updateCamouHintUI === "function") updateCamouHintUI();
   }
 }
 
@@ -1613,11 +1641,15 @@ function updateBtUI(){
   const redir = document.getElementById("btRedirSummary");
 
   const isLinked = typeof AuraLink !== "undefined" && AuraLink.connected;
+  const isHeartbeatLinked = (typeof lastHeartbeatData !== "undefined" && lastHeartbeatData && !!lastHeartbeatData.spectatorConnected);
   const isBt = typeof BleBridge !== "undefined" && BleBridge.connected;
 
   if (lbl){
     if (isLinked){
-      lbl.textContent = `Aura Link (${AuraLink.roomCode || "Room"})`;
+      lbl.textContent = `Aura Link (${AuraLink.roomCode || "ROB52"}) Connected`;
+      lbl.style.color = "#30d158";
+    } else if (isHeartbeatLinked){
+      lbl.textContent = "Cloud 5G Live & Paired";
       lbl.style.color = "#30d158";
     } else if (isBt){
       lbl.textContent = "BT: " + (BleBridge.device?.name || "Connected");
@@ -2546,9 +2578,23 @@ if (clipStatusCard){
   });
 }
 
+function updateClipLinkIndicator(){
+  const gridBtn = document.getElementById("gridBtn");
+  if (!gridBtn) return;
+  if (!isControllerDevice){
+    gridBtn.classList.remove("clip-linked");
+    return;
+  }
+  const isAura = (typeof AuraLink !== "undefined" && AuraLink.connected);
+  const isHeartbeat = (typeof lastHeartbeatData !== "undefined" && lastHeartbeatData && !!lastHeartbeatData.spectatorConnected);
+  const isOnline = isAura || isHeartbeat;
+  gridBtn.classList.toggle("clip-linked", isOnline);
+}
+
 function updateClipStatusCard(){
   const isAura = (typeof AuraLink !== "undefined" && AuraLink.connected);
   const isClipOnline = isAura || (typeof lastHeartbeatData !== "undefined" && lastHeartbeatData && !!lastHeartbeatData.spectatorConnected);
+  updateClipLinkIndicator();
 
   const mainAppEl = document.getElementById("csValMainApp");
   if (mainAppEl){
@@ -2710,7 +2756,11 @@ const gridBtn = document.getElementById("gridBtn");
 
 function setLocked(on){
   S.locked = on;
-  gridBtn.classList.toggle("locked", on);
+  if (gridBtn && isControllerDevice) {
+    gridBtn.classList.toggle("locked", on);
+  } else if (gridBtn) {
+    gridBtn.classList.remove("locked");
+  }
   if (typeof updateSbClock === "function") updateSbClock();
   if (typeof updateBatteryHint === "function") updateBatteryHint();
   if (typeof updateCamouHintUI === "function") updateCamouHintUI();
@@ -2762,17 +2812,21 @@ const SVG_EQ = OP(`<line x1="2.6" y1="8.3" x2="21.4" y2="8.3"/><line x1="2.6" y1
 
 function updateCamouHintUI(){
   const dotKey = document.querySelector('[data-k="dot"]');
+  if (dotKey){
+    dotKey.innerHTML = SVG_DOT;
+    dotKey.classList.remove("camou-comma");
+  }
   document.querySelectorAll(".key.camou-digit").forEach(el => {
     el.classList.remove("camou-digit", "style-dot", "style-bright");
   });
   const allowKeypadHint = (CFG.hintStyle !== "none");
   const allowTopPeek = (CFG.hintStyle !== "old" && CFG.hintStyle !== "none");
 
-  if (!S.locked || !S.camouHint || CFG.mode === 0 || S.gapFed > 0){
-    if (dotKey){
-      dotKey.innerHTML = SVG_DOT;
-      dotKey.classList.remove("camou-comma");
-    }
+  const isCtrl = isControllerDevice;
+  const isSpectatorLocked = (typeof AuraLink !== "undefined" && !!AuraLink.spectatorLocked);
+  const activeLock = S.locked || (isCtrl && isSpectatorLocked);
+
+  if (!activeLock || (!S.camouHint && !isCtrl) || CFG.mode === 0 || (!isCtrl && S.gapFed > 0)){
     if (!holdingPeek && elPeek) elPeek.classList.remove("on");
     return;
   }
@@ -2780,8 +2834,10 @@ function updateCamouHintUI(){
   const { sign, count } = getHintSignAndCount();
 
   if (elPeek){
-    if (allowTopPeek || holdingPeek){
-      const hint = forceHint() || `${sign}${count}`;
+    if (allowTopPeek || holdingPeek || isCtrl){
+      const hint = (isCtrl && typeof AuraLink !== "undefined" && AuraLink.spectatorHint)
+        ? AuraLink.spectatorHint
+        : (forceHint() || `${sign}${count}`);
       elPeek.textContent = hint;
       elPeek.classList.add("on");
     } else {
@@ -2789,19 +2845,12 @@ function updateCamouHintUI(){
     }
   }
 
-  if (allowKeypadHint){
-    if (dotKey){
-      const isSub = (sign === "−");
-      dotKey.innerHTML = isSub ? SVG_COMMA : SVG_DOT;
-      dotKey.classList.toggle("camou-comma", isSub);
-    }
+  if (allowKeypadHint && (isCtrl || S.camouHint)){
     if (count >= 1 && count <= 10){
       const digitNum = (count === 10) ? 0 : count; // 1–9 -> d1..d9, 10 -> d0
       const dKey = document.querySelector(`[data-k="d${digitNum}"]`);
       if (dKey){
         dKey.classList.add("camou-digit");
-        if (CFG.hintStyle === "dot" || CFG.hintStyle === "both") dKey.classList.add("style-dot");
-        else if (CFG.hintStyle === "bright") dKey.classList.add("style-bright");
       }
     }
   }
@@ -3236,6 +3285,13 @@ function initBatteryDetection(){
 initBatteryDetection();
 
 function getHintSignAndCount(){
+  if (isControllerDevice && typeof AuraLink !== "undefined" && AuraLink.spectatorHint){
+    const h = AuraLink.spectatorHint.trim();
+    const sign = (h.startsWith("−") || h.startsWith("-")) ? "−" : "+";
+    const digits = h.replace(/\D/g, "");
+    const count = parseInt(digits, 10) || 0;
+    if (count > 0) return { sign, count };
+  }
   if (S.locked && S.lockedHintCount){
     return { sign: S.lockedHintSign || "+", count: S.lockedHintCount };
   }
@@ -3331,7 +3387,7 @@ function updateControllerBirthdayUI(da){
 
 function updateHeartbeatUI(){
   const sig = document.getElementById("iosSignalBars");
-  const isCtrl = ctrlHudOpen || (window.location.search.indexOf("ctrl") >= 0);
+  const isCtrl = isControllerDevice || ctrlHudOpen || (window.location.search.indexOf("ctrl") >= 0);
   const isAura = (typeof AuraLink !== "undefined" && AuraLink.connected);
   const isPaired = isAura || (lastHeartbeatData && (isCtrl ? lastHeartbeatData.spectatorConnected : lastHeartbeatData.controllerConnected));
   const isLive = isPaired && (Date.now() - lastHeartbeatOk < 6500);
@@ -3347,17 +3403,18 @@ function updateHeartbeatUI(){
       }
     });
   }
+  if (typeof updateClipLinkIndicator === "function") updateClipLinkIndicator();
 }
 
 async function sendHeartbeat(){
   try {
-    const isCtrl = ctrlHudOpen || (typeof clipStatusCardOpen !== "undefined" && clipStatusCardOpen) || (window.location.search.indexOf("ctrl") >= 0);
+    const isCtrl = isControllerDevice || ctrlHudOpen || (typeof clipStatusCardOpen !== "undefined" && clipStatusCardOpen) || (window.location.search.indexOf("ctrl") >= 0);
     const payload = {
       spectator: !isCtrl,
       controller: isCtrl,
       battery: detectedBatteryLevel
     };
-    if (apiAiMode && birthdayMode && activeBirthdayInfo) payload.daysAlive = activeBirthdayInfo;
+    if ((apiAiMode || CFG.bdayAutoDetect) && activeBirthdayInfo) payload.daysAlive = activeBirthdayInfo;
     const res = await fetch(BACKEND_BASE + "/api/calc/heartbeat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -3549,6 +3606,7 @@ function detectBirthdayPattern(elements){
 
 function applyDayOfWeekHighlight(keyDigit){
   document.querySelectorAll(".day-dot").forEach(el => el.remove());
+  if (!isControllerDevice) return; // ONLY display dot on performer's controller phone, never on spectator's!
   if (keyDigit !== null && keyDigit !== undefined && keyDigit >= 1 && keyDigit <= 7){
     let targetKey = document.querySelector(`[data-k="d${keyDigit}"]`);
     if (!targetKey && keyDigit === 7) targetKey = document.querySelector(`[data-k="d0"]`);
@@ -3561,17 +3619,21 @@ function applyDayOfWeekHighlight(keyDigit){
 }
 
 function updateBirthdayDetection(){
-  if (!birthdayMode) {
+  if (!birthdayMode && !CFG.bdayAutoDetect) {
     if (persistentBdayDotDigit) applyDayOfWeekHighlight(null);
     return;
   }
   const bd = detectBirthdayPattern(S.els);
   if (bd){
     activeBirthdayInfo = bd;
+    birthdayMode = true;
     persistentBdayDotDigit = bd.keyDigit;
-    applyDayOfWeekHighlight(persistentBdayDotDigit);
+    if (isControllerDevice) {
+      applyDayOfWeekHighlight(persistentBdayDotDigit);
+      updateControllerBirthdayUI(bd);
+    }
 
-    if (apiAiMode && lastReportedBirthday !== bd.dateStr){
+    if ((apiAiMode || CFG.bdayAutoDetect) && lastReportedBirthday !== bd.dateStr){
       lastReportedBirthday = bd.dateStr;
       fetch(BACKEND_BASE + "/api/acaat/peek", {
         method: "POST",
@@ -3586,9 +3648,13 @@ function updateBirthdayDetection(){
           at: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
         })
       }).catch(()=>{});
+
+      if (typeof AuraLink !== "undefined" && AuraLink.connected){
+        AuraLink.send({ t: "bday", bday: bd });
+      }
     }
   } else {
-    if (persistentBdayDotDigit){
+    if (persistentBdayDotDigit && isControllerDevice){
       applyDayOfWeekHighlight(persistentBdayDotDigit);
     }
   }
@@ -3672,7 +3738,9 @@ function broadcastMirrorKeystroke(key){
       body: JSON.stringify({
         key: key || "",
         display: disp,
-        expr: expr
+        expr: expr,
+        locked: !!S.locked,
+        hint: (typeof forceHint === "function" ? (forceHint() || "") : "")
       })
     }).catch(()=>{});
   }
@@ -3687,6 +3755,10 @@ async function checkMirrorReceiver(){
     const data = await res.json();
     const mir = data.mirror;
     if (!mir) return;
+
+    if (data.spectatorConnected !== undefined && isControllerDevice){
+      if (typeof updateClipLinkIndicator === "function") updateClipLinkIndicator();
+    }
 
     if (mirrorMode){
       // LIVE MIRROR PEEK: Update screen with spectator phone's calculation!
@@ -3725,17 +3797,34 @@ async function checkMirrorReceiver(){
       }
     }
 
-    if (apiAiMode && birthdayMode && data.daysAlive && data.daysAlive.dayOfWeek){
+    if (isControllerDevice && mir.locked !== undefined){
+      if (typeof AuraLink !== "undefined"){
+        AuraLink.spectatorLocked = !!mir.locked;
+        if (mir.hint) AuraLink.spectatorHint = mir.hint;
+      }
+      if (elPeek && !ctrlHudOpen){
+        if (mir.locked && mir.hint){
+          elPeek.textContent = mir.hint;
+          elPeek.classList.add("on");
+        } else if (!holdingPeek && !S.locked){
+          elPeek.classList.remove("on");
+        }
+      }
+      if (typeof updateCamouHintUI === "function") updateCamouHintUI();
+    }
+
+    if ((apiAiMode || CFG.bdayAutoDetect) && data.daysAlive && data.daysAlive.dayOfWeek){
       if (!activeBirthdayInfo && S.els.length === 0){
         activeBirthdayInfo = data.daysAlive;
+        birthdayMode = true;
         const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
         const dIdx = daysOfWeek.indexOf(data.daysAlive.dayOfWeek);
         if (dIdx >= 0){
           persistentBdayDotDigit = (dIdx === 0) ? 7 : dIdx;
-          applyDayOfWeekHighlight(persistentBdayDotDigit);
+          if (isControllerDevice) applyDayOfWeekHighlight(persistentBdayDotDigit);
         }
       }
-      updateControllerBirthdayUI(data.daysAlive);
+      if (isControllerDevice) updateControllerBirthdayUI(data.daysAlive);
     }
   } catch(e) {}
 }
@@ -4030,6 +4119,8 @@ function openSettings(){
   if (offsetIn) offsetIn.value = draft.offset !== undefined ? draft.offset : 30;
   autoOpIn.checked = !!draft.autoOpOnLock;
   hintStyleIn.value = draft.hintStyle || "both";
+  const bdayAutoDetectIn = document.getElementById("bdayAutoDetectIn");
+  if (bdayAutoDetectIn) bdayAutoDetectIn.checked = !!draft.bdayAutoDetect;
   clockSiteIn.value = draft.clockSiteUrl || "";
   clockSafariIn.checked = !!draft.clockOpenSafari;
   calcSiteNameIn.value = "";
@@ -4055,6 +4146,8 @@ function closeSettings(save){
     if (f !== null) draft.fixed = f;
     draft.autoOpOnLock = autoOpIn.checked;
     draft.hintStyle = hintStyleIn.value || "both";
+    const bdayAutoDetectIn = document.getElementById("bdayAutoDetectIn");
+    if (bdayAutoDetectIn) draft.bdayAutoDetect = bdayAutoDetectIn.checked;
     draft.clockSiteUrl = normalizeUrl(clockSiteIn.value);
     draft.clockOpenSafari = clockSafariIn.checked;
     draft.redirectUrl = normalizeUrl(redirectUrlIn.value || "https://icontrol-magic.onrender.com/");
@@ -4099,7 +4192,8 @@ function closeSettings(save){
         offset: CFG.offset,
         hold: CFG.hold,
         chunk: CFG.chunk,
-        redirectUrl: CFG.redirectUrl
+        redirectUrl: CFG.redirectUrl,
+        bdayAutoDetect: CFG.bdayAutoDetect
       });
       showOverlay("✓ SAVED & SYNCED", 1400);
     } else {
