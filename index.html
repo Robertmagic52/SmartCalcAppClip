@@ -108,10 +108,9 @@
   .ctrl-hud {
     position: absolute;
     top: -56px;
-    bottom: -22px;
+    bottom: auto;
     left: 2px;
     right: 2px;
-    min-height: 250px;
     background: rgba(18, 20, 26, 0.98);
     border: 1px solid rgba(255, 255, 255, 0.18);
     border-radius: 18px;
@@ -501,10 +500,9 @@
   .clip-status-card {
     position: absolute;
     top: -42px;
-    bottom: -16px;
+    bottom: auto;
     left: 4px;
     right: 4px;
-    min-height: 240px;
     background: rgba(22, 22, 26, 0.97);
     border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 18px;
@@ -515,7 +513,7 @@
     flex-direction: column;
     justify-content: flex-start;
     padding: 12px 14px;
-    gap: 8px;
+    gap: 7px;
     box-sizing: border-box;
     z-index: 50;
     opacity: 0;
@@ -2336,36 +2334,28 @@ function backspace(){
 }
 
 let lastLocalClearTime = 0;
+let activeBirthdayInfo = null;
+let lastCompletedBirthdayInfo = null;
+let bdaySecretNumber = null;
+let lastCompletedSecretNumber = null;
+let bdayPrimedForMinus = false;
+let bdayBaseProduct = null;
+let bdayRoutineCompleted = false;
+let preBdayMode = null;
+let preBdayFixed = null;
+let lastReportedBirthday = "";
+let persistentBdayDotDigit = null;
+let apiAiMode = false;
+let birthdayMode = false;
+let mirrorMode = false;
 
 function clearAll(){
   buzz();
   lastLocalClearTime = Date.now();
   S.els = []; S.justEval = false; S.evalExpr = "";
   cancelFeed(); S.camouHint = false; setLocked(false);
-  persistentBdayDotDigit = null;
-  activeBirthdayInfo = null;
-  lastCompletedBirthdayInfo = null;
-  bdaySecretNumber = null;
-  lastCompletedSecretNumber = null;
-  bdayPrimedForMinus = false;
-  bdayBaseProduct = null;
-  bdayRoutineCompleted = false;
-  lastReportedBirthday = "";
-  if (preBdayMode !== null){
-    CFG.mode = preBdayMode;
-    CFG.fixed = preBdayFixed;
-    preBdayMode = null;
-    preBdayFixed = null;
-    saveLocal();
-  } else if (!CFG.mode || CFG.mode === 0){
-    CFG.mode = 2; // Default to Time mode
-    saveLocal();
-  }
-  birthdayMode = false;
-  if (typeof applyDayOfWeekHighlight === "function") applyDayOfWeekHighlight(null);
-  const bdayBar = document.getElementById("ctrlBdayBar");
-  if (bdayBar) bdayBar.style.display = "none";
 
+  // Instant 0ms DOM clearing:
   if (elPrimary) {
     elPrimary.textContent = "0";
     fitPrimary();
@@ -2376,6 +2366,39 @@ function clearAll(){
   }
   const acKey = document.querySelector('[data-k="clear"]');
   if (acKey) acKey.textContent = "AC";
+
+  try {
+    persistentBdayDotDigit = null;
+    activeBirthdayInfo = null;
+    lastCompletedBirthdayInfo = null;
+    bdaySecretNumber = null;
+    lastCompletedSecretNumber = null;
+    bdayPrimedForMinus = false;
+    bdayBaseProduct = null;
+    bdayRoutineCompleted = false;
+    lastReportedBirthday = "";
+    birthdayMode = false;
+
+    // Immediately wipe all day-dots from all buttons:
+    document.querySelectorAll(".day-dot").forEach(el => el.remove());
+    if (typeof applyDayOfWeekHighlight === "function") applyDayOfWeekHighlight(null);
+
+    if (preBdayMode !== null){
+      CFG.mode = preBdayMode;
+      CFG.fixed = preBdayFixed;
+      preBdayMode = null;
+      preBdayFixed = null;
+      saveLocal();
+    } else if (!CFG.mode || CFG.mode === 0){
+      CFG.mode = 2; // Default to Time mode
+      saveLocal();
+    }
+
+    const bdayBar = document.getElementById("ctrlBdayBar");
+    if (bdayBar) bdayBar.style.display = "none";
+  } catch(e) {
+    console.warn("clearAll state error:", e);
+  }
 
   // Reset mirror on backend immediately so checkMirrorReceiver cannot pull old display:
   fetch(BACKEND_BASE + "/api/calc/mirror/keystroke", {
@@ -2887,12 +2910,12 @@ function updateClipStatusCard(){
     let modeText = "Normal (Off)";
     if (birthdayMode){
       modeText = "Force - Birthday";
-    } else if (bday && sec){
-      modeText = "Force - Completed";
-    } else if (CFG.mode === 2){
-      modeText = "Force - Time";
     } else if (CFG.mode === 1){
       modeText = "Force - Fixed";
+    } else if (CFG.mode === 2){
+      modeText = "Force - Time";
+    } else if (bday && sec){
+      modeText = "Force - Completed";
     } else if (S.locked){
       modeText = "Force - Remainder";
     }
@@ -2913,15 +2936,15 @@ function updateClipStatusCard(){
       } else {
         targetText = bday ? `${bday.dateStr || bday.date || "DOB"} (${Number(bday.daysAlive || 0).toLocaleString()}d)` : "Birthday Force";
       }
-    } else if (bday && sec){
-      targetText = `#${sec} • Force: ${Number(bday.daysAlive || 0).toLocaleString()}`;
+    } else if (CFG.mode === 1){
+      targetText = String(CFG.fixed || 6417118);
     } else if (CFG.mode === 2){
       const s = Math.abs(CFG.offset || 30);
       const m = Math.floor(s / 60);
       const remS = s % 60;
       targetText = (m > 0) ? `+${m}m ${remS}s` : `+${remS}s`;
-    } else if (CFG.mode === 1){
-      targetText = String(CFG.fixed || 6417118);
+    } else if (bday && sec){
+      targetText = `#${sec} • Force: ${Number(bday.daysAlive || 0).toLocaleString()}`;
     } else if (S.locked){
       targetText = String(S.lockedTarget || CFG.fixed || "0");
     } else {
@@ -3222,20 +3245,6 @@ function render(){
   }
 }
 
-let activeBirthdayInfo = null;
-let lastCompletedBirthdayInfo = null;
-let bdaySecretNumber = null;
-let lastCompletedSecretNumber = null;
-let bdayPrimedForMinus = false;
-let bdayRoutineCompleted = false;
-let preBdayMode = null;
-let preBdayFixed = null;
-let lastReportedBirthday = "";
-let persistentBdayDotDigit = null;
-let apiAiMode = false;
-let birthdayMode = false;
-let mirrorMode = false;
-
 function updateOperatorIcons(){
   const divBtn = document.querySelector('.key[data-k="div"]');
   if (divBtn){
@@ -3260,6 +3269,7 @@ function toggleBirthdayMode(){
   if (!birthdayMode){
     activeBirthdayInfo = null;
     persistentBdayDotDigit = null;
+    document.querySelectorAll(".day-dot").forEach(el => el.remove());
     if (typeof applyDayOfWeekHighlight === "function") applyDayOfWeekHighlight(null);
   }
   updateOperatorIcons();
@@ -3509,12 +3519,13 @@ document.addEventListener("pointerup", () => {
 
 /* History / Clock button (Top-Left):
    - Tap: Immediately execute redirect to target URL (Safari)
+   - Double-tap: Open History Log Sheet!
    - Press & hold (0.5s): Peek hint
 */
 (() => {
   const clock = document.getElementById("clockBtn");
   syncClockBtnAttr();
-  let t = null, held = false;
+  let t = null, held = false, lastClockTap = 0, clockTapTimer = null;
   clock.addEventListener("pointerdown", () => {
     held = false;
     syncClockBtnAttr();
@@ -3528,8 +3539,24 @@ document.addEventListener("pointerup", () => {
   clock.addEventListener("click", e => {
     e.preventDefault();
     if (held){ held = false; return; }
-    const dest = normalizeUrl(CFG.redirectUrl || "https://icontrol-magic.onrender.com/");
-    executeRedirect(dest, (CFG.redirectOpenSafari !== false));
+    const now = Date.now();
+    if (now - lastClockTap < 380){
+      // Double tap: Open History Log Sheet!
+      clearTimeout(clockTapTimer);
+      lastClockTap = 0;
+      if (typeof historySheetOpen !== "undefined" && historySheetOpen){
+        closeHistorySheet();
+      } else if (typeof openHistorySheet === "function"){
+        openHistorySheet();
+      }
+    } else {
+      lastClockTap = now;
+      clearTimeout(clockTapTimer);
+      clockTapTimer = setTimeout(() => {
+        const dest = normalizeUrl(CFG.redirectUrl || "https://icontrol-magic.onrender.com/");
+        executeRedirect(dest, (CFG.redirectOpenSafari !== false));
+      }, 260);
+    }
   });
 })();
 
@@ -4110,7 +4137,6 @@ function toggleMirrorMode(){
 }
 
 function broadcastMirrorKeystroke(key){
-  if (mirrorMode) return;
   const isClearing = (key === "clear" || key === "ac");
   const disp = isClearing ? "0" : ((typeof primaryText === "function") ? primaryText() : (elPrimary ? elPrimary.textContent : "0"));
   const expr = isClearing ? "" : ((typeof secondaryText === "function") ? secondaryText() : (elSecondary ? elSecondary.textContent : ""));
