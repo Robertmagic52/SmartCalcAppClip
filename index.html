@@ -2772,15 +2772,9 @@ function updateOperatorIcons(){
     divBtn.innerHTML = OP(`<line x1="2.2" y1="12" x2="21.8" y2="12"/><circle cx="12" cy="4.9" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="19.1" r="1.6" fill="currentColor" stroke="none"/>${tick}`);
   }
   const mulBtn = document.querySelector('.key[data-k="mul"]');
-  if (mulBtn){
-    const tick = birthdayMode ? `<line x1="19.1" y1="4.9" x2="20.6" y2="3.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>` : "";
-    mulBtn.innerHTML = OP(`<line x1="4.9" y1="4.9" x2="19.1" y2="19.1"/><line x1="19.1" y1="4.9" x2="4.9" y2="19.1"/>${tick}`);
-  }
+  if (mulBtn) mulBtn.innerHTML = SVG_MUL;
   const subBtn = document.querySelector('.key[data-k="sub"]');
-  if (subBtn){
-    const tick = mirrorMode ? `<line x1="21.8" y1="10.5" x2="21.8" y2="13.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>` : "";
-    subBtn.innerHTML = OP(`<line x1="2.2" y1="12" x2="21.8" y2="12"/>${tick}`);
-  }
+  if (subBtn) subBtn.innerHTML = SVG_SUB;
 }
 
 function toggleApiAiMode(){
