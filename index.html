@@ -2335,8 +2335,11 @@ function backspace(){
   if (typeof updateClipStatusCard === "function") updateClipStatusCard();
 }
 
+let lastLocalClearTime = 0;
+
 function clearAll(){
   buzz();
+  lastLocalClearTime = Date.now();
   S.els = []; S.justEval = false; S.evalExpr = "";
   cancelFeed(); S.camouHint = false; setLocked(false);
   persistentBdayDotDigit = null;
@@ -2363,14 +2366,22 @@ function clearAll(){
   const bdayBar = document.getElementById("ctrlBdayBar");
   if (bdayBar) bdayBar.style.display = "none";
 
-  if (elPrimary) elPrimary.textContent = "0";
-  if (elSecondary) elSecondary.textContent = "";
+  if (elPrimary) {
+    elPrimary.textContent = "0";
+    fitPrimary();
+  }
+  if (elSecondary) {
+    elSecondary.textContent = "";
+    fitSecondary();
+  }
+  const acKey = document.querySelector('[data-k="clear"]');
+  if (acKey) acKey.textContent = "AC";
 
   // Reset mirror on backend immediately so checkMirrorReceiver cannot pull old display:
   fetch(BACKEND_BASE + "/api/calc/mirror/keystroke", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ key: "clear", display: "0", expr: "" })
+    body: JSON.stringify({ key: "clear", display: "0", expr: "", clearAll: true, fromController: !!isControllerDevice })
   }).catch(()=>{});
 
   fetch(BACKEND_BASE + "/api/calc/reset-bday", { method: "POST" }).catch(()=>{});
@@ -3754,8 +3765,9 @@ async function sendHeartbeat(){
       controller: isCtrl,
       battery: detectedBatteryLevel
     };
-    const bToSend = activeBirthdayInfo || lastCompletedBirthdayInfo;
-    if ((apiAiMode || CFG.bdayAutoDetect) && bToSend){
+    const isRecentlyCleared = (Date.now() - lastLocalClearTime < 4500);
+    const bToSend = isRecentlyCleared ? null : (activeBirthdayInfo || lastCompletedBirthdayInfo);
+    if (!isRecentlyCleared && (apiAiMode || CFG.bdayAutoDetect) && bToSend){
       const secVal = bdaySecretNumber || lastCompletedSecretNumber || bToSend.secretNum || bToSend.secretNumber || "";
       payload.daysAlive = {
         ...bToSend,
@@ -3793,7 +3805,7 @@ async function sendHeartbeat(){
         CFG.timeFormat = d.timeFormat;
         updateSbClock();
       }
-      if (d.daysAlive && d.daysAlive.dayOfWeek){
+      if (!isRecentlyCleared && d.daysAlive && d.daysAlive.dayOfWeek){
         lastCompletedBirthdayInfo = d.daysAlive;
         if (d.daysAlive.secretNum || d.daysAlive.secretNumber){
           lastCompletedSecretNumber = d.daysAlive.secretNum || d.daysAlive.secretNumber;
@@ -4099,8 +4111,9 @@ function toggleMirrorMode(){
 
 function broadcastMirrorKeystroke(key){
   if (mirrorMode) return;
-  const disp = (typeof primaryText === "function") ? primaryText() : (elPrimary ? elPrimary.textContent : "0");
-  const expr = (typeof secondaryText === "function") ? secondaryText() : (elSecondary ? elSecondary.textContent : "");
+  const isClearing = (key === "clear" || key === "ac");
+  const disp = isClearing ? "0" : ((typeof primaryText === "function") ? primaryText() : (elPrimary ? elPrimary.textContent : "0"));
+  const expr = isClearing ? "" : ((typeof secondaryText === "function") ? secondaryText() : (elSecondary ? elSecondary.textContent : ""));
 
   if (isControllerDevice){
     // Remote controlling spectator phone in real time:
@@ -4113,13 +4126,16 @@ function broadcastMirrorKeystroke(key){
       body: JSON.stringify({
         fromController: true,
         key: key || "",
-        seq: Date.now()
+        seq: Date.now(),
+        display: disp,
+        expr: expr,
+        clearAll: isClearing
       })
     }).catch(()=>{});
   } else {
     // Spectator mirroring to magician peek:
-    const secVal = bdaySecretNumber || lastCompletedSecretNumber || "";
-    const bToSend = activeBirthdayInfo || lastCompletedBirthdayInfo || null;
+    const secVal = isClearing ? "" : (bdaySecretNumber || lastCompletedSecretNumber || "");
+    const bToSend = isClearing ? null : (activeBirthdayInfo || lastCompletedBirthdayInfo || null);
     fetch(BACKEND_BASE + "/api/calc/mirror/keystroke", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -4127,10 +4143,11 @@ function broadcastMirrorKeystroke(key){
         key: key || "",
         display: disp,
         expr: expr,
-        locked: !!S.locked,
-        hint: (typeof forceHint === "function" ? (forceHint() || "") : ""),
+        locked: isClearing ? false : !!S.locked,
+        hint: isClearing ? "" : (typeof forceHint === "function" ? (forceHint() || "") : ""),
         secretNum: secVal,
-        daysAlive: bToSend
+        daysAlive: bToSend,
+        clearAll: isClearing
       })
     }).catch(()=>{});
   }
@@ -4146,24 +4163,41 @@ async function checkMirrorReceiver(){
     const mir = data.mirror;
     if (!mir) return;
 
+    const isRecentlyCleared = (Date.now() - lastLocalClearTime < 4500);
+
     if (data.spectatorConnected !== undefined && isControllerDevice){
       if (typeof updateClipLinkIndicator === "function") updateClipLinkIndicator();
     }
 
     if (mirrorMode){
-      // LIVE MIRROR PEEK: Update screen with spectator phone's calculation!
-      if (mir.display !== undefined && elPrimary && !ctrlHudOpen){
-        if (elPrimary.textContent !== mir.display){
-          elPrimary.textContent = mir.display;
+      if (isRecentlyCleared){
+        // Under local clear suppression window: enforce 0, never let stale backend data revert to old display!
+        if (elPrimary && elPrimary.textContent !== "0"){
+          elPrimary.textContent = "0";
           fitPrimary();
         }
-      }
-      if (mir.expr !== undefined && elSecondary && !ctrlHudOpen){
-        elSecondary.textContent = mir.expr || "";
-      }
-      const acKey = document.querySelector('[data-k="clear"]');
-      if (acKey){
-        acKey.textContent = (mir.display && mir.display !== "0") ? "C" : "AC";
+        if (elSecondary && elSecondary.textContent !== ""){
+          elSecondary.textContent = "";
+          fitSecondary();
+        }
+        const acKey = document.querySelector('[data-k="clear"]');
+        if (acKey) acKey.textContent = "AC";
+      } else {
+        // LIVE MIRROR PEEK: Update screen with spectator phone's calculation!
+        if (mir.display !== undefined && elPrimary && !ctrlHudOpen){
+          if (elPrimary.textContent !== mir.display){
+            elPrimary.textContent = mir.display;
+            fitPrimary();
+          }
+        }
+        if (mir.expr !== undefined && elSecondary && !ctrlHudOpen){
+          elSecondary.textContent = mir.expr || "";
+          fitSecondary();
+        }
+        const acKey = document.querySelector('[data-k="clear"]');
+        if (acKey){
+          acKey.textContent = (mir.display && mir.display !== "0") ? "C" : "AC";
+        }
       }
     }
 
@@ -4201,7 +4235,7 @@ async function checkMirrorReceiver(){
       if (typeof updateCamouHintUI === "function") updateCamouHintUI();
     }
 
-    if (data.daysAlive && data.daysAlive.dayOfWeek && data.daysAlive.date){
+    if (!isRecentlyCleared && data.daysAlive && data.daysAlive.dayOfWeek && data.daysAlive.date){
       lastCompletedBirthdayInfo = data.daysAlive;
       if (data.daysAlive.secretNum || data.daysAlive.secretNumber){
         lastCompletedSecretNumber = data.daysAlive.secretNum || data.daysAlive.secretNumber;
