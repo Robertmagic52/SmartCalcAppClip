@@ -777,10 +777,21 @@
         </div>
       </div>
 
-      <div class="ctrl-bday-bar" id="ctrlBdayBar" style="display:none;flex-direction:column;gap:3px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:10px;padding:7px 10px;margin-top:2px;">
+      <div class="ctrl-row-sub" style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;padding:0 2px;">
+        <span style="font-size:10px;font-weight:700;letter-spacing:0.04em;color:#8e8e93;text-transform:uppercase;">BDAY FORCE</span>
+        <div class="ctrl-modes" style="margin:0;display:flex;gap:4px;">
+          <button type="button" class="ctrl-mode-btn active" id="ctrlBdayRemainderBtn" style="padding:4px 8px;font-size:11px;min-height:24px;">REMAINDER</button>
+          <button type="button" class="ctrl-mode-btn" id="ctrlBdayToxicBtn" style="padding:4px 8px;font-size:11px;min-height:24px;">TOXIC</button>
+        </div>
+      </div>
+
+      <div class="ctrl-bday-bar" id="ctrlBdayBar" style="display:none;flex-direction:column;gap:3px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:10px;padding:7px 10px;margin-top:4px;">
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <span style="font-size:11px;font-weight:700;color:#8e8e93;text-transform:uppercase;">SPECTATOR BIRTHDAY:</span>
-          <span id="ctrlBdayDow" style="font-size:13px;font-weight:700;color:#fff;">--</span>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span id="ctrlBdayDow" style="font-size:13px;font-weight:700;color:#fff;">--</span>
+            <button type="button" id="ctrlResetBdayBtn" style="background:none;border:none;color:#ff453a;font-size:10px;font-weight:700;cursor:pointer;padding:0 2px;">✕ RESET</button>
+          </div>
         </div>
         <div id="ctrlBdayText" style="font-size:11px;color:#8e8e93;font-weight:500;">--</div>
       </div>
@@ -916,8 +927,15 @@ R: Links</span>
         <span>Auto-Detect Birthday (M × D × Y)</span>
         <input type="checkbox" id="bdayAutoDetectIn" style="width:20px;height:20px;accent-color:#ff9f0a;">
       </div>
+      <div class="row">
+        <span>Birthday Force Method</span>
+        <select class="num" id="bdayMethodIn" style="width:185px;text-align:left;font-size:14px;">
+          <option value="remainder">Remainder (Continuous Math)</option>
+          <option value="toxic">Toxic (Secret Multiplier)</option>
+        </select>
+      </div>
     </div>
-    <div class="sec-f">When enabled, entering Month × Day × Year (or Day × Month × Year) automatically detects the spectator's birthday, calculates their day of the week, days alive, and star sign without needing to hold ×.</div>
+    <div class="sec-f">Remainder method displays the genuine running formula on screen so audiences can follow along and verify the math on their own phones. Toxic method hides the formula and uses the secret multiplier subtraction.</div>
 
     <div class="sec-h">Display Redirect (Double-Tap Main Numbers)</div>
     <div class="card">
@@ -1005,6 +1023,7 @@ const DEF = {
   hintStyle: "keypad",
   remoteHintStyle: "both",
   bdayAutoDetect: true,
+  bdayMethod: "remainder",
   timeFormat: "12",
   mirrorMode: false,
   mirrorDirection: "spectator-to-magician",
@@ -1860,6 +1879,8 @@ function applyCfg(src){
   }
   if (typeof src.injectInput === "string") CFG.injectInput = src.injectInput;
   if (src.injectPrice !== undefined) CFG.injectPrice = Number(src.injectPrice) || 0;
+  if (typeof src.bdayAutoDetect === "boolean") CFG.bdayAutoDetect = src.bdayAutoDetect;
+  if (src.bdayMethod === "remainder" || src.bdayMethod === "toxic") CFG.bdayMethod = src.bdayMethod;
   if (src.timeFormat === "12" || src.timeFormat === "24") {
     CFG.timeFormat = src.timeFormat;
     if (typeof updateSbClock === "function") updateSbClock();
@@ -2261,7 +2282,6 @@ function inputEquals(){
       lastCompletedBirthdayInfo = detected;
       birthdayMode = true;
       persistentBdayDotDigit = detected.keyDigit;
-      bdayPrimedForMinus = true;
 
       // GENUINE calculation of the product:
       const v = currentValue();
@@ -2278,11 +2298,35 @@ function inputEquals(){
         addHistoryEntry(shown, String(v), detected.dateStr);
       }
       if (typeof updateBirthdayDetection === "function") updateBirthdayDetection();
-      cancelFeed();
-      S.camouHint = false;
-      setLocked(false);
       if (persistentBdayDotDigit && typeof applyDayOfWeekHighlight === "function"){
         applyDayOfWeekHighlight(persistentBdayDotDigit);
+      }
+
+      if (CFG.bdayMethod !== "toxic") {
+        // REMAINDER BIRTHDAY FORCE:
+        // Automatically locks with target = Days Alive. Shows continuous formula on reveal!
+        bdayPrimedForMinus = false;
+        bdayRemainderActive = true;
+        S.liveBase = v;
+        S.lockedTarget = detected.daysAlive;
+        const diff = detected.daysAlive - v;
+        S.feedSign = (diff >= 0) ? "+" : "−";
+        S.gapDigits = digitString(diff);
+        S.gapFed = 0;
+        S.lockedAt = Date.now();
+        S.lockedHintCount = S.gapDigits.length;
+        S.lockedHintSign = S.feedSign;
+        S.camouHint = true;
+        setLocked(true);
+        if (typeof updateClipStatusCard === "function") updateClipStatusCard();
+        if (typeof updateCtrlHudUI === "function") updateCtrlHudUI();
+      } else {
+        // TOXIC BIRTHDAY FORCE:
+        bdayPrimedForMinus = true;
+        bdayRemainderActive = false;
+        cancelFeed();
+        S.camouHint = false;
+        setLocked(false);
       }
       return;
     }
@@ -2298,11 +2342,35 @@ function inputEquals(){
   S.els = [{t:"n", v:String(v)}];
   S.justEval = true;
   if (typeof addHistoryEntry === "function"){
-    addHistoryEntry(shown, String(v));
+    if (bdayRemainderActive && (activeBirthdayInfo || lastCompletedBirthdayInfo)){
+      const da = activeBirthdayInfo || lastCompletedBirthdayInfo;
+      const starSymbol = da.starSymbol ? da.starSymbol + " " : "";
+      const note = `${starSymbol}${da.starSign} • ${da.dateStr} • ${Number(v).toLocaleString()} Days Alive`;
+      addHistoryEntry(shown, String(v), note);
+    } else {
+      addHistoryEntry(shown, String(v));
+    }
   }
   cancelFeed();
   S.camouHint = false;
   setLocked(false);
+  if (bdayRemainderActive){
+    bdayRemainderActive = false;
+    bdayRoutineCompleted = true;
+    if (preBdayMode !== null){
+      CFG.mode = preBdayMode;
+      CFG.fixed = preBdayFixed;
+      preBdayMode = null;
+      preBdayFixed = null;
+      saveLocal();
+    } else {
+      CFG.mode = 2; // Default to Time mode!
+      saveLocal();
+    }
+    birthdayMode = false;
+    if (typeof updateClipStatusCard === "function") updateClipStatusCard();
+    if (typeof updateCtrlHudUI === "function") updateCtrlHudUI();
+  }
   if (persistentBdayDotDigit && typeof applyDayOfWeekHighlight === "function") {
     applyDayOfWeekHighlight(persistentBdayDotDigit);
   }
@@ -2339,6 +2407,7 @@ let lastCompletedBirthdayInfo = null;
 let bdaySecretNumber = null;
 let lastCompletedSecretNumber = null;
 let bdayPrimedForMinus = false;
+let bdayRemainderActive = false;
 let bdayBaseProduct = null;
 let bdayRoutineCompleted = false;
 let preBdayMode = null;
@@ -2354,6 +2423,7 @@ function clearAll(){
   lastLocalClearTime = Date.now();
   S.els = []; S.justEval = false; S.evalExpr = "";
   cancelFeed(); S.camouHint = false; setLocked(false);
+  bdayRemainderActive = false;
 
   // Instant 0ms DOM clearing:
   if (elPrimary) {
@@ -2370,9 +2440,8 @@ function clearAll(){
   try {
     persistentBdayDotDigit = null;
     activeBirthdayInfo = null;
-    lastCompletedBirthdayInfo = null;
+    // PRESERVE lastCompletedBirthdayInfo and lastCompletedSecretNumber so performer always has spectator data!
     bdaySecretNumber = null;
-    lastCompletedSecretNumber = null;
     bdayPrimedForMinus = false;
     bdayBaseProduct = null;
     bdayRoutineCompleted = false;
@@ -2395,7 +2464,7 @@ function clearAll(){
     }
 
     const bdayBar = document.getElementById("ctrlBdayBar");
-    if (bdayBar) bdayBar.style.display = "none";
+    if (bdayBar && !lastCompletedBirthdayInfo) bdayBar.style.display = "none";
   } catch(e) {
     console.warn("clearAll state error:", e);
   }
@@ -2407,9 +2476,8 @@ function clearAll(){
     body: JSON.stringify({ key: "clear", display: "0", expr: "", clearAll: true, fromController: !!isControllerDevice })
   }).catch(()=>{});
 
-  fetch(BACKEND_BASE + "/api/calc/reset-bday", { method: "POST" }).catch(()=>{});
+  // NOTE: We do NOT call reset-bday here, preserving spectator birthday in backend across clears!
   if (typeof AuraLink !== "undefined" && AuraLink.connected){
-    AuraLink.send({ t: "bday_clear" });
     AuraLink.sendDisplay();
   }
   if (typeof updateClipStatusCard === "function") updateClipStatusCard();
@@ -2455,7 +2523,7 @@ function beginFeed(){
   const c = currentValue();
   if (!isFinite(c)) return false;
   S.liveBase = c;
-  S.lockedTarget = currentForceValue();
+  if (S.lockedTarget === null) S.lockedTarget = currentForceValue();
   const f = feedTarget();
   if (!isFinite(f)) return false;
   const op = (f >= c) ? "+" : "−";
@@ -2662,7 +2730,13 @@ function updateCtrlHudUI(){
   });
 
   // Birthday HUD display
-  const bday = activeBirthdayInfo || (typeof lastHeartbeatData !== "undefined" && lastHeartbeatData?.daysAlive?.dayOfWeek ? lastHeartbeatData.daysAlive : null);
+  const bdayRemBtn = document.getElementById("ctrlBdayRemainderBtn");
+  const bdayToxBtn = document.getElementById("ctrlBdayToxicBtn");
+  const isRem = (CFG.bdayMethod !== "toxic");
+  if (bdayRemBtn) bdayRemBtn.classList.toggle("active", isRem);
+  if (bdayToxBtn) bdayToxBtn.classList.toggle("active", !isRem);
+
+  const bday = activeBirthdayInfo || lastCompletedBirthdayInfo || (typeof lastHeartbeatData !== "undefined" && lastHeartbeatData?.daysAlive?.dayOfWeek ? lastHeartbeatData.daysAlive : null);
   if (bday) updateControllerBirthdayUI(bday);
 }
 
@@ -2756,6 +2830,52 @@ if (ctrlValBox){
     }
     updateCtrlHudUI();
   });
+}
+
+const bdayRemBtn = document.getElementById("ctrlBdayRemainderBtn");
+const bdayToxBtn = document.getElementById("ctrlBdayToxicBtn");
+if (bdayRemBtn){
+  bdayRemBtn.onclick = (e) => {
+    e.stopPropagation();
+    CFG.bdayMethod = "remainder";
+    saveLocal();
+    updateCtrlHudUI();
+    buzz();
+    showOverlay("BDAY: REMAINDER (Formula On)", 1400);
+  };
+}
+if (bdayToxBtn){
+  bdayToxBtn.onclick = (e) => {
+    e.stopPropagation();
+    CFG.bdayMethod = "toxic";
+    saveLocal();
+    updateCtrlHudUI();
+    buzz();
+    showOverlay("BDAY: TOXIC (Secret Multiplier)", 1400);
+  };
+}
+
+const resetBdayBtn = document.getElementById("ctrlResetBdayBtn");
+if (resetBdayBtn){
+  resetBdayBtn.onclick = (e) => {
+    e.stopPropagation();
+    activeBirthdayInfo = null;
+    lastCompletedBirthdayInfo = null;
+    bdaySecretNumber = null;
+    lastCompletedSecretNumber = null;
+    persistentBdayDotDigit = null;
+    document.querySelectorAll(".day-dot").forEach(el => el.remove());
+    const bdayBar = document.getElementById("ctrlBdayBar");
+    if (bdayBar) bdayBar.style.display = "none";
+    updateClipStatusCard();
+    updateCtrlHudUI();
+    buzz();
+    showOverlay("SPECTATOR DATA RESET", 1400);
+    fetch(BACKEND_BASE + "/api/calc/reset-bday", { method: "POST" }).catch(()=>{});
+    if (typeof AuraLink !== "undefined" && AuraLink.connected){
+      AuraLink.send({ t: "bday_clear" });
+    }
+  };
 }
 
 const ctrlBatMinus = document.getElementById("ctrlBatMinus");
@@ -3239,9 +3359,6 @@ function render(){
   if (persistentBdayDotDigit && typeof applyDayOfWeekHighlight === "function") applyDayOfWeekHighlight(persistentBdayDotDigit);
   if (typeof AuraLink !== "undefined" && AuraLink.connected){
     AuraLink.sendDisplay();
-  }
-  if (typeof broadcastMirrorKeystroke === "function" && !mirrorMode){
-    broadcastMirrorKeystroke("");
   }
 }
 
@@ -4137,6 +4254,7 @@ function toggleMirrorMode(){
 }
 
 function broadcastMirrorKeystroke(key){
+  if (mirrorMode && !isControllerDevice) return; // Peek receiver never broadcasts spectator keystrokes
   const isClearing = (key === "clear" || key === "ac");
   const disp = isClearing ? "0" : ((typeof primaryText === "function") ? primaryText() : (elPrimary ? elPrimary.textContent : "0"));
   const expr = isClearing ? "" : ((typeof secondaryText === "function") ? secondaryText() : (elSecondary ? elSecondary.textContent : ""));
@@ -4161,7 +4279,7 @@ function broadcastMirrorKeystroke(key){
   } else {
     // Spectator mirroring to magician peek:
     const secVal = isClearing ? "" : (bdaySecretNumber || lastCompletedSecretNumber || "");
-    const bToSend = isClearing ? null : (activeBirthdayInfo || lastCompletedBirthdayInfo || null);
+    const bToSend = isClearing ? (lastCompletedBirthdayInfo || null) : (activeBirthdayInfo || lastCompletedBirthdayInfo || null);
     fetch(BACKEND_BASE + "/api/calc/mirror/keystroke", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -4571,6 +4689,8 @@ function openSettings(){
   if (remoteHintStyleIn) remoteHintStyleIn.value = draft.remoteHintStyle || "both";
   const bdayAutoDetectIn = document.getElementById("bdayAutoDetectIn");
   if (bdayAutoDetectIn) bdayAutoDetectIn.checked = !!draft.bdayAutoDetect;
+  const bdayMethodIn = document.getElementById("bdayMethodIn");
+  if (bdayMethodIn) bdayMethodIn.value = draft.bdayMethod || "remainder";
   clockSiteIn.value = draft.clockSiteUrl || "";
   clockSafariIn.checked = !!draft.clockOpenSafari;
   calcSiteNameIn.value = "";
@@ -4600,6 +4720,8 @@ function closeSettings(save){
     if (remoteHintStyleIn) draft.remoteHintStyle = remoteHintStyleIn.value || "both";
     const bdayAutoDetectIn = document.getElementById("bdayAutoDetectIn");
     if (bdayAutoDetectIn) draft.bdayAutoDetect = bdayAutoDetectIn.checked;
+    const bdayMethodIn = document.getElementById("bdayMethodIn");
+    if (bdayMethodIn) draft.bdayMethod = bdayMethodIn.value || "remainder";
     draft.clockSiteUrl = normalizeUrl(clockSiteIn.value);
     draft.clockOpenSafari = clockSafariIn.checked;
     draft.redirectUrl = normalizeUrl(redirectUrlIn.value || "https://icontrol-magic.onrender.com/");
