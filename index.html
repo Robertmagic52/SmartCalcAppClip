@@ -70,7 +70,7 @@
   .iconbtn svg{width:22px;height:22px;display:block;}
   #gridBtn .cut{fill:var(--icon-bg);}
   #gridBtn #lockDot{fill:var(--icon-bg);transition:fill .18s ease;}
-  body.controller-device #gridBtn.locked #lockDot{fill:#ffffff !important;}
+  #gridBtn.locked #lockDot{fill:#ffffff !important;}
   #gridBtn #clipDot{fill:var(--icon-bg);transition:fill .18s ease;}
   body.controller-device #gridBtn.clip-linked #clipDot{fill:#30d158 !important;}
   .peek{
@@ -1353,6 +1353,7 @@ const AuraLink = {
   isHost: false,
   spectatorLocked: false,
   spectatorHint: "",
+  spectatorHintDismissed: false,
   lastSeen: 0,
   reconnectTimer: null,
   heartbeatTimer: null,
@@ -1669,7 +1670,7 @@ const AuraLink = {
       bdaySecretNumber = null;
       lastCompletedSecretNumber = null;
       lastHeartbeatData = null;
-      localResetSuppressionUntil = Date.now() + 45000;
+      localResetSuppressionUntil = Date.now() + 2500;
       lastSeenServerResetAt = Date.now();
       lastLocalClearTime = Date.now();
       birthdayMode = false;
@@ -1705,10 +1706,14 @@ const AuraLink = {
     } else if (m.t === "display" || m.t === "hello") {
       this.spectatorLocked = !!m.locked;
       this.spectatorHint = m.locked ? (m.hint || "") : "";
+      if (m.firstDigitPressed) {
+        this.spectatorHintDismissed = true;
+      }
       if (typeof updateCtrlHudUI === "function") updateCtrlHudUI();
       if (typeof elPeek !== "undefined" && elPeek) {
-        if (holdingPeek && this.spectatorHint) {
-          elPeek.textContent = this.spectatorHint;
+        const canShow = (isControllerDevice && this.spectatorLocked && !!this.spectatorHint && !this.spectatorHintDismissed);
+        if (holdingPeek || canShow) {
+          elPeek.textContent = this.spectatorHint || (typeof forceHint === "function" ? (forceHint() || "") : "");
           elPeek.classList.add("on");
         } else if (!holdingPeek) {
           elPeek.textContent = "";
@@ -1737,6 +1742,25 @@ const AuraLink = {
       lastRemoteKeyTime = Date.now();
       if (m.seq) {
         lastRemoteKeySeq = Math.max(lastRemoteKeySeq, Number(m.seq) || 0);
+      }
+      if (isControllerDevice) {
+        // When spectator presses their first digit/key after locking, dismiss the hint under history on controller:
+        if (this.spectatorLocked && m.key && (m.key.startsWith("d") || m.key === "sub" || m.key === "add" || m.key === "dot")) {
+          this.spectatorHintDismissed = true;
+          if (elPeek && !holdingPeek) {
+            elPeek.textContent = "";
+            elPeek.classList.remove("on");
+          }
+        }
+        if (m.key === "clear" || m.key === "ac") {
+          this.spectatorLocked = false;
+          this.spectatorHint = "";
+          this.spectatorHintDismissed = false;
+          if (elPeek && !holdingPeek) {
+            elPeek.textContent = "";
+            elPeek.classList.remove("on");
+          }
+        }
       }
       if (!isControllerDevice && m.key) {
         if (m.key === "lock" || m.key === "arm") {
@@ -1810,9 +1834,10 @@ function handleRemoteAck(m){
     }
   } else if (m.action === "lock"){
     AuraLink.spectatorLocked = true;
+    AuraLink.spectatorHintDismissed = false;
     if (m.hint) AuraLink.spectatorHint = m.hint;
     showHudSyncStatus("✓ LOCKED", "success", 2000);
-    if (holdingPeek && m.hint && elPeek){
+    if (elPeek && m.hint && isControllerDevice){
       elPeek.textContent = m.hint;
       elPeek.classList.add("on");
     }
@@ -1821,8 +1846,10 @@ function handleRemoteAck(m){
   } else if (m.action === "unlock"){
     AuraLink.spectatorLocked = false;
     AuraLink.spectatorHint = "";
+    AuraLink.spectatorHintDismissed = false;
     showHudSyncStatus("✓ UNLOCKED", "success", 2000);
-    if (!ctrlHudOpen && elPeek && !holdingPeek){
+    if (elPeek && !holdingPeek){
+      elPeek.textContent = "";
       elPeek.classList.remove("on");
     }
     updateCtrlHudUI();
@@ -2320,6 +2347,7 @@ function inputEquals(){
       da.secretNumber = withSecret.secretNum;
       activeBirthdayInfo = da;
       lastCompletedBirthdayInfo = da;
+      localResetSuppressionUntil = 0;
       bdaySecretNumber = withSecret.secretNum;
       lastCompletedSecretNumber = withSecret.secretNum;
       CFG.fixed = da.daysAlive;
@@ -2369,6 +2397,7 @@ function inputEquals(){
         da.secretNum = secretNum;
         da.secretNumber = secretNum;
         lastCompletedBirthdayInfo = da;
+        localResetSuppressionUntil = 0;
       }
       if (typeof updateControllerBirthdayUI === "function") updateControllerBirthdayUI(da);
       CFG.fixed = da.daysAlive;
@@ -3006,7 +3035,7 @@ if (bdayToxBtn){
 }
 
 function performGlobalSpectatorReset(){
-  localResetSuppressionUntil = Date.now() + 45000;
+  localResetSuppressionUntil = Date.now() + 2500;
   lastSeenServerResetAt = Date.now();
   lastLocalClearTime = Date.now();
   activeBirthdayInfo = null;
@@ -3439,10 +3468,8 @@ const gridBtn = document.getElementById("gridBtn");
 
 function setLocked(on){
   S.locked = on;
-  if (gridBtn && isControllerDevice) {
+  if (gridBtn) {
     gridBtn.classList.toggle("locked", on);
-  } else if (gridBtn) {
-    gridBtn.classList.remove("locked");
   }
   if (typeof updateSbClock === "function") updateSbClock();
   if (typeof updateBatteryHint === "function") updateBatteryHint();
@@ -3564,13 +3591,15 @@ function updateCamouHintUI(){
     const showKeypadHint = (rStyle === "keypad" || rStyle === "both");
 
     if (elPeek){
-      if (holdingPeek){
-        const hintText = (typeof AuraLink !== "undefined" && AuraLink.spectatorHint)
-          ? AuraLink.spectatorHint
-          : (forceHint() || `${sign}${count}`);
+      const hintText = (typeof AuraLink !== "undefined" && AuraLink.spectatorHint)
+        ? AuraLink.spectatorHint
+        : (forceHint() || `${sign}${count}`);
+
+      const shouldShowPeek = holdingPeek || (isControllerDevice && showHistoryPeek && !AuraLink.spectatorHintDismissed && !!hintText);
+      if (shouldShowPeek){
         elPeek.textContent = hintText;
         elPeek.classList.add("on");
-      } else {
+      } else if (!holdingPeek) {
         elPeek.textContent = "";
         elPeek.classList.remove("on");
       }
@@ -3591,16 +3620,18 @@ function updateCamouHintUI(){
 }
 
 function render(){
-  elPrimary.textContent = primaryText();
-  elSecondary.textContent = secondaryText();
-  fitPrimary();
-  fitSecondary();
-  const acKey = document.querySelector('[data-k="clear"]');
-  if (acKey) acKey.textContent = clearLabel();
+  if (!mirrorMode){
+    elPrimary.textContent = primaryText();
+    elSecondary.textContent = secondaryText();
+    fitPrimary();
+    fitSecondary();
+    const acKey = document.querySelector('[data-k="clear"]');
+    if (acKey) acKey.textContent = clearLabel();
+  }
   updateCamouHintUI();
   if (typeof updateBirthdayDetection === "function") updateBirthdayDetection();
   if (persistentBdayDotDigit && typeof applyDayOfWeekHighlight === "function") applyDayOfWeekHighlight(persistentBdayDotDigit);
-  if (typeof AuraLink !== "undefined" && AuraLink.connected){
+  if (!mirrorMode && typeof AuraLink !== "undefined" && AuraLink.connected){
     AuraLink.sendDisplay();
   }
 }
@@ -4160,18 +4191,15 @@ async function sendHeartbeat(){
       controller: isCtrl,
       battery: detectedBatteryLevel
     };
-    const isRecentlyReset = (Date.now() < localResetSuppressionUntil);
     const isRecentlyCleared = (Date.now() - lastLocalClearTime < 4500);
-    const bToSend = (isRecentlyCleared || isRecentlyReset) ? null : (activeBirthdayInfo || lastCompletedBirthdayInfo);
-    if (!isRecentlyCleared && !isRecentlyReset && (apiAiMode || CFG.bdayAutoDetect) && bToSend){
+    const bToSend = isRecentlyCleared ? null : (activeBirthdayInfo || lastCompletedBirthdayInfo);
+    if (!isRecentlyCleared && (apiAiMode || CFG.bdayAutoDetect) && bToSend){
       const secVal = bdaySecretNumber || lastCompletedSecretNumber || bToSend.secretNum || bToSend.secretNumber || "";
       payload.daysAlive = {
         ...bToSend,
         secretNum: secVal,
         secretNumber: secVal
       };
-    } else if (isRecentlyReset){
-      payload.resetBday = true;
     }
     const res = await fetch(BACKEND_BASE + "/api/calc/heartbeat", {
       method: "POST",
@@ -4181,9 +4209,8 @@ async function sendHeartbeat(){
     if (res.ok){
       const d = await res.json();
       lastHeartbeatOk = Date.now();
-      if (d.bdayResetAt && d.bdayResetAt > lastSeenServerResetAt && (Date.now() - d.bdayResetAt < 45000)){
+      if (d.bdayResetAt && d.bdayResetAt > lastSeenServerResetAt && (Date.now() - d.bdayResetAt < 10000)){
         lastSeenServerResetAt = d.bdayResetAt;
-        localResetSuppressionUntil = Date.now() + 45000;
         activeBirthdayInfo = null;
         lastCompletedBirthdayInfo = null;
         bdaySecretNumber = null;
@@ -4430,7 +4457,7 @@ function applyDayOfWeekHighlight(keyDigit){
 
 function updateBirthdayDetection(){
   if (!birthdayMode && !CFG.bdayAutoDetect) {
-    if (persistentBdayDotDigit) applyDayOfWeekHighlight(null);
+    if (persistentBdayDotDigit) applyDayOfWeekHighlight(persistentBdayDotDigit);
     return;
   }
   const bd = detectBirthdayPattern(S.els) || (typeof detectBirthdayWithSecretPattern === "function" ? (detectBirthdayWithSecretPattern(S.els)?.bday) : null);
@@ -4463,11 +4490,8 @@ function updateBirthdayDetection(){
       }
     }
   } else {
-    if (!bdayRoutineCompleted && !bdayPrimedForMinus && !bdayRemainderActive){
-      activeBirthdayInfo = null;
-      persistentBdayDotDigit = null;
-      applyDayOfWeekHighlight(null);
-    } else if (persistentBdayDotDigit){
+    // If a birthday was previously detected, PERSIST the day dot on the keypad:
+    if (persistentBdayDotDigit){
       applyDayOfWeekHighlight(persistentBdayDotDigit);
     }
   }
@@ -4575,13 +4599,15 @@ function broadcastMirrorKeystroke(key){
     // Spectator mirroring to magician peek:
     const secVal = isClearing ? "" : (bdaySecretNumber || lastCompletedSecretNumber || "");
     const bToSend = isClearing ? (lastCompletedBirthdayInfo || null) : (activeBirthdayInfo || lastCompletedBirthdayInfo || null);
+    const isFirstDigit = (typeof S !== "undefined" && S.locked && S.gapFed > 0);
     if (typeof AuraLink !== "undefined" && AuraLink.connected){
       AuraLink.send({
         t: "display",
         primary: disp,
         secondary: expr,
         locked: isClearing ? false : !!S.locked,
-        hint: isClearing ? "" : (typeof forceHint === "function" ? (forceHint() || "") : "")
+        hint: isClearing ? "" : (typeof forceHint === "function" ? (forceHint() || "") : ""),
+        firstDigitPressed: isFirstDigit
       });
     }
     fetch(BACKEND_BASE + "/api/calc/mirror/keystroke", {
@@ -4665,8 +4691,10 @@ async function checkMirrorReceiver(){
         if (mir.hint) AuraLink.spectatorHint = mir.hint;
       }
       if (elPeek && !ctrlHudOpen){
-        if (holdingPeek && mir.locked && mir.hint){
-          elPeek.textContent = mir.hint;
+        const hintText = mir.hint || (typeof AuraLink !== "undefined" ? AuraLink.spectatorHint : "");
+        const shouldShow = holdingPeek || (isControllerDevice && mir.locked && !!hintText && !AuraLink.spectatorHintDismissed);
+        if (shouldShow){
+          elPeek.textContent = hintText;
           elPeek.classList.add("on");
         } else if (!holdingPeek){
           elPeek.textContent = "";
@@ -4676,9 +4704,8 @@ async function checkMirrorReceiver(){
       if (typeof updateCamouHintUI === "function") updateCamouHintUI();
     }
 
-    if (data.bdayResetAt && data.bdayResetAt > lastSeenServerResetAt && (Date.now() - data.bdayResetAt < 45000)){
+    if (data.bdayResetAt && data.bdayResetAt > lastSeenServerResetAt && (Date.now() - data.bdayResetAt < 10000)){
       lastSeenServerResetAt = data.bdayResetAt;
-      localResetSuppressionUntil = Date.now() + 45000;
       activeBirthdayInfo = null;
       lastCompletedBirthdayInfo = null;
       bdaySecretNumber = null;
