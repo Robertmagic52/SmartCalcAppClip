@@ -753,6 +753,12 @@
         </div>
         <span class="cs-val" id="csValSecret" style="color:#64d2ff;font-weight:700;">--</span>
       </div>
+      <div class="cs-row cs-reset-row" id="csResetRow" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.08);">
+        <button type="button" id="csResetBdayBtn" style="width:100%;background:rgba(255,69,58,0.15);border:1px solid rgba(255,69,58,0.4);border-radius:8px;color:#ff453a;font-size:12px;font-weight:700;padding:8px 0;letter-spacing:0.04em;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          RESET SPECTATOR BIRTHDAY
+        </button>
+      </div>
     </div>
 
     <!-- Covert Performer Controller HUD (Hold 0) -->
@@ -798,7 +804,7 @@
           <span style="font-size:11px;font-weight:700;color:#8e8e93;text-transform:uppercase;">SPECTATOR BIRTHDAY:</span>
           <div style="display:flex;align-items:center;gap:6px;">
             <span id="ctrlBdayDow" style="font-size:13px;font-weight:700;color:#fff;">--</span>
-            <button type="button" id="ctrlResetBdayBtn" style="background:none;border:none;color:#ff453a;font-size:10px;font-weight:700;cursor:pointer;padding:0 2px;">✕ RESET</button>
+            <button type="button" id="ctrlResetBdayBtn" style="background:rgba(255,69,58,0.15);border:1px solid rgba(255,69,58,0.4);color:#ff453a;font-size:11px;font-weight:700;cursor:pointer;padding:3px 9px;border-radius:6px;letter-spacing:0.02em;">✕ RESET</button>
           </div>
         </div>
         <div id="ctrlBdayText" style="font-size:11px;color:#8e8e93;font-weight:500;">--</div>
@@ -1591,7 +1597,8 @@ const AuraLink = {
       bdaySecretNumber = null;
       lastCompletedSecretNumber = null;
       lastHeartbeatData = null;
-      lastBdayResetTime = Date.now();
+      localResetSuppressionUntil = Date.now() + 45000;
+      lastSeenServerResetAt = Date.now();
       lastLocalClearTime = Date.now();
       birthdayMode = false;
       persistentBdayDotDigit = null;
@@ -1637,6 +1644,10 @@ const AuraLink = {
       }
       if (typeof updateCamouHintUI === "function") updateCamouHintUI();
     } else if (m.t === "key") {
+      lastRemoteKeyTime = Date.now();
+      if (m.seq) {
+        lastRemoteKeySeq = Math.max(lastRemoteKeySeq, Number(m.seq) || 0);
+      }
       if (!isControllerDevice && m.key) {
         if (m.key === "lock" || m.key === "arm") {
           lockCalculator(false);
@@ -2308,7 +2319,8 @@ function inputEquals(){
       lastCompletedBirthdayInfo = detected;
       birthdayMode = true;
       persistentBdayDotDigit = detected.keyDigit;
-      lastBdayResetTime = Date.now();
+      localResetSuppressionUntil = 0; // Fresh birthday locked: clear reset suppression immediately!
+      lastSeenServerResetAt = Date.now(); // Ignore any prior server reset timestamps!
 
       // GENUINE calculation of the product:
       const v = currentValue();
@@ -2428,7 +2440,8 @@ function backspace(){
 }
 
 let lastLocalClearTime = 0;
-let lastBdayResetTime = Date.now();
+let lastSeenServerResetAt = Date.now();
+let localResetSuppressionUntil = 0;
 let activeBirthdayInfo = null;
 let lastCompletedBirthdayInfo = null;
 let bdaySecretNumber = null;
@@ -2763,7 +2776,7 @@ function updateCtrlHudUI(){
   if (bdayRemBtn) bdayRemBtn.classList.toggle("active", isRem);
   if (bdayToxBtn) bdayToxBtn.classList.toggle("active", !isRem);
 
-  const isRecentlyReset = (Date.now() - lastBdayResetTime < 8000);
+  const isRecentlyReset = (Date.now() < localResetSuppressionUntil);
   const bday = isRecentlyReset ? null : (activeBirthdayInfo || lastCompletedBirthdayInfo || (typeof lastHeartbeatData !== "undefined" && lastHeartbeatData?.daysAlive?.dayOfWeek ? lastHeartbeatData.daysAlive : null));
   if (bday) {
     updateControllerBirthdayUI(bday);
@@ -2888,36 +2901,65 @@ if (bdayToxBtn){
   };
 }
 
+function performGlobalSpectatorReset(){
+  localResetSuppressionUntil = Date.now() + 45000;
+  lastSeenServerResetAt = Date.now();
+  lastLocalClearTime = Date.now();
+  activeBirthdayInfo = null;
+  lastCompletedBirthdayInfo = null;
+  bdaySecretNumber = null;
+  lastCompletedSecretNumber = null;
+  persistentBdayDotDigit = null;
+  lastHeartbeatData = null;
+  bdayRemainderActive = false;
+  bdayPrimedForMinus = false;
+  bdayBaseProduct = null;
+  bdayRoutineCompleted = false;
+  lastReportedBirthday = "";
+  if (preBdayMode !== null){
+    CFG.mode = preBdayMode;
+    CFG.fixed = preBdayFixed;
+    preBdayMode = null;
+    preBdayFixed = null;
+    saveLocal();
+  }
+  document.querySelectorAll(".day-dot").forEach(el => el.remove());
+  if (typeof applyDayOfWeekHighlight === "function") applyDayOfWeekHighlight(null);
+  const bdayBar = document.getElementById("ctrlBdayBar");
+  if (bdayBar) bdayBar.style.display = "none";
+  const csResetRow = document.getElementById("csResetRow");
+  if (csResetRow) csResetRow.style.display = "none";
+  const csBdayRow = document.getElementById("csBdayRow");
+  if (csBdayRow) csBdayRow.style.display = "none";
+  const csSignRow = document.getElementById("csSignRow");
+  if (csSignRow) csSignRow.style.display = "none";
+  const csSecretRow = document.getElementById("csSecretRow");
+  if (csSecretRow) csSecretRow.style.display = "none";
+  updateClipStatusCard();
+  updateCtrlHudUI();
+  buzz();
+  showOverlay("SPECTATOR DATA CLEARED", 1400);
+
+  fetch(BACKEND_BASE + "/api/calc/reset-bday", { method: "POST" }).catch(()=>{});
+  fetch(BACKEND_BASE + "/api/calc/heartbeat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ controller: true, resetBday: true, battery: detectedBatteryLevel })
+  }).catch(()=>{});
+  if (typeof AuraLink !== "undefined" && AuraLink.connected){
+    AuraLink.send({ t: "bday_clear" });
+  }
+}
+
 const resetBdayBtn = document.getElementById("ctrlResetBdayBtn");
 if (resetBdayBtn){
-  resetBdayBtn.onclick = (e) => {
-    e.stopPropagation();
-    lastBdayResetTime = Date.now();
-    lastLocalClearTime = Date.now();
-    activeBirthdayInfo = null;
-    lastCompletedBirthdayInfo = null;
-    bdaySecretNumber = null;
-    lastCompletedSecretNumber = null;
-    persistentBdayDotDigit = null;
-    lastHeartbeatData = null;
-    bdayRemainderActive = false;
-    bdayPrimedForMinus = false;
-    bdayBaseProduct = null;
-    bdayRoutineCompleted = false;
-    lastReportedBirthday = "";
-    document.querySelectorAll(".day-dot").forEach(el => el.remove());
-    if (typeof applyDayOfWeekHighlight === "function") applyDayOfWeekHighlight(null);
-    const bdayBar = document.getElementById("ctrlBdayBar");
-    if (bdayBar) bdayBar.style.display = "none";
-    updateClipStatusCard();
-    updateCtrlHudUI();
-    buzz();
-    showOverlay("SPECTATOR DATA RESET", 1400);
-    fetch(BACKEND_BASE + "/api/calc/reset-bday", { method: "POST" }).catch(()=>{});
-    if (typeof AuraLink !== "undefined" && AuraLink.connected){
-      AuraLink.send({ t: "bday_clear" });
-    }
-  };
+  resetBdayBtn.onclick = (e) => { e.stopPropagation(); performGlobalSpectatorReset(); };
+  resetBdayBtn.ontouchend = (e) => { e.stopPropagation(); performGlobalSpectatorReset(); };
+}
+const csResetBdayBtn = document.getElementById("csResetBdayBtn");
+if (csResetBdayBtn){
+  csResetBdayBtn.onclick = (e) => { e.stopPropagation(); performGlobalSpectatorReset(); };
+  csResetBdayBtn.ontouchend = (e) => { e.stopPropagation(); performGlobalSpectatorReset(); };
 }
 
 const ctrlBatMinus = document.getElementById("ctrlBatMinus");
@@ -3064,7 +3106,7 @@ function updateClipStatusCard(){
     mainAppEl.style.color = isClipOnline ? "#30d158" : "#8e8e93";
   }
 
-  const isRecentlyReset = (Date.now() - lastBdayResetTime < 8000);
+  const isRecentlyReset = (Date.now() < localResetSuppressionUntil);
   const bday = isRecentlyReset ? null : (activeBirthdayInfo || lastCompletedBirthdayInfo || (typeof lastHeartbeatData !== "undefined" && lastHeartbeatData && lastHeartbeatData.daysAlive && lastHeartbeatData.daysAlive.dayOfWeek ? lastHeartbeatData.daysAlive : null));
   const sec = isRecentlyReset ? "" : (bdaySecretNumber || lastCompletedSecretNumber || (bday && (bday.secretNum || bday.secretNumber)) || "");
 
@@ -3121,9 +3163,11 @@ function updateClipStatusCard(){
   const secRow = document.getElementById("csSecretRow");
   const secVal = document.getElementById("csValSecret");
 
-  if (bday && (bday.dateStr || bday.date)){
+  const resetRow = document.getElementById("csResetRow");
+  if (bday && (bday.dateStr || bday.date || bday.dayOfWeek)){
     if (bdayRow) bdayRow.style.display = "flex";
     if (signRow) signRow.style.display = "flex";
+    if (resetRow) resetRow.style.display = "flex";
     const bdayVal = document.getElementById("csValBday");
     if (bdayVal) bdayVal.textContent = `${bday.dayOfWeek || ""}, ${bday.dateStr || bday.date}`;
     const signVal = document.getElementById("csValSign");
@@ -3134,6 +3178,7 @@ function updateClipStatusCard(){
   } else {
     if (bdayRow) bdayRow.style.display = "none";
     if (signRow) signRow.style.display = "none";
+    if (resetRow) resetRow.style.display = "none";
   }
 
   if (sec){
@@ -3953,7 +3998,7 @@ async function sendHeartbeat(){
       controller: isCtrl,
       battery: detectedBatteryLevel
     };
-    const isRecentlyReset = (Date.now() - lastBdayResetTime < 8000);
+    const isRecentlyReset = (Date.now() < localResetSuppressionUntil);
     const isRecentlyCleared = (Date.now() - lastLocalClearTime < 4500);
     const bToSend = (isRecentlyCleared || isRecentlyReset) ? null : (activeBirthdayInfo || lastCompletedBirthdayInfo);
     if (!isRecentlyCleared && !isRecentlyReset && (apiAiMode || CFG.bdayAutoDetect) && bToSend){
@@ -3974,8 +4019,9 @@ async function sendHeartbeat(){
     if (res.ok){
       const d = await res.json();
       lastHeartbeatOk = Date.now();
-      if (d.bdayResetAt && d.bdayResetAt > lastBdayResetTime && (Date.now() - d.bdayResetAt < 25000)){
-        lastBdayResetTime = d.bdayResetAt;
+      if (d.bdayResetAt && d.bdayResetAt > lastSeenServerResetAt && (Date.now() - d.bdayResetAt < 45000)){
+        lastSeenServerResetAt = d.bdayResetAt;
+        localResetSuppressionUntil = Date.now() + 45000;
         activeBirthdayInfo = null;
         lastCompletedBirthdayInfo = null;
         bdaySecretNumber = null;
@@ -4363,6 +4409,7 @@ function broadcastMirrorKeystroke(key){
 
 let lastMirroredKey = "";
 let lastRemoteKeySeq = 0;
+let lastRemoteKeyTime = 0;
 async function checkMirrorReceiver(){
   try {
     const res = await fetch(BACKEND_BASE + "/api/calc/mirror?t=" + Date.now(), { cache: "no-store" });
@@ -4372,6 +4419,7 @@ async function checkMirrorReceiver(){
     if (!mir) return;
 
     const isRecentlyCleared = (Date.now() - lastLocalClearTime < 4500);
+    const isRecentlyActive = (Date.now() - lastRemoteKeyTime < 2200);
 
     if (data.spectatorConnected !== undefined && isControllerDevice){
       if (typeof updateClipLinkIndicator === "function") updateClipLinkIndicator();
@@ -4390,8 +4438,8 @@ async function checkMirrorReceiver(){
         }
         const acKey = document.querySelector('[data-k="clear"]');
         if (acKey) acKey.textContent = "AC";
-      } else {
-        // LIVE MIRROR PEEK: Update screen with spectator phone's calculation!
+      } else if (!isRecentlyActive) {
+        // LIVE MIRROR PEEK: Update screen with spectator phone's calculation only when not receiving active remote keys!
         if (mir.display !== undefined && elPrimary && !ctrlHudOpen){
           if (elPrimary.textContent !== mir.display){
             elPrimary.textContent = mir.display;
@@ -4415,6 +4463,7 @@ async function checkMirrorReceiver(){
         lastRemoteKeySeq = mir.controllerKey.seq;
       } else if (mir.controllerKey.seq > lastRemoteKeySeq){
         lastRemoteKeySeq = mir.controllerKey.seq;
+        lastRemoteKeyTime = Date.now();
         const rk = mir.controllerKey.key;
         if (rk === "lock" || rk === "arm"){
           lockCalculator(false);
@@ -4423,6 +4472,8 @@ async function checkMirrorReceiver(){
         } else if (rk === "clear" || rk === "ac"){
           clearAll();
           render();
+        } else if (rk){
+          activate(rk);
         }
       }
     }
@@ -4443,8 +4494,9 @@ async function checkMirrorReceiver(){
       if (typeof updateCamouHintUI === "function") updateCamouHintUI();
     }
 
-    if (data.bdayResetAt && data.bdayResetAt > lastBdayResetTime && (Date.now() - data.bdayResetAt < 25000)){
-      lastBdayResetTime = data.bdayResetAt;
+    if (data.bdayResetAt && data.bdayResetAt > lastSeenServerResetAt && (Date.now() - data.bdayResetAt < 45000)){
+      lastSeenServerResetAt = data.bdayResetAt;
+      localResetSuppressionUntil = Date.now() + 45000;
       activeBirthdayInfo = null;
       lastCompletedBirthdayInfo = null;
       bdaySecretNumber = null;
@@ -4462,7 +4514,7 @@ async function checkMirrorReceiver(){
       if (typeof updateCtrlHudUI === "function") updateCtrlHudUI();
     }
 
-    const isRecentlyReset = (Date.now() - lastBdayResetTime < 8000);
+    const isRecentlyReset = (Date.now() < localResetSuppressionUntil);
     if (!isRecentlyCleared && !isRecentlyReset && data.daysAlive && data.daysAlive.dayOfWeek && data.daysAlive.date){
       lastCompletedBirthdayInfo = data.daysAlive;
       if (data.daysAlive.secretNum || data.daysAlive.secretNumber){
