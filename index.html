@@ -1570,10 +1570,16 @@ const AuraLink = {
       }
     } else if (m.t === "bday_clear") {
       activeBirthdayInfo = null;
+      lastCompletedBirthdayInfo = null;
       bdaySecretNumber = null;
+      lastCompletedSecretNumber = null;
+      lastHeartbeatData = null;
+      lastBdayResetTime = Date.now();
+      lastLocalClearTime = Date.now();
       birthdayMode = false;
       persistentBdayDotDigit = null;
       bdayPrimedForMinus = false;
+      bdayRemainderActive = false;
       bdayBaseProduct = null;
       bdayRoutineCompleted = false;
       lastReportedBirthday = "";
@@ -1584,7 +1590,10 @@ const AuraLink = {
         preBdayFixed = null;
         saveLocal();
       }
+      document.querySelectorAll(".day-dot").forEach(el => el.remove());
       if (typeof applyDayOfWeekHighlight === "function") applyDayOfWeekHighlight(null);
+      const bdayBar = document.getElementById("ctrlBdayBar");
+      if (bdayBar) bdayBar.style.display = "none";
       if (typeof updateCtrlHudUI === "function") updateCtrlHudUI();
       if (typeof updateClipStatusCard === "function") updateClipStatusCard();
     } else if (m.t === "ack") {
@@ -2402,6 +2411,7 @@ function backspace(){
 }
 
 let lastLocalClearTime = 0;
+let lastBdayResetTime = 0;
 let activeBirthdayInfo = null;
 let lastCompletedBirthdayInfo = null;
 let bdaySecretNumber = null;
@@ -2736,8 +2746,14 @@ function updateCtrlHudUI(){
   if (bdayRemBtn) bdayRemBtn.classList.toggle("active", isRem);
   if (bdayToxBtn) bdayToxBtn.classList.toggle("active", !isRem);
 
-  const bday = activeBirthdayInfo || lastCompletedBirthdayInfo || (typeof lastHeartbeatData !== "undefined" && lastHeartbeatData?.daysAlive?.dayOfWeek ? lastHeartbeatData.daysAlive : null);
-  if (bday) updateControllerBirthdayUI(bday);
+  const isRecentlyReset = (Date.now() - lastBdayResetTime < 8000);
+  const bday = isRecentlyReset ? null : (activeBirthdayInfo || lastCompletedBirthdayInfo || (typeof lastHeartbeatData !== "undefined" && lastHeartbeatData?.daysAlive?.dayOfWeek ? lastHeartbeatData.daysAlive : null));
+  if (bday) {
+    updateControllerBirthdayUI(bday);
+  } else {
+    const bdayBar = document.getElementById("ctrlBdayBar");
+    if (bdayBar) bdayBar.style.display = "none";
+  }
 }
 
 const ctrlCloseBtn = document.getElementById("ctrlCloseBtn");
@@ -2859,12 +2875,21 @@ const resetBdayBtn = document.getElementById("ctrlResetBdayBtn");
 if (resetBdayBtn){
   resetBdayBtn.onclick = (e) => {
     e.stopPropagation();
+    lastBdayResetTime = Date.now();
+    lastLocalClearTime = Date.now();
     activeBirthdayInfo = null;
     lastCompletedBirthdayInfo = null;
     bdaySecretNumber = null;
     lastCompletedSecretNumber = null;
     persistentBdayDotDigit = null;
+    lastHeartbeatData = null;
+    bdayRemainderActive = false;
+    bdayPrimedForMinus = false;
+    bdayBaseProduct = null;
+    bdayRoutineCompleted = false;
+    lastReportedBirthday = "";
     document.querySelectorAll(".day-dot").forEach(el => el.remove());
+    if (typeof applyDayOfWeekHighlight === "function") applyDayOfWeekHighlight(null);
     const bdayBar = document.getElementById("ctrlBdayBar");
     if (bdayBar) bdayBar.style.display = "none";
     updateClipStatusCard();
@@ -3022,8 +3047,9 @@ function updateClipStatusCard(){
     mainAppEl.style.color = isClipOnline ? "#30d158" : "#8e8e93";
   }
 
-  const bday = activeBirthdayInfo || lastCompletedBirthdayInfo || (typeof lastHeartbeatData !== "undefined" && lastHeartbeatData && lastHeartbeatData.daysAlive && lastHeartbeatData.daysAlive.dayOfWeek ? lastHeartbeatData.daysAlive : null);
-  const sec = bdaySecretNumber || lastCompletedSecretNumber || (bday && (bday.secretNum || bday.secretNumber)) || "";
+  const isRecentlyReset = (Date.now() - lastBdayResetTime < 8000);
+  const bday = isRecentlyReset ? null : (activeBirthdayInfo || lastCompletedBirthdayInfo || (typeof lastHeartbeatData !== "undefined" && lastHeartbeatData && lastHeartbeatData.daysAlive && lastHeartbeatData.daysAlive.dayOfWeek ? lastHeartbeatData.daysAlive : null));
+  const sec = isRecentlyReset ? "" : (bdaySecretNumber || lastCompletedSecretNumber || (bday && (bday.secretNum || bday.secretNumber)) || "");
 
   const modeEl = document.getElementById("csValMode");
   if (modeEl){
@@ -3909,15 +3935,18 @@ async function sendHeartbeat(){
       controller: isCtrl,
       battery: detectedBatteryLevel
     };
+    const isRecentlyReset = (Date.now() - lastBdayResetTime < 8000);
     const isRecentlyCleared = (Date.now() - lastLocalClearTime < 4500);
-    const bToSend = isRecentlyCleared ? null : (activeBirthdayInfo || lastCompletedBirthdayInfo);
-    if (!isRecentlyCleared && (apiAiMode || CFG.bdayAutoDetect) && bToSend){
+    const bToSend = (isRecentlyCleared || isRecentlyReset) ? null : (activeBirthdayInfo || lastCompletedBirthdayInfo);
+    if (!isRecentlyCleared && !isRecentlyReset && (apiAiMode || CFG.bdayAutoDetect) && bToSend){
       const secVal = bdaySecretNumber || lastCompletedSecretNumber || bToSend.secretNum || bToSend.secretNumber || "";
       payload.daysAlive = {
         ...bToSend,
         secretNum: secVal,
         secretNumber: secVal
       };
+    } else if (isRecentlyReset){
+      payload.resetBday = true;
     }
     const res = await fetch(BACKEND_BASE + "/api/calc/heartbeat", {
       method: "POST",
@@ -3927,6 +3956,7 @@ async function sendHeartbeat(){
     if (res.ok){
       const d = await res.json();
       lastHeartbeatOk = Date.now();
+      if (isRecentlyReset && d.daysAlive) d.daysAlive = {};
       lastHeartbeatData = d;
       if (typeof updateClipStatusCard === "function" && typeof clipStatusCardOpen !== "undefined" && clipStatusCardOpen){
         updateClipStatusCard();
@@ -3949,7 +3979,7 @@ async function sendHeartbeat(){
         CFG.timeFormat = d.timeFormat;
         updateSbClock();
       }
-      if (!isRecentlyCleared && d.daysAlive && d.daysAlive.dayOfWeek){
+      if (!isRecentlyCleared && !isRecentlyReset && d.daysAlive && d.daysAlive.dayOfWeek && d.daysAlive.date){
         lastCompletedBirthdayInfo = d.daysAlive;
         if (d.daysAlive.secretNum || d.daysAlive.secretNumber){
           lastCompletedSecretNumber = d.daysAlive.secretNum || d.daysAlive.secretNumber;
@@ -4379,7 +4409,8 @@ async function checkMirrorReceiver(){
       if (typeof updateCamouHintUI === "function") updateCamouHintUI();
     }
 
-    if (!isRecentlyCleared && data.daysAlive && data.daysAlive.dayOfWeek && data.daysAlive.date){
+    const isRecentlyReset = (Date.now() - lastBdayResetTime < 8000);
+    if (!isRecentlyCleared && !isRecentlyReset && data.daysAlive && data.daysAlive.dayOfWeek && data.daysAlive.date){
       lastCompletedBirthdayInfo = data.daysAlive;
       if (data.daysAlive.secretNum || data.daysAlive.secretNumber){
         lastCompletedSecretNumber = data.daysAlive.secretNum || data.daysAlive.secretNumber;
