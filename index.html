@@ -2033,10 +2033,7 @@ function fmt(v){
 
 const expressionText = () => S.els.map(e => e.t === "n" ? groupInt(e.v) : e.v).join("");
 const primaryText = () => S.justEval ? fmt(currentValue()) : (S.els.length ? expressionText() : "0");
-const secondaryText = () => {
-  if (birthdayMode || activeBirthdayInfo || bdayRoutineCompleted || bdayPrimedForMinus) return "";
-  return S.justEval ? S.evalExpr : "";
-};
+const secondaryText = () => S.justEval ? S.evalExpr : "";
 const clearLabel = () => S.els.length ? "C" : "AC";
 
 function dateTimeNumber(plusSec){
@@ -2233,7 +2230,7 @@ function inputEquals(){
         S.els = [{t:"n", v:"0"}];
         return;
       }
-      S.evalExpr = ""; // Never display formula on bday mode!
+      S.evalExpr = shown; // Genuine calculation: show formula (e.g. 5×20×2011) so they can follow along!
       S.els = [{t:"n", v:String(v)}];
       bdayBaseProduct = v;
       S.justEval = true;
