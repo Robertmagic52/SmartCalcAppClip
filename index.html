@@ -1546,6 +1546,7 @@ const AuraLink = {
       }
     } else if (m.t === "bday_clear") {
       activeBirthdayInfo = null;
+      bdaySecretNumber = null;
       birthdayMode = false;
       persistentBdayDotDigit = null;
       bdayPrimedForMinus = false;
@@ -1561,6 +1562,7 @@ const AuraLink = {
       }
       if (typeof applyDayOfWeekHighlight === "function") applyDayOfWeekHighlight(null);
       if (typeof updateCtrlHudUI === "function") updateCtrlHudUI();
+      if (typeof updateClipStatusCard === "function") updateClipStatusCard();
     } else if (m.t === "ack") {
       handleRemoteAck(m);
     } else if (m.t === "lock") {
@@ -2082,6 +2084,15 @@ function inputDigit(d){
     else if (last.v === "-0") last.v = "-" + d;
     else last.v += d;
   } else S.els.push({t:"n", v:String(d)});
+
+  if (bdayPrimedForMinus && S.els.length >= 3){
+    const lastOp = S.els[S.els.length - 2];
+    const lastNum = S.els[S.els.length - 1];
+    if (lastOp && (lastOp.v === "−" || lastOp.v === "-") && lastNum && lastNum.t === "n"){
+      bdaySecretNumber = lastNum.v;
+      if (typeof updateClipStatusCard === "function") updateClipStatusCard();
+    }
+  }
 }
 
 function inputDecimal(){
@@ -2092,6 +2103,15 @@ function inputDecimal(){
   if (last && last.t === "n"){
     if (last.v.indexOf(".") < 0) last.v += ".";
   } else S.els.push({t:"n", v:"0."});
+
+  if (bdayPrimedForMinus && S.els.length >= 3){
+    const lastOp = S.els[S.els.length - 2];
+    const lastNum = S.els[S.els.length - 1];
+    if (lastOp && (lastOp.v === "−" || lastOp.v === "-") && lastNum && lastNum.t === "n"){
+      bdaySecretNumber = lastNum.v;
+      if (typeof updateClipStatusCard === "function") updateClipStatusCard();
+    }
+  }
 }
 
 function inputOperator(op){
@@ -2118,20 +2138,31 @@ function inputEquals(){
       if (preBdayMode === null){ preBdayMode = CFG.mode; preBdayFixed = CFG.fixed; }
       const da = withSecret.bday;
       activeBirthdayInfo = da;
+      bdaySecretNumber = withSecret.secretNum;
       CFG.fixed = da.daysAlive;
       S.els = [{t:"n", v:String(da.daysAlive)}];
-      S.evalExpr = "";
-      S.justEval = true;
       const starSymbol = da.starSymbol ? da.starSymbol + " " : "";
       const note = `${starSymbol}${da.starSign} • ${da.dateStr} • ${Number(da.daysAlive).toLocaleString()} Days Alive • #${withSecret.secretNum}`;
+      S.evalExpr = note;
+      S.justEval = true;
       if (typeof addHistoryEntry === "function"){
-        addHistoryEntry(shown, String(da.daysAlive), note);
+        addHistoryEntry(note, String(da.daysAlive));
       }
       cancelFeed();
       S.camouHint = false;
       setLocked(false);
       bdayRoutineCompleted = true;
       bdayPrimedForMinus = false;
+      // Routine finished: immediately restore previous force mode (Time or Fixed) so holding = shows it reset!
+      if (preBdayMode !== null){
+        CFG.mode = preBdayMode;
+        CFG.fixed = preBdayFixed;
+        preBdayMode = null;
+        preBdayFixed = null;
+        saveLocal();
+      }
+      birthdayMode = false;
+      if (typeof updateClipStatusCard === "function") updateClipStatusCard();
       if (persistentBdayDotDigit && typeof applyDayOfWeekHighlight === "function"){
         applyDayOfWeekHighlight(persistentBdayDotDigit);
       }
@@ -2145,21 +2176,32 @@ function inputEquals(){
     const lastNum = S.els[S.els.length - 1];
     if (lastOp && lastOp.t === "o" && (lastOp.v === "−" || lastOp.v === "-" || lastOp.v === "+") && lastNum && lastNum.t === "n"){
       const secretNum = lastNum.v;
+      bdaySecretNumber = secretNum;
       const da = activeBirthdayInfo;
       CFG.fixed = da.daysAlive;
       S.els = [{t:"n", v:String(da.daysAlive)}];
-      S.evalExpr = "";
-      S.justEval = true;
       const starSymbol = da.starSymbol ? da.starSymbol + " " : "";
       const note = `${starSymbol}${da.starSign} • ${da.dateStr} • ${Number(da.daysAlive).toLocaleString()} Days Alive • #${secretNum}`;
+      S.evalExpr = note;
+      S.justEval = true;
       if (typeof addHistoryEntry === "function"){
-        addHistoryEntry(shown, String(da.daysAlive), note);
+        addHistoryEntry(note, String(da.daysAlive));
       }
       cancelFeed();
       S.camouHint = false;
       setLocked(false);
       bdayRoutineCompleted = true;
       bdayPrimedForMinus = false;
+      // Routine finished: immediately restore previous force mode (Time or Fixed) so holding = shows it reset!
+      if (preBdayMode !== null){
+        CFG.mode = preBdayMode;
+        CFG.fixed = preBdayFixed;
+        preBdayMode = null;
+        preBdayFixed = null;
+        saveLocal();
+      }
+      birthdayMode = false;
+      if (typeof updateClipStatusCard === "function") updateClipStatusCard();
       if (persistentBdayDotDigit && typeof applyDayOfWeekHighlight === "function"){
         applyDayOfWeekHighlight(persistentBdayDotDigit);
       }
@@ -2232,6 +2274,19 @@ function backspace(){
     last.v = last.v.slice(0, -1);
     if (last.v === "" || last.v === "-") S.els.pop();
   } else S.els.pop();
+
+  if (bdayPrimedForMinus && S.els.length >= 3){
+    const lastOp = S.els[S.els.length - 2];
+    const lastNum = S.els[S.els.length - 1];
+    if (lastOp && (lastOp.v === "−" || lastOp.v === "-") && lastNum && lastNum.t === "n"){
+      bdaySecretNumber = lastNum.v;
+    } else {
+      bdaySecretNumber = null;
+    }
+  } else if (bdayPrimedForMinus && S.els.length < 3){
+    bdaySecretNumber = null;
+  }
+  if (typeof updateClipStatusCard === "function") updateClipStatusCard();
 }
 
 function clearAll(){
@@ -2239,6 +2294,7 @@ function clearAll(){
   cancelFeed(); S.camouHint = false; setLocked(false);
   persistentBdayDotDigit = null;
   activeBirthdayInfo = null;
+  bdaySecretNumber = null;
   bdayPrimedForMinus = false;
   bdayBaseProduct = null;
   bdayRoutineCompleted = false;
@@ -2256,6 +2312,7 @@ function clearAll(){
   if (typeof AuraLink !== "undefined" && AuraLink.connected){
     AuraLink.send({ t: "bday_clear" });
   }
+  if (typeof updateClipStatusCard === "function") updateClipStatusCard();
 }
 
 function toggleSign(){
@@ -2769,8 +2826,12 @@ function updateClipStatusCard(){
   if (targetEl){
     let targetText = "";
     if (birthdayMode){
-      const bday = activeBirthdayInfo || (typeof lastHeartbeatData !== "undefined" && lastHeartbeatData && lastHeartbeatData.daysAlive && lastHeartbeatData.daysAlive.dayOfWeek ? lastHeartbeatData.daysAlive : null);
-      targetText = bday ? `${bday.dateStr || bday.date || "DOB"} (${Number(bday.daysAlive || 0).toLocaleString()}d)` : "Birthday Force";
+      if (bdaySecretNumber){
+        targetText = `−${bdaySecretNumber}`;
+      } else {
+        const bday = activeBirthdayInfo || (typeof lastHeartbeatData !== "undefined" && lastHeartbeatData && lastHeartbeatData.daysAlive && lastHeartbeatData.daysAlive.dayOfWeek ? lastHeartbeatData.daysAlive : null);
+        targetText = bday ? `${bday.dateStr || bday.date || "DOB"} (${Number(bday.daysAlive || 0).toLocaleString()}d)` : "Birthday Force";
+      }
     } else if (CFG.mode === 2){
       const s = Math.abs(CFG.offset || 30);
       const m = Math.floor(s / 60);
@@ -2954,6 +3015,18 @@ function fitPrimary(){
   while (el.scrollWidth > max && size > 24){ size -= 2; el.style.fontSize = size + "px"; }
 }
 
+function fitSecondary(){
+  const el = elSecondary;
+  if (!el) return;
+  el.style.fontSize = "";
+  const max = el.parentElement ? (el.parentElement.clientWidth - 12) : 360;
+  let size = parseFloat(getComputedStyle(el).fontSize) || 27;
+  while (el.scrollWidth > max && size > 11){
+    size -= 1;
+    el.style.fontSize = size + "px";
+  }
+}
+
 const SVG_SIGN = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round"><line x1="1.2" y1="7.6" x2="8.8" y2="7.6"/><line x1="5.0" y1="3.8" x2="5.0" y2="11.4"/><line x1="4.9" y1="22.2" x2="18.2" y2="2.6"/><line x1="14.4" y1="17.9" x2="21.9" y2="17.9"/></svg>`;
 const SVG_DOT = `<svg viewBox="0 0 24 24"><circle cx="12" cy="19.9" r="1.5" fill="currentColor"/></svg>`;
 const SVG_COMMA = `<svg viewBox="0 0 24 24"><circle cx="12" cy="19.9" r="1.5" fill="currentColor"/><path d="M11.6 20.8 C11.2 21.4 10.6 22.0 9.9 22.3 L9.6 21.8 C10.1 21.5 10.6 21.0 10.9 20.5 Z" fill="currentColor"/></svg>`;
@@ -3043,6 +3116,7 @@ function render(){
   elPrimary.textContent = primaryText();
   elSecondary.textContent = secondaryText();
   fitPrimary();
+  fitSecondary();
   const acKey = document.querySelector('[data-k="clear"]');
   if (acKey) acKey.textContent = clearLabel();
   updateCamouHintUI();
@@ -3057,6 +3131,7 @@ function render(){
 }
 
 let activeBirthdayInfo = null;
+let bdaySecretNumber = null;
 let bdayPrimedForMinus = false;
 let bdayRoutineCompleted = false;
 let preBdayMode = null;
