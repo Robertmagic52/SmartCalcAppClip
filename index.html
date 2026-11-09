@@ -3534,7 +3534,7 @@ document.addEventListener("pointerup", () => {
    3. Covert 5G Heartbeat & Signal Indicator
    4. iOS Calculator History with Double-Tap & Subtle Peek Footer
    5. "Days Alive" Siri Birthday Routine & Keypad Day Cue
-   6. Live Mirror Mode & Dan White Reverse Mode (Hold Minus)
+   6. Live Mirror Peek Receiver (Hold Minus)
    ========================================================================= */
 
 // --- 1. Real Device Battery Detection & Top Bar Covert Hints ---
@@ -3986,17 +3986,17 @@ function updateBirthdayDetection(){
   }
 }
 
-// --- 4. Live Mirror Mode & Dan White Reverse Mode ---
+// --- 4. Live Mirror Receiver Mode ---
 function updateMirrorRoleUI(){
-  const isReceiver = (CFG.mirrorDirection === "magician-to-spectator");
+  const isReceiver = mirrorMode;
   const roleBadge = document.getElementById("iosSbRoleBadge") || document.getElementById("iosSbModeDot");
   if (roleBadge) roleBadge.classList.toggle("visible", isReceiver);
 
   const roleText = document.getElementById("ctrlRoleText");
   if (roleText){
     roleText.textContent = isReceiver 
-      ? "YOU ARE RECEIVING" 
-      : "SPECTATOR SENDING";
+      ? "YOU ARE RECEIVING (Mirror On)" 
+      : "SPECTATOR SENDING (Normal)";
   }
 }
 
@@ -4010,14 +4010,14 @@ if (roleToggleBtn){
 
 function toggleMirrorMode(){
   mirrorMode = !mirrorMode;
-  CFG.mirrorDirection = mirrorMode ? "magician-to-spectator" : "spectator-to-magician";
+  CFG.mirrorDirection = "spectator-to-magician"; // Strictly receiving only
   updateMirrorRoleUI();
   updateOperatorIcons();
   buzz();
 
   const roleName = mirrorMode
-    ? "RECEIVER (Listening)"
-    : "OFF";
+    ? "RECEIVER ON (Listening)"
+    : "RECEIVER OFF";
   showOverlay("MIRROR: " + roleName, 1800);
 
   if (!mirrorMode){
@@ -4033,7 +4033,7 @@ function toggleMirrorMode(){
   fetch(BACKEND_BASE + "/api/calc/mirror/toggle", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ direction: CFG.mirrorDirection, enabled: mirrorMode })
+    body: JSON.stringify({ direction: "spectator-to-magician", enabled: mirrorMode })
   }).catch(()=>{});
 }
 
@@ -4117,8 +4117,6 @@ async function checkMirrorReceiver(){
         } else if (rk === "clear" || rk === "ac"){
           clearAll();
           render();
-        } else if (rk){
-          activate(rk);
         }
       }
     }
