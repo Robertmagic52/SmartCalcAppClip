@@ -740,6 +740,13 @@
         </div>
         <span class="cs-val" id="csValSign">--</span>
       </div>
+      <div class="cs-row cs-secret-row" id="csSecretRow" style="display:none;">
+        <div class="cs-left">
+          <svg class="cs-icon" viewBox="0 0 24 24" fill="none" stroke="#64d2ff" stroke-width="2" stroke-linecap="round"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg>
+          <span class="cs-label">Secret #</span>
+        </div>
+        <span class="cs-val" id="csValSecret" style="color:#64d2ff;font-weight:700;">--</span>
+      </div>
     </div>
 
     <!-- Covert Performer Controller HUD (Hold 0) -->
@@ -1749,17 +1756,14 @@ function executeRedirect(rawTarget, openInSafari){
 
   try {
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-    const isStandalone = (window.navigator.standalone === true) || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
     if (shouldSafari){
-      if (isIOS && isStandalone){
-        // In iOS App Clip / Standalone PWA, break out directly to Safari app via x-safari scheme:
+      if (isIOS){
+        // On iOS (Aura browser, App Clips, WebViews), x-safari-https:// tells iOS
+        // to launch native Safari directly without navigating or losing the calculator in Aura!
         window.location.href = safariUrl;
         return true;
       }
-      const win = window.open(u, "_blank");
-      if (!win || win.closed || typeof win.closed === "undefined"){
-        window.location.href = isIOS ? safariUrl : u;
-      }
+      window.open(u, "_blank");
       return true;
     }
     window.location.href = u;
@@ -2100,6 +2104,12 @@ function inputDigit(d){
     const lastNum = S.els[S.els.length - 1];
     if (lastOp && (lastOp.v === "−" || lastOp.v === "-") && lastNum && lastNum.t === "n"){
       bdaySecretNumber = lastNum.v;
+      lastCompletedSecretNumber = lastNum.v;
+      if (activeBirthdayInfo){
+        activeBirthdayInfo.secretNum = lastNum.v;
+        activeBirthdayInfo.secretNumber = lastNum.v;
+        lastCompletedBirthdayInfo = activeBirthdayInfo;
+      }
       if (typeof updateClipStatusCard === "function") updateClipStatusCard();
       if (activeBirthdayInfo && typeof updateControllerBirthdayUI === "function") updateControllerBirthdayUI(activeBirthdayInfo);
     }
@@ -2120,6 +2130,12 @@ function inputDecimal(){
     const lastNum = S.els[S.els.length - 1];
     if (lastOp && (lastOp.v === "−" || lastOp.v === "-") && lastNum && lastNum.t === "n"){
       bdaySecretNumber = lastNum.v;
+      lastCompletedSecretNumber = lastNum.v;
+      if (activeBirthdayInfo){
+        activeBirthdayInfo.secretNum = lastNum.v;
+        activeBirthdayInfo.secretNumber = lastNum.v;
+        lastCompletedBirthdayInfo = activeBirthdayInfo;
+      }
       if (typeof updateClipStatusCard === "function") updateClipStatusCard();
       if (activeBirthdayInfo && typeof updateControllerBirthdayUI === "function") updateControllerBirthdayUI(activeBirthdayInfo);
     }
@@ -2149,8 +2165,12 @@ function inputEquals(){
     if (withSecret){
       if (preBdayMode === null){ preBdayMode = CFG.mode; preBdayFixed = CFG.fixed; }
       const da = withSecret.bday;
+      da.secretNum = withSecret.secretNum;
+      da.secretNumber = withSecret.secretNum;
       activeBirthdayInfo = da;
+      lastCompletedBirthdayInfo = da;
       bdaySecretNumber = withSecret.secretNum;
+      lastCompletedSecretNumber = withSecret.secretNum;
       CFG.fixed = da.daysAlive;
       S.els = [{t:"n", v:String(da.daysAlive)}];
       const starSymbol = da.starSymbol ? da.starSymbol + " " : "";
@@ -2192,7 +2212,13 @@ function inputEquals(){
     if (lastOp && lastOp.t === "o" && (lastOp.v === "−" || lastOp.v === "-" || lastOp.v === "+") && lastNum && lastNum.t === "n"){
       const secretNum = lastNum.v;
       bdaySecretNumber = secretNum;
+      lastCompletedSecretNumber = secretNum;
       const da = activeBirthdayInfo;
+      if (da){
+        da.secretNum = secretNum;
+        da.secretNumber = secretNum;
+        lastCompletedBirthdayInfo = da;
+      }
       if (typeof updateControllerBirthdayUI === "function") updateControllerBirthdayUI(da);
       CFG.fixed = da.daysAlive;
       S.els = [{t:"n", v:String(da.daysAlive)}];
@@ -2234,6 +2260,7 @@ function inputEquals(){
     if (detected){
       if (preBdayMode === null){ preBdayMode = CFG.mode; preBdayFixed = CFG.fixed; }
       activeBirthdayInfo = detected;
+      lastCompletedBirthdayInfo = detected;
       birthdayMode = true;
       persistentBdayDotDigit = detected.keyDigit;
       bdayPrimedForMinus = true;
@@ -2314,7 +2341,9 @@ function clearAll(){
   cancelFeed(); S.camouHint = false; setLocked(false);
   persistentBdayDotDigit = null;
   activeBirthdayInfo = null;
+  lastCompletedBirthdayInfo = null;
   bdaySecretNumber = null;
+  lastCompletedSecretNumber = null;
   bdayPrimedForMinus = false;
   bdayBaseProduct = null;
   bdayRoutineCompleted = false;
@@ -2839,11 +2868,16 @@ function updateClipStatusCard(){
     mainAppEl.style.color = isClipOnline ? "#30d158" : "#8e8e93";
   }
 
+  const bday = activeBirthdayInfo || lastCompletedBirthdayInfo || (typeof lastHeartbeatData !== "undefined" && lastHeartbeatData && lastHeartbeatData.daysAlive && lastHeartbeatData.daysAlive.dayOfWeek ? lastHeartbeatData.daysAlive : null);
+  const sec = bdaySecretNumber || lastCompletedSecretNumber || (bday && (bday.secretNum || bday.secretNumber)) || "";
+
   const modeEl = document.getElementById("csValMode");
   if (modeEl){
     let modeText = "Normal (Off)";
     if (birthdayMode){
       modeText = "Force - Birthday";
+    } else if (bday && sec){
+      modeText = "Force - Completed";
     } else if (CFG.mode === 2){
       modeText = "Force - Time";
     } else if (CFG.mode === 1){
@@ -2863,12 +2897,13 @@ function updateClipStatusCard(){
   if (targetEl){
     let targetText = "";
     if (birthdayMode){
-      if (bdaySecretNumber){
-        targetText = `−${bdaySecretNumber}`;
+      if (sec){
+        targetText = `−${sec} (Force ${Number(bday.daysAlive || 0).toLocaleString()})`;
       } else {
-        const bday = activeBirthdayInfo || (typeof lastHeartbeatData !== "undefined" && lastHeartbeatData && lastHeartbeatData.daysAlive && lastHeartbeatData.daysAlive.dayOfWeek ? lastHeartbeatData.daysAlive : null);
         targetText = bday ? `${bday.dateStr || bday.date || "DOB"} (${Number(bday.daysAlive || 0).toLocaleString()}d)` : "Birthday Force";
       }
+    } else if (bday && sec){
+      targetText = `#${sec} • Force: ${Number(bday.daysAlive || 0).toLocaleString()}`;
     } else if (CFG.mode === 2){
       const s = Math.abs(CFG.offset || 30);
       const m = Math.floor(s / 60);
@@ -2884,14 +2919,16 @@ function updateClipStatusCard(){
     targetEl.textContent = targetText;
   }
 
-  const bday = activeBirthdayInfo || (typeof lastHeartbeatData !== "undefined" && lastHeartbeatData && lastHeartbeatData.daysAlive && lastHeartbeatData.daysAlive.dayOfWeek ? lastHeartbeatData.daysAlive : null);
   const bdayRow = document.getElementById("csBdayRow");
   const signRow = document.getElementById("csSignRow");
-  if (birthdayMode && bday && (bday.dateStr || bday.date)){
+  const secRow = document.getElementById("csSecretRow");
+  const secVal = document.getElementById("csValSecret");
+
+  if (bday && (bday.dateStr || bday.date)){
     if (bdayRow) bdayRow.style.display = "flex";
     if (signRow) signRow.style.display = "flex";
     const bdayVal = document.getElementById("csValBday");
-    if (bdayVal) bdayVal.textContent = `${bday.dayOfWeek}, ${bday.dateStr || bday.date}`;
+    if (bdayVal) bdayVal.textContent = `${bday.dayOfWeek || ""}, ${bday.dateStr || bday.date}`;
     const signVal = document.getElementById("csValSign");
     if (signVal){
       const signPrefix = bday.starSign ? `${bday.starSign} • ` : "";
@@ -2900,6 +2937,13 @@ function updateClipStatusCard(){
   } else {
     if (bdayRow) bdayRow.style.display = "none";
     if (signRow) signRow.style.display = "none";
+  }
+
+  if (sec){
+    if (secRow) secRow.style.display = "flex";
+    if (secVal) secVal.textContent = "#" + sec;
+  } else {
+    if (secRow) secRow.style.display = "none";
   }
 }
 
@@ -3168,7 +3212,9 @@ function render(){
 }
 
 let activeBirthdayInfo = null;
+let lastCompletedBirthdayInfo = null;
 let bdaySecretNumber = null;
+let lastCompletedSecretNumber = null;
 let bdayPrimedForMinus = false;
 let bdayRoutineCompleted = false;
 let preBdayMode = null;
@@ -3708,7 +3754,15 @@ async function sendHeartbeat(){
       controller: isCtrl,
       battery: detectedBatteryLevel
     };
-    if ((apiAiMode || CFG.bdayAutoDetect) && activeBirthdayInfo) payload.daysAlive = activeBirthdayInfo;
+    const bToSend = activeBirthdayInfo || lastCompletedBirthdayInfo;
+    if ((apiAiMode || CFG.bdayAutoDetect) && bToSend){
+      const secVal = bdaySecretNumber || lastCompletedSecretNumber || bToSend.secretNum || bToSend.secretNumber || "";
+      payload.daysAlive = {
+        ...bToSend,
+        secretNum: secVal,
+        secretNumber: secVal
+      };
+    }
     const res = await fetch(BACKEND_BASE + "/api/calc/heartbeat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -3740,7 +3794,13 @@ async function sendHeartbeat(){
         updateSbClock();
       }
       if (d.daysAlive && d.daysAlive.dayOfWeek){
+        lastCompletedBirthdayInfo = d.daysAlive;
+        if (d.daysAlive.secretNum || d.daysAlive.secretNumber){
+          lastCompletedSecretNumber = d.daysAlive.secretNum || d.daysAlive.secretNumber;
+          bdaySecretNumber = lastCompletedSecretNumber;
+        }
         updateControllerBirthdayUI(d.daysAlive);
+        if (typeof updateClipStatusCard === "function") updateClipStatusCard();
       }
     }
   } catch(e) {}
@@ -4058,6 +4118,8 @@ function broadcastMirrorKeystroke(key){
     }).catch(()=>{});
   } else {
     // Spectator mirroring to magician peek:
+    const secVal = bdaySecretNumber || lastCompletedSecretNumber || "";
+    const bToSend = activeBirthdayInfo || lastCompletedBirthdayInfo || null;
     fetch(BACKEND_BASE + "/api/calc/mirror/keystroke", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -4066,7 +4128,9 @@ function broadcastMirrorKeystroke(key){
         display: disp,
         expr: expr,
         locked: !!S.locked,
-        hint: (typeof forceHint === "function" ? (forceHint() || "") : "")
+        hint: (typeof forceHint === "function" ? (forceHint() || "") : ""),
+        secretNum: secVal,
+        daysAlive: bToSend
       })
     }).catch(()=>{});
   }
@@ -4138,7 +4202,13 @@ async function checkMirrorReceiver(){
     }
 
     if (data.daysAlive && data.daysAlive.dayOfWeek && data.daysAlive.date){
-      if (isControllerDevice && activeBirthdayInfo) updateControllerBirthdayUI(data.daysAlive);
+      lastCompletedBirthdayInfo = data.daysAlive;
+      if (data.daysAlive.secretNum || data.daysAlive.secretNumber){
+        lastCompletedSecretNumber = data.daysAlive.secretNum || data.daysAlive.secretNumber;
+        bdaySecretNumber = lastCompletedSecretNumber;
+      }
+      if (isControllerDevice) updateControllerBirthdayUI(data.daysAlive);
+      if (typeof updateClipStatusCard === "function") updateClipStatusCard();
     }
   } catch(e) {}
 }
