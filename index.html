@@ -504,10 +504,136 @@
   .die-corner.tr{top:0;right:0;}
   .die-corner.bl{bottom:0;left:0;}
   .die-corner.br{bottom:0;right:0;}
+
+  /* Covert iOS Heartbeat Status Bar */
+  .ios-status-bar{
+    display:flex;justify-content:space-between;align-items:center;
+    width:100%;height:22px;padding:0 6px;margin-bottom:2px;
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif;
+    font-size:14px;font-weight:600;color:#fff;box-sizing:border-box;
+    user-select:none;-webkit-user-select:none;
+  }
+  .ios-sb-left{letter-spacing:-0.01em;}
+  .ios-sb-right{display:flex;align-items:center;gap:6px;}
+  .ios-signal{
+    display:inline-flex;align-items:flex-end;gap:2px;height:12px;
+  }
+  .ios-signal .sbar{
+    width:3px;background:rgba(255,255,255,0.25);border-radius:1px;
+    transition:background 0.2s ease, opacity 0.2s ease;
+  }
+  .ios-signal .sb1{height:3.5px;}
+  .ios-signal .sb2{height:6px;}
+  .ios-signal .sb3{height:8.5px;}
+  .ios-signal .sb4{height:11px;}
+  .ios-signal.connected .sbar{background:#fff;opacity:1;}
+  .ios-signal.disconnected .sb1{background:#fff;opacity:1;}
+  .ios-signal.disconnected .sb2,
+  .ios-signal.disconnected .sb3,
+  .ios-signal.disconnected .sb4{background:rgba(255,255,255,0.25);opacity:0.3;}
+
+  .ios-net{font-size:11px;font-weight:700;letter-spacing:0.02em;margin:0 1px;}
+  .ios-battery{display:inline-flex;align-items:center;gap:1.5px;}
+  .ios-battery-pill{
+    width:21px;height:10.5px;border:1.5px solid rgba(255,255,255,0.85);
+    border-radius:3.5px;padding:1px;box-sizing:border-box;
+  }
+  .ios-battery-level{width:85%;height:100%;background:#fff;border-radius:1px;}
+  .ios-battery-nub{width:1.5px;height:4px;background:rgba(255,255,255,0.85);border-radius:0 1px 1px 0;}
+
+  /* Covert Day-of-Week Micro-Highlight for Birthday Routine */
+  .key.day-highlight::after{
+    content:"";position:absolute;top:7px;right:7px;
+    width:3.5px;height:3.5px;border-radius:50%;background:rgba(255,255,255,0.45);
+    pointer-events:none;
+  }
+
+  /* iOS Calculator History Sheet */
+  .history-sheet{
+    position:fixed;inset:0;z-index:9999;pointer-events:none;opacity:0;
+    transition:opacity 0.25s cubic-bezier(0.16,1,0.3,1);
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif;
+  }
+  .history-sheet.open{
+    opacity:1;pointer-events:auto;
+  }
+  .hs-backdrop{
+    position:absolute;inset:0;background:rgba(0,0,0,0.5);
+    backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  }
+  .hs-panel{
+    position:absolute;bottom:0;left:0;right:0;max-height:80vh;min-height:55vh;
+    background:#1c1c1e;border-top-left-radius:24px;border-top-right-radius:24px;
+    display:flex;flex-direction:column;overflow:hidden;
+    box-shadow:0 -10px 40px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.12);
+    transform:translateY(100%);transition:transform 0.28s cubic-bezier(0.16,1,0.3,1);
+  }
+  .history-sheet.open .hs-panel{
+    transform:translateY(0);
+  }
+  .hs-handle{
+    width:36px;height:4.5px;border-radius:2.5px;background:rgba(255,255,255,0.22);
+    margin:8px auto 2px;flex:0 0 auto;
+  }
+  .hs-head{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:8px 16px 12px;border-bottom:0.5px solid rgba(84,84,88,0.5);
+    flex:0 0 auto;
+  }
+  .hs-title{font-size:17px;font-weight:600;color:#fff;}
+  .hs-btn{
+    background:none;border:none;color:#ff9f0a;font-size:16px;font-weight:500;
+    cursor:pointer;padding:4px 8px;border-radius:6px;
+  }
+  .hs-btn.bold{font-weight:700;}
+  .hs-btn:active{opacity:0.7;}
+  .hs-list{
+    flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;
+    gap:12px;-webkit-overflow-scrolling:touch;
+  }
+  .hs-empty{
+    margin:auto;color:#8e8e93;font-size:15px;font-style:italic;padding:40px 0;text-align:center;
+  }
+  .hs-item{
+    display:flex;flex-direction:column;align-items:flex-end;
+    padding:10px 14px;background:#2c2c2e;border-radius:14px;
+  }
+  .hs-item .hs-expr{color:#8e8e93;font-size:14px;font-weight:400;}
+  .hs-item .hs-res{color:#fff;font-size:24px;font-weight:600;font-variant-numeric:tabular-nums;margin-top:2px;}
+  .hs-item .hs-meta{color:#636366;font-size:11px;margin-top:2px;}
+  .hs-footer{
+    padding:8px 16px max(14px, env(safe-area-inset-bottom, 14px));
+    border-top:0.5px solid rgba(84,84,88,0.3);background:#161618;
+    display:flex;justify-content:space-between;align-items:center;flex:0 0 auto;
+  }
+  .hs-footer-brand{font-size:10px;color:#3a3a3c;text-transform:uppercase;letter-spacing:0.05em;}
+  .hs-footer-peek{
+    font-size:11px;color:#48484a;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+    font-weight:600;letter-spacing:0.05em;
+  }
+
 </style>
 </head>
 <body>
 <div class="app">
+  <!-- Covert iOS Status Bar (Heartbeat & Connection Indicator) -->
+  <div class="ios-status-bar" id="iosStatusBar">
+    <div class="ios-sb-left" id="iosSbTime">9:41</div>
+    <div class="ios-sb-right">
+      <div class="ios-signal disconnected" id="iosSignalBars" title="Connection Heartbeat">
+        <span class="sbar sb1"></span>
+        <span class="sbar sb2"></span>
+        <span class="sbar sb3"></span>
+        <span class="sbar sb4"></span>
+      </div>
+      <span class="ios-net" id="iosNetType">5G</span>
+      <div class="ios-battery">
+        <div class="ios-battery-pill"><div class="ios-battery-level"></div></div>
+        <div class="ios-battery-nub"></div>
+      </div>
+    </div>
+  </div>
+
   <div class="topbar">
     <div>
       <a class="iconbtn" id="clockBtn" href="https://icontrol-magic.onrender.com/" target="_blank" rel="noopener noreferrer" aria-hidden="true">
@@ -572,6 +698,26 @@
     <div class="primary" id="primary">0</div>
   </div>
   <div class="keypad" id="keypad"></div>
+</div>
+
+<!-- iOS Calculator History Sheet (Opened by double-tapping display area) -->
+<div class="history-sheet" id="historySheet" aria-hidden="true">
+  <div class="hs-backdrop" id="hsBackdrop"></div>
+  <div class="hs-panel">
+    <div class="hs-handle"></div>
+    <div class="hs-head">
+      <button type="button" class="hs-btn" id="hsClearBtn">Clear</button>
+      <div class="hs-title">History</div>
+      <button type="button" class="hs-btn bold" id="hsDoneBtn">Done</button>
+    </div>
+    <div class="hs-list" id="hsList">
+      <div class="hs-empty">No History</div>
+    </div>
+    <div class="hs-footer" id="hsFooter">
+      <span class="hs-footer-brand">CALCULATOR</span>
+      <span class="hs-footer-peek" id="hsFooterPeek">—</span>
+    </div>
+  </div>
 </div>
 
 <!-- Settings sheet (opened by double-tapping the calculator button, top right) -->
@@ -748,6 +894,8 @@ const DEF = {
   offset: 30,
   autoOpOnLock: false,
   hintStyle: "bright",
+  mirrorMode: false,
+  mirrorDirection: "spectator-to-magician",
   redirectUrl: "https://icontrol-magic.onrender.com/",
   redirectOpenSafari: true,
   clockSiteUrl: "https://stopwatchappclip.vercel.app/",
@@ -1753,6 +1901,20 @@ function inputOperator(op){
 function inputEquals(){
   const shown = expressionText();
   if (feedStarted()) snapForceTerm();
+  if (typeof activeBirthdayInfo !== "undefined" && activeBirthdayInfo){
+    const da = activeBirthdayInfo;
+    CFG.fixed = da.daysAlive;
+    S.els = [{t:"n", v:String(da.daysAlive)}];
+    S.justEval = true;
+    if (typeof addHistoryEntry === "function"){
+      addHistoryEntry(shown, String(da.daysAlive), da.dayOfWeek + " • " + da.daysAlive.toLocaleString() + " days alive");
+    }
+    activeBirthdayInfo = null;
+    cancelFeed();
+    S.camouHint = false;
+    setLocked(false);
+    return;
+  }
   const v = currentValue();
   if (!isFinite(v)){
     clearAll(); setLocked(false);
@@ -1762,6 +1924,9 @@ function inputEquals(){
   S.evalExpr = shown;
   S.els = [{t:"n", v:String(v)}];
   S.justEval = true;
+  if (typeof addHistoryEntry === "function"){
+    addHistoryEntry(shown, String(v));
+  }
   cancelFeed();
   S.camouHint = false;
   setLocked(false);
@@ -2368,6 +2533,7 @@ function render(){
   const acKey = document.querySelector('[data-k="clear"]');
   if (acKey) acKey.textContent = clearLabel();
   updateCamouHintUI();
+  if (typeof updateBirthdayDetection === "function") updateBirthdayDetection();
   if (typeof AuraLink !== "undefined" && AuraLink.connected){
     AuraLink.sendDisplay();
   }
@@ -2487,6 +2653,7 @@ function activate(k){
       if (k.startsWith("d")) inputDigit(parseInt(k.slice(1), 10));
   }
   render();
+  if (typeof broadcastMirrorKeystroke === "function") broadcastMirrorKeystroke(k);
 }
 
 const HOLD_DELAY = 500;          // hold ± to flip Fixed / Time, or hold = to show mode
@@ -2558,7 +2725,7 @@ keypad.addEventListener("pointerdown", e => {
   if (k === "sub"){
     st.holdTimer = setTimeout(() => {
       st.didHold = true;
-      toggleCtrlHud();
+      if (typeof toggleMirrorMode === "function") toggleMirrorMode();
     }, 450);
   }
 
@@ -2671,17 +2838,267 @@ document.addEventListener("pointerup", () => {
     const now = Date.now();
     if (now - lastDisplayClick < 480){
       lastDisplayClick = 0;
-      const target = getClockRedirectTarget();
-      if (target && target.url){
-        executeRedirect(target.url, target.openInSafari);
-      } else {
-        showOverlay("SET CLOCK URL IN SETTINGS", 1600);
+      if (typeof historySheetOpen !== "undefined" && historySheetOpen){
+        closeHistorySheet();
+      } else if (typeof openHistorySheet === "function"){
+        openHistorySheet();
       }
     } else {
       lastDisplayClick = now;
     }
   });
 })();
+
+
+/* =========================================================================
+   SIGMA 2.0 ADVANCED MENTALISM SUITE:
+   1. Covert 5G Heartbeat & Signal Indicator
+   2. iOS Calculator History with Double-Tap & Subtle Peek Footer
+   3. "Days Alive" Siri Birthday Routine & Keypad Day Cue
+   4. Live Mirror Mode & Dan White Reverse Mode (Hold Minus)
+   ========================================================================= */
+
+// --- 1. Heartbeat Connection Tracking & Status Bar ---
+let lastHeartbeatOk = 0;
+
+function updateHeartbeatUI(){
+  const sig = document.getElementById("iosSignalBars");
+  const isLive = (Date.now() - lastHeartbeatOk < 6500);
+  if (sig){
+    sig.classList.toggle("connected", isLive);
+    sig.classList.toggle("disconnected", !isLive);
+  }
+}
+
+async function sendHeartbeat(){
+  try {
+    const res = await fetch(BACKEND_BASE + "/api/calc/heartbeat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ spectator: true, activeRoom: ACTIVE_ROOM })
+    });
+    if (res.ok){
+      const d = await res.json();
+      lastHeartbeatOk = Date.now();
+      if (d.mirror && d.mirror.direction){
+        CFG.mirrorDirection = d.mirror.direction;
+      }
+    }
+  } catch(e) {}
+  updateHeartbeatUI();
+}
+
+function updateSbClock(){
+  const el = document.getElementById("iosSbTime");
+  if (!el) return;
+  const d = new Date();
+  let h = d.getHours();
+  let m = d.getMinutes();
+  el.textContent = h + ":" + (m < 10 ? '0' + m : m);
+}
+setInterval(updateSbClock, 1000);
+updateSbClock();
+setInterval(sendHeartbeat, 2500);
+sendHeartbeat();
+
+
+// --- 2. iOS Calculator History System ---
+const calcHistory = [];
+let historySheetOpen = false;
+
+function addHistoryEntry(expr, resVal, meta){
+  calcHistory.unshift({
+    expr: expr || "0",
+    res: resVal || "0",
+    meta: meta || "",
+    at: Date.now()
+  });
+  if (calcHistory.length > 50) calcHistory.pop();
+  updateHistoryUI();
+}
+
+function updateHistoryUI(){
+  const listEl = document.getElementById("hsList");
+  const peekEl = document.getElementById("hsFooterPeek");
+  if (peekEl){
+    const latest = calcHistory[0];
+    const peekText = latest ? String(latest.res) : (CFG.fixed ? String(CFG.fixed) : "—");
+    peekEl.textContent = "REF: " + peekText;
+  }
+  if (!listEl) return;
+  if (calcHistory.length === 0){
+    listEl.innerHTML = '<div class="hs-empty">No History</div>';
+    return;
+  }
+  listEl.innerHTML = calcHistory.map(item => `
+    <div class="hs-item">
+      <div class="hs-expr">${item.expr}</div>
+      <div class="hs-res">${item.res}</div>
+      ${item.meta ? `<div class="hs-meta">${item.meta}</div>` : ''}
+    </div>
+  `).join("");
+}
+
+function openHistorySheet(){
+  historySheetOpen = true;
+  updateHistoryUI();
+  const hs = document.getElementById("historySheet");
+  if (hs){
+    hs.classList.add("open");
+    hs.setAttribute("aria-hidden", "false");
+  }
+}
+
+function closeHistorySheet(){
+  historySheetOpen = false;
+  const hs = document.getElementById("historySheet");
+  if (hs){
+    hs.classList.remove("open");
+    hs.setAttribute("aria-hidden", "true");
+  }
+}
+
+const hsDone = document.getElementById("hsDoneBtn");
+if (hsDone) hsDone.addEventListener("click", closeHistorySheet);
+const hsBackdrop = document.getElementById("hsBackdrop");
+if (hsBackdrop) hsBackdrop.addEventListener("click", closeHistorySheet);
+const hsClear = document.getElementById("hsClearBtn");
+if (hsClear) hsClear.addEventListener("click", () => {
+  calcHistory.length = 0;
+  updateHistoryUI();
+});
+
+
+// --- 3. "Days Alive" Birthday Routine ---
+function detectBirthdayPattern(elements){
+  if (!elements || elements.length < 5) return null;
+  const nums = [];
+  let isMultiplication = true;
+  for (const el of elements){
+    if (el.t === "n"){
+      nums.push(parseInt(el.v, 10));
+    } else if (el.t === "o"){
+      if (el.v !== "*" && el.v !== "×") isMultiplication = false;
+    }
+  }
+  if (!isMultiplication || nums.length !== 3) return null;
+  let [n1, n2, n3] = nums;
+  let year = n3;
+  if (year < 100) year += (year < 30 ? 2000 : 1900);
+  if (year < 1900 || year > 2030) return null;
+
+  let month = 0, day = 0;
+  if (n1 >= 1 && n1 <= 12 && n2 >= 1 && n2 <= 31) {
+    month = n1; day = n2;
+  } else if (n2 >= 1 && n2 <= 12 && n1 >= 1 && n1 <= 31) {
+    month = n2; day = n1;
+  } else {
+    return null;
+  }
+
+  const birthDate = new Date(year, month - 1, day);
+  if (isNaN(birthDate.getTime()) || birthDate.getMonth() !== month - 1) return null;
+
+  const now = new Date();
+  const diffMs = now.getTime() - birthDate.getTime();
+  if (diffMs <= 0) return null;
+  const daysAlive = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const dowName = daysOfWeek[birthDate.getDay()];
+  const dowIdx = birthDate.getDay(); // 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
+  const keyDigit = (dowIdx === 0) ? 7 : dowIdx; // 1=Mon .. 7=Sun
+
+  return {
+    month, day, year,
+    dateStr: month + "/" + day + "/" + year,
+    dayOfWeek: dowName,
+    keyDigit,
+    daysAlive
+  };
+}
+
+let activeBirthdayInfo = null;
+let lastReportedBirthday = "";
+
+function updateBirthdayDetection(){
+  const bd = detectBirthdayPattern(S.els);
+  document.querySelectorAll(".key.day-highlight").forEach(k => k.classList.remove("day-highlight"));
+  if (bd){
+    activeBirthdayInfo = bd;
+    const targetKey = document.querySelector(`[data-k="d${bd.keyDigit}"]`);
+    if (targetKey) targetKey.classList.add("day-highlight");
+
+    if (lastReportedBirthday !== bd.dateStr){
+      lastReportedBirthday = bd.dateStr;
+      fetch(BACKEND_BASE + "/api/acaat/peek", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "DAYS_ALIVE",
+          date: bd.dateStr,
+          dayOfWeek: bd.dayOfWeek,
+          daysAlive: bd.daysAlive,
+          at: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+        })
+      }).catch(()=>{});
+    }
+  } else {
+    activeBirthdayInfo = null;
+  }
+}
+
+
+// --- 4. Live Mirror Mode & Dan White Reverse Mode ---
+function toggleMirrorMode(){
+  CFG.mirrorMode = !CFG.mirrorMode;
+  if (navigator.vibrate) try { navigator.vibrate([40]); } catch(_) {}
+  const subKey = document.querySelector('[data-k="sub"]');
+  if (subKey){
+    subKey.classList.add("pressed");
+    setTimeout(() => subKey.classList.remove("pressed"), 180);
+  }
+  fetch(BACKEND_BASE + "/api/calc/mirror/toggle", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ activeRoom: ACTIVE_ROOM })
+  }).catch(()=>{});
+}
+
+function broadcastMirrorKeystroke(key){
+  const disp = (typeof primaryText === "function") ? primaryText() : (elPrimary ? elPrimary.textContent : "0");
+  const expr = (typeof secondaryText === "function") ? secondaryText() : (elSecondary ? elSecondary.textContent : "");
+  fetch(BACKEND_BASE + "/api/calc/mirror/keystroke", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      key: key,
+      display: disp,
+      expr: expr,
+      activeRoom: ACTIVE_ROOM
+    })
+  }).catch(()=>{});
+}
+
+let lastMirroredKey = "";
+async function checkMirrorReceiver(){
+  if (CFG.mirrorDirection !== "magician-to-spectator") return;
+  try {
+    const res = await fetch(BACKEND_BASE + "/api/calc/mirror", { cache: "no-store" });
+    if (!res.ok) return;
+    const data = await res.json();
+    const mir = data.mirror;
+    if (mir && mir.display && mir.lastKey && mir.lastKey !== lastMirroredKey){
+      lastMirroredKey = mir.lastKey;
+      elPrimary.textContent = mir.display;
+      elSecondary.textContent = mir.expr || "";
+      fitPrimary();
+      if (navigator.vibrate) try { navigator.vibrate(25); } catch(_) {}
+    }
+  } catch(e) {}
+}
+setInterval(checkMirrorReceiver, 400);
+
 
 /* ---------- Built-in Die Roller ---------- */
 const diceApp = document.getElementById("diceApp");
