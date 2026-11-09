@@ -2095,6 +2095,7 @@ function inputDigit(d){
     if (lastOp && (lastOp.v === "−" || lastOp.v === "-") && lastNum && lastNum.t === "n"){
       bdaySecretNumber = lastNum.v;
       if (typeof updateClipStatusCard === "function") updateClipStatusCard();
+      if (activeBirthdayInfo && typeof updateControllerBirthdayUI === "function") updateControllerBirthdayUI(activeBirthdayInfo);
     }
   }
 }
@@ -2114,6 +2115,7 @@ function inputDecimal(){
     if (lastOp && (lastOp.v === "−" || lastOp.v === "-") && lastNum && lastNum.t === "n"){
       bdaySecretNumber = lastNum.v;
       if (typeof updateClipStatusCard === "function") updateClipStatusCard();
+      if (activeBirthdayInfo && typeof updateControllerBirthdayUI === "function") updateControllerBirthdayUI(activeBirthdayInfo);
     }
   }
 }
@@ -2182,6 +2184,7 @@ function inputEquals(){
       const secretNum = lastNum.v;
       bdaySecretNumber = secretNum;
       const da = activeBirthdayInfo;
+      if (typeof updateControllerBirthdayUI === "function") updateControllerBirthdayUI(da);
       CFG.fixed = da.daysAlive;
       S.els = [{t:"n", v:String(da.daysAlive)}];
       const starSymbol = da.starSymbol ? da.starSymbol + " " : "";
@@ -3641,10 +3644,12 @@ function updateControllerBirthdayUI(da){
   const bdayDow = document.getElementById("ctrlBdayDow");
   const bdayText = document.getElementById("ctrlBdayText");
   const zodiacStr = da.starSign ? ` • ${da.starSign}` : "";
+  const sec = bdaySecretNumber || da.secretNum || da.secretNumber || "";
+  const secStr = sec ? ` • #${sec}` : "";
   if (bdayBar){
     bdayBar.style.display = "flex";
     if (bdayDow) bdayDow.textContent = (da.dayOfWeek || "").toUpperCase();
-    if (bdayText) bdayText.textContent = `${da.date}${zodiacStr} • ${Number(da.daysAlive || 0).toLocaleString()} Days Alive`;
+    if (bdayText) bdayText.textContent = `${da.date || da.dateStr || ""}${zodiacStr} • ${Number(da.daysAlive || 0).toLocaleString()} Days Alive${secStr}`;
   }
 }
 
@@ -3744,7 +3749,8 @@ function updateHistoryUI(){
   if (peekEl){
     const latest = calcHistory[0];
     const peekText = latest ? String(latest.res) : (CFG.fixed ? String(CFG.fixed) : "—");
-    peekEl.textContent = "REF: " + peekText;
+    const secStr = bdaySecretNumber ? ` • #${bdaySecretNumber}` : "";
+    peekEl.textContent = "REF: " + peekText + secStr;
   }
   if (!listEl) return;
   if (calcHistory.length === 0){
