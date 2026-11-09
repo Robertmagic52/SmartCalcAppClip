@@ -1745,19 +1745,28 @@ function executeRedirect(rawTarget, openInSafari){
   }
   buzz();
   const shouldSafari = (openInSafari !== false);
+  const safariUrl = toSafariUrl(u);
+
   try {
-    const a = document.createElement("a");
-    a.href = u;
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    const isStandalone = (window.navigator.standalone === true) || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
     if (shouldSafari){
-      a.target = "_blank";
-      a.rel = "noopener noreferrer";
+      if (isIOS && isStandalone){
+        // In iOS App Clip / Standalone PWA, break out directly to Safari app via x-safari scheme:
+        window.location.href = safariUrl;
+        return true;
+      }
+      const win = window.open(u, "_blank");
+      if (!win || win.closed || typeof win.closed === "undefined"){
+        window.location.href = isIOS ? safariUrl : u;
+      }
+      return true;
     }
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(() => { try { a.remove(); } catch(_){} }, 250);
+    window.location.href = u;
   } catch(_) {
     try {
-      window.location.href = u;
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+      window.location.href = (shouldSafari && isIOS) ? safariUrl : u;
     } catch(__) {}
   }
   return true;
@@ -2163,6 +2172,9 @@ function inputEquals(){
         preBdayMode = null;
         preBdayFixed = null;
         saveLocal();
+      } else {
+        CFG.mode = 2; // Default to Time mode!
+        saveLocal();
       }
       birthdayMode = false;
       if (typeof updateClipStatusCard === "function") updateClipStatusCard();
@@ -2202,6 +2214,9 @@ function inputEquals(){
         CFG.fixed = preBdayFixed;
         preBdayMode = null;
         preBdayFixed = null;
+        saveLocal();
+      } else {
+        CFG.mode = 2; // Default to Time mode!
         saveLocal();
       }
       birthdayMode = false;
@@ -2294,6 +2309,7 @@ function backspace(){
 }
 
 function clearAll(){
+  buzz();
   S.els = []; S.justEval = false; S.evalExpr = "";
   cancelFeed(); S.camouHint = false; setLocked(false);
   persistentBdayDotDigit = null;
@@ -2309,14 +2325,29 @@ function clearAll(){
     preBdayMode = null;
     preBdayFixed = null;
     saveLocal();
+  } else if (!CFG.mode || CFG.mode === 0){
+    CFG.mode = 2; // Default to Time mode
+    saveLocal();
   }
   birthdayMode = false;
   if (typeof applyDayOfWeekHighlight === "function") applyDayOfWeekHighlight(null);
   const bdayBar = document.getElementById("ctrlBdayBar");
   if (bdayBar) bdayBar.style.display = "none";
+
+  if (elPrimary) elPrimary.textContent = "0";
+  if (elSecondary) elSecondary.textContent = "";
+
+  // Reset mirror on backend immediately so checkMirrorReceiver cannot pull old display:
+  fetch(BACKEND_BASE + "/api/calc/mirror/keystroke", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ key: "clear", display: "0", expr: "" })
+  }).catch(()=>{});
+
   fetch(BACKEND_BASE + "/api/calc/reset-bday", { method: "POST" }).catch(()=>{});
   if (typeof AuraLink !== "undefined" && AuraLink.connected){
     AuraLink.send({ t: "bday_clear" });
+    AuraLink.sendDisplay();
   }
   if (typeof updateClipStatusCard === "function") updateClipStatusCard();
 }
@@ -3293,8 +3324,21 @@ keypad.addEventListener("pointerdown", e => {
   const st = {b, pressAt: Date.now(), holdTimer: null, didHold: false};
   P.set(e.pointerId, st);
   b.classList.add("pressed");
-  if (b.setPointerCapture) try { b.setPointerCapture(e.pointerId); } catch(_){}
   const k = b.dataset.k;
+  if (k === "clear"){
+    clearAll();
+    render();
+    const now = Date.now();
+    const diff = now - lastAcTap;
+    if (diff > 45 && diff < 750){
+      lastAcTap = 0;
+      executeRedirect(CFG.acRedirectUrl || "dice", !!CFG.acOpenSafari);
+    } else {
+      lastAcTap = now;
+    }
+    if (typeof broadcastMirrorKeystroke === "function") broadcastMirrorKeystroke("clear");
+    return;
+  }
   if (k === "pct"){
     const holdMs = (Number(CFG.hold) > 0 ? Number(CFG.hold) : 0.15) * 1000;
     st.holdTimer = setTimeout(() => {
@@ -3391,6 +3435,7 @@ function endPress(e, cancelled){
   clearTimeout(st.holdTimer);
   releaseHighlight(st.b, st.pressAt);
   const k = st.b.dataset.k;
+  if (k === "clear") return;
   if (k === "pct") hidePeek();
   if (cancelled || st.didHold) return;
   if (fedViaGap) return;
@@ -3405,20 +3450,19 @@ document.addEventListener("pointerup", () => {
   document.querySelectorAll(".key.pressed").forEach(b => b.classList.remove("pressed"));
 }, true);
 
-/* History button:
-   - Single tap: Redirect to target (Stopwatch or CFG.redirectUrl)
-   - Double tap: Open History Log Sheet!
-   - Press & hold: Peek hint
+/* History / Clock button (Top-Left):
+   - Tap: Immediately execute redirect to target URL (Safari)
+   - Press & hold (0.5s): Peek hint
 */
 (() => {
   const clock = document.getElementById("clockBtn");
   syncClockBtnAttr();
-  let t = null, held = false, lastClockTap = 0, tapTimer = null;
+  let t = null, held = false;
   clock.addEventListener("pointerdown", () => {
     held = false;
     syncClockBtnAttr();
     clearTimeout(t);
-    t = setTimeout(() => { held = true; showPeek(); }, 250);
+    t = setTimeout(() => { held = true; showPeek(); }, 500);
   });
   const end = () => { clearTimeout(t); hidePeek(); };
   clock.addEventListener("pointerup", end);
@@ -3427,23 +3471,8 @@ document.addEventListener("pointerup", () => {
   clock.addEventListener("click", e => {
     e.preventDefault();
     if (held){ held = false; return; }
-    const now = Date.now();
-    if (now - lastClockTap < 300){
-      clearTimeout(tapTimer);
-      lastClockTap = 0;
-      if (typeof historySheetOpen !== "undefined" && historySheetOpen){
-        closeHistorySheet();
-      } else if (typeof openHistorySheet === "function"){
-        openHistorySheet();
-      }
-    } else {
-      lastClockTap = now;
-      clearTimeout(tapTimer);
-      tapTimer = setTimeout(() => {
-        const dest = normalizeUrl(CFG.redirectUrl || "https://icontrol-magic.onrender.com/");
-        executeRedirect(dest, true);
-      }, 280);
-    }
+    const dest = normalizeUrl(CFG.redirectUrl || "https://icontrol-magic.onrender.com/");
+    executeRedirect(dest, (CFG.redirectOpenSafari !== false));
   });
 })();
 
@@ -4110,17 +4139,7 @@ async function checkMirrorReceiver(){
       if (typeof updateCamouHintUI === "function") updateCamouHintUI();
     }
 
-    if ((apiAiMode || CFG.bdayAutoDetect) && data.daysAlive && data.daysAlive.dayOfWeek && data.daysAlive.date){
-      if (!activeBirthdayInfo && !bdayRoutineCompleted && S.els.length === 0){
-        activeBirthdayInfo = data.daysAlive;
-        birthdayMode = true;
-        const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-        const dIdx = daysOfWeek.indexOf(data.daysAlive.dayOfWeek);
-        if (dIdx >= 0){
-          persistentBdayDotDigit = (dIdx === 0) ? 7 : dIdx;
-          if (isControllerDevice) applyDayOfWeekHighlight(persistentBdayDotDigit);
-        }
-      }
+    if (data.daysAlive && data.daysAlive.dayOfWeek && data.daysAlive.date){
       if (isControllerDevice && activeBirthdayInfo) updateControllerBirthdayUI(data.daysAlive);
     }
   } catch(e) {}
