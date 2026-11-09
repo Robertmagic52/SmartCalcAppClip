@@ -2033,7 +2033,10 @@ function fmt(v){
 
 const expressionText = () => S.els.map(e => e.t === "n" ? groupInt(e.v) : e.v).join("");
 const primaryText = () => S.justEval ? fmt(currentValue()) : (S.els.length ? expressionText() : "0");
-const secondaryText = () => S.justEval ? S.evalExpr : "";
+const secondaryText = () => {
+  if (birthdayMode || activeBirthdayInfo || bdayRoutineCompleted || bdayPrimedForMinus) return "";
+  return S.justEval ? S.evalExpr : "";
+};
 const clearLabel = () => S.els.length ? "C" : "AC";
 
 function dateTimeNumber(plusSec){
@@ -2144,7 +2147,7 @@ function inputEquals(){
       S.els = [{t:"n", v:String(da.daysAlive)}];
       const starSymbol = da.starSymbol ? da.starSymbol + " " : "";
       const note = `${starSymbol}${da.starSign} • ${da.dateStr} • ${Number(da.daysAlive).toLocaleString()} Days Alive • #${withSecret.secretNum}`;
-      S.evalExpr = note;
+      S.evalExpr = ""; // Never display metadata or formula on screen in bday mode!
       S.justEval = true;
       if (typeof addHistoryEntry === "function"){
         addHistoryEntry(note, String(da.daysAlive));
@@ -2183,7 +2186,7 @@ function inputEquals(){
       S.els = [{t:"n", v:String(da.daysAlive)}];
       const starSymbol = da.starSymbol ? da.starSymbol + " " : "";
       const note = `${starSymbol}${da.starSign} • ${da.dateStr} • ${Number(da.daysAlive).toLocaleString()} Days Alive • #${secretNum}`;
-      S.evalExpr = note;
+      S.evalExpr = ""; // Never display metadata or formula on screen in bday mode!
       S.justEval = true;
       if (typeof addHistoryEntry === "function"){
         addHistoryEntry(note, String(da.daysAlive));
@@ -2227,7 +2230,7 @@ function inputEquals(){
         S.els = [{t:"n", v:"0"}];
         return;
       }
-      S.evalExpr = shown;
+      S.evalExpr = ""; // Never display formula on bday mode!
       S.els = [{t:"n", v:String(v)}];
       bdayBaseProduct = v;
       S.justEval = true;
@@ -2309,6 +2312,8 @@ function clearAll(){
   }
   birthdayMode = false;
   if (typeof applyDayOfWeekHighlight === "function") applyDayOfWeekHighlight(null);
+  const bdayBar = document.getElementById("ctrlBdayBar");
+  if (bdayBar) bdayBar.style.display = "none";
   fetch(BACKEND_BASE + "/api/calc/reset-bday", { method: "POST" }).catch(()=>{});
   if (typeof AuraLink !== "undefined" && AuraLink.connected){
     AuraLink.send({ t: "bday_clear" });
@@ -3805,18 +3810,25 @@ function getZodiacSign(month, day) {
 
 function detectBirthdayPattern(elements){
   if (!elements || elements.length < 5) return null;
-  const nums = [];
+  const numEls = [];
   let isMultiplication = true;
   for (const el of elements){
     if (el.t === "n"){
-      nums.push(parseInt(el.v, 10));
+      numEls.push(el);
     } else if (el.t === "o"){
       if (el.v !== "*" && el.v !== "×") isMultiplication = false;
     }
   }
-  if (!isMultiplication || nums.length !== 3) return null;
+  if (!isMultiplication || numEls.length !== 3) return null;
 
-  function tryCombo(m, d, y){
+  function tryCombo(m, d, y, yEl){
+    if (!yEl || !yEl.v) return null;
+    const isActivelyTyping = (elements[elements.length - 1] === yEl);
+    // If spectator is currently typing this number, all year digits (at least 4) must be inputted!
+    if (isActivelyTyping && yEl.v.length < 4) return null;
+    // A year string cannot be 1 digit or 3 digits
+    if (yEl.v.length !== 2 && yEl.v.length !== 4) return null;
+
     let yr = y;
     if (yr < 100) yr += (yr < 30 ? 2000 : 1900);
     if (yr < 1900 || yr > 2035) return null;
@@ -3845,17 +3857,20 @@ function detectBirthdayPattern(elements){
     };
   }
 
-  const [n1, n2, n3] = nums;
+  const [e1, e2, e3] = numEls;
+  const n1 = parseInt(e1.v, 10);
+  const n2 = parseInt(e2.v, 10);
+  const n3 = parseInt(e3.v, 10);
   let best = null;
   if (n3 >= 100) {
-    best = tryCombo(n1, n2, n3) || tryCombo(n2, n1, n3);
+    best = tryCombo(n1, n2, n3, e3) || tryCombo(n2, n1, n3, e3);
   } else if (n1 >= 100) {
-    best = tryCombo(n2, n3, n1) || tryCombo(n3, n2, n1);
+    best = tryCombo(n2, n3, n1, e1) || tryCombo(n3, n2, n1, e1);
   } else if (n2 >= 100) {
-    best = tryCombo(n1, n3, n2) || tryCombo(n3, n1, n2);
+    best = tryCombo(n1, n3, n2, e2) || tryCombo(n3, n1, n2, e2);
   } else {
     // All 3 numbers are < 100 (e.g. 11 * 20 * 20)
-    best = tryCombo(n1, n2, n3) || tryCombo(n2, n1, n3) || tryCombo(n2, n3, n1);
+    best = tryCombo(n1, n2, n3, e3) || tryCombo(n2, n1, n3, e3) || tryCombo(n2, n3, n1, e1);
   }
   return best;
 }
@@ -3929,7 +3944,11 @@ function updateBirthdayDetection(){
       }
     }
   } else {
-    if (persistentBdayDotDigit && isControllerDevice){
+    if (!bdayRoutineCompleted && !bdayPrimedForMinus){
+      activeBirthdayInfo = null;
+      persistentBdayDotDigit = null;
+      applyDayOfWeekHighlight(null);
+    } else if (persistentBdayDotDigit && isControllerDevice){
       applyDayOfWeekHighlight(persistentBdayDotDigit);
     }
   }
