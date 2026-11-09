@@ -3276,7 +3276,7 @@ async function sendHeartbeat(){
       controller: isCtrl,
       battery: detectedBatteryLevel
     };
-    if (activeBirthdayInfo) payload.daysAlive = activeBirthdayInfo;
+    if (apiAiMode && birthdayMode && activeBirthdayInfo) payload.daysAlive = activeBirthdayInfo;
     const res = await fetch(BACKEND_BASE + "/api/calc/heartbeat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
