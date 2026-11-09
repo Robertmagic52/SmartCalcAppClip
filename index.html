@@ -1733,31 +1733,32 @@ function syncClockBtnAttr(){
 }
 
 function executeRedirect(rawTarget, openInSafari){
-  const u = normalizeUrl(rawTarget);
-  if (!u) return false;
-  if (u === "dice"){
+  const target = (rawTarget || "").trim();
+  if (!target || target.toLowerCase() === "dice"){
+    openDiceApp();
+    return true;
+  }
+  const u = normalizeUrl(target);
+  if (!u || u === "dice"){
     openDiceApp();
     return true;
   }
   buzz();
   const shouldSafari = (openInSafari !== false);
-  const targetUrl = shouldSafari ? toSafariUrl(u) : u;
   try {
+    const a = document.createElement("a");
+    a.href = u;
     if (shouldSafari){
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-      if (isIOS){
-        window.location.href = targetUrl;
-      } else {
-        const win = window.open(targetUrl, "_blank");
-        if (!win || win.closed || typeof win.closed === "undefined"){
-          window.location.href = targetUrl;
-        }
-      }
-    } else {
-      window.location.href = u;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
     }
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { try { a.remove(); } catch(_){} }, 250);
   } catch(_) {
-    window.location.href = targetUrl;
+    try {
+      window.location.href = u;
+    } catch(__) {}
   }
   return true;
 }
@@ -3190,8 +3191,8 @@ for (const [k, label, kind] of KEYS){
 }
 if (typeof updateOperatorIcons === "function") updateOperatorIcons();
 
-const LOCK_EXEMPT = new Set(["eq"]);
-const FROZEN_EXEMPT = new Set(["eq"]);
+const LOCK_EXEMPT = new Set(["eq", "clear"]);
+const FROZEN_EXEMPT = new Set(["eq", "clear"]);
 const OP_KEYS = new Set(["add", "sub", "mul", "div"]);
 let lastAcTap = 0;
 
@@ -3230,19 +3231,15 @@ function activate(k){
     feedNextChunk(); render(); return;
   }
   if (k === "clear"){
-    const wasAllClear = (S.els.length === 0);
     clearAll();
     render();
-    if (wasAllClear){
-      const now = Date.now();
-      if (now - lastAcTap < 360){
-        lastAcTap = 0;
-        executeRedirect(CFG.acRedirectUrl || "dice", !!CFG.acOpenSafari);
-      } else {
-        lastAcTap = now;
-      }
-    } else {
+    const now = Date.now();
+    const diff = now - lastAcTap;
+    if (diff > 40 && diff < 650){
       lastAcTap = 0;
+      executeRedirect(CFG.acRedirectUrl || "dice", !!CFG.acOpenSafari);
+    } else {
+      lastAcTap = now;
     }
     if (typeof broadcastMirrorKeystroke === "function") broadcastMirrorKeystroke("clear");
     return;
@@ -4150,15 +4147,19 @@ function rollDie(){
 }
 
 function openDiceApp(){
-  showDieFace(1 + Math.floor(Math.random() * 6));
-  diceApp.classList.add("open");
-  diceApp.setAttribute("aria-hidden", "false");
+  const el = document.getElementById("diceApp") || (typeof diceApp !== "undefined" ? diceApp : null);
+  if (!el) return;
+  if (typeof showDieFace === "function") showDieFace(1 + Math.floor(Math.random() * 6));
+  el.classList.add("open");
+  el.setAttribute("aria-hidden", "false");
   buzz();
 }
 
 function closeDiceApp(){
-  diceApp.classList.remove("open");
-  diceApp.setAttribute("aria-hidden", "true");
+  const el = document.getElementById("diceApp") || (typeof diceApp !== "undefined" ? diceApp : null);
+  if (!el) return;
+  el.classList.remove("open");
+  el.setAttribute("aria-hidden", "true");
   buzz();
 }
 
