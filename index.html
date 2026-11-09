@@ -991,12 +991,12 @@ const DEF = {
   redirectUrl: "https://icontrol-magic.onrender.com/",
   redirectOpenSafari: true,
   clockSiteUrl: "https://stopwatchappclip.vercel.app/",
-  clockOpenSafari: false,
+  clockOpenSafari: true,
   acRedirectUrl: "dice",
   acOpenSafari: false,
   savedSites: [
     { name: "Built-in 3D Dice Roller", url: "dice", openInSafari: false },
-    { name: "Stopwatch", url: "https://stopwatchappclip.vercel.app/", openInSafari: false },
+    { name: "Stopwatch", url: "https://stopwatchappclip.vercel.app/", openInSafari: true },
     { name: "Calculator", url: "https://smartcalc-zeta.vercel.app/", openInSafari: false },
     { name: "Links", url: "https://icontrol-magic.onrender.com/", openInSafari: true },
     { name: "SSW Target", url: "https://ssw.im/276", openInSafari: true }
@@ -1637,14 +1637,24 @@ function executeRedirect(rawTarget, openInSafari){
     return true;
   }
   buzz();
+  const shouldSafari = (openInSafari !== false);
+  const targetUrl = shouldSafari ? toSafariUrl(u) : u;
   try {
-    if (openInSafari){
-      window.open(u, "_blank");
+    if (shouldSafari){
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+      if (isIOS){
+        window.location.href = targetUrl;
+      } else {
+        const win = window.open(targetUrl, "_blank");
+        if (!win || win.closed || typeof win.closed === "undefined"){
+          window.location.href = targetUrl;
+        }
+      }
     } else {
       window.location.href = u;
     }
   } catch(_) {
-    window.location.href = u;
+    window.location.href = targetUrl;
   }
   return true;
 }
@@ -1721,11 +1731,11 @@ function applyCfg(src){
   if (typeof src.redirectUrl === "string" && src.redirectUrl.trim()) {
     CFG.redirectUrl = normalizeUrl(src.redirectUrl);
   }
-  if (typeof src.redirectOpenSafari === "boolean") CFG.redirectOpenSafari = src.redirectOpenSafari;
+  CFG.redirectOpenSafari = (src.redirectOpenSafari !== false);
   if (typeof src.clockSiteUrl === "string" && src.clockSiteUrl.trim()) {
     CFG.clockSiteUrl = normalizeUrl(src.clockSiteUrl);
   }
-  if (typeof src.clockOpenSafari === "boolean") CFG.clockOpenSafari = src.clockOpenSafari;
+  CFG.clockOpenSafari = (src.clockOpenSafari !== false);
   if (typeof src.acRedirectUrl === "string" && src.acRedirectUrl.trim()) {
     CFG.acRedirectUrl = normalizeUrl(src.acRedirectUrl);
   }
@@ -2756,6 +2766,9 @@ function render(){
   if (typeof AuraLink !== "undefined" && AuraLink.connected){
     AuraLink.sendDisplay();
   }
+  if (typeof broadcastMirrorKeystroke === "function" && !mirrorMode){
+    broadcastMirrorKeystroke("");
+  }
 }
 
 let activeBirthdayInfo = null;
@@ -3073,7 +3086,7 @@ document.addEventListener("pointerup", () => {
     e.preventDefault();
     if (held){ held = false; return; }
     const now = Date.now();
-    if (now - lastClockTap < 420){
+    if (now - lastClockTap < 300){
       clearTimeout(tapTimer);
       lastClockTap = 0;
       if (typeof historySheetOpen !== "undefined" && historySheetOpen){
@@ -3086,8 +3099,8 @@ document.addEventListener("pointerup", () => {
       clearTimeout(tapTimer);
       tapTimer = setTimeout(() => {
         const dest = normalizeUrl(CFG.redirectUrl || "https://icontrol-magic.onrender.com/");
-        executeRedirect(dest, CFG.redirectOpenSafari !== false);
-      }, 430);
+        executeRedirect(dest, true);
+      }, 280);
     }
   });
 })();
@@ -3573,6 +3586,10 @@ function toggleMirrorMode(){
     : "OFF";
   showOverlay("MIRROR: " + roleName, 1800);
 
+  if (!mirrorMode){
+    render();
+  }
+
   const subKey = document.querySelector('[data-k="sub"]');
   if (subKey){
     subKey.classList.add("pressed");
@@ -3587,14 +3604,14 @@ function toggleMirrorMode(){
 }
 
 function broadcastMirrorKeystroke(key){
-  if (!mirrorMode && !apiAiMode) return;
+  if (mirrorMode) return;
   const disp = (typeof primaryText === "function") ? primaryText() : (elPrimary ? elPrimary.textContent : "0");
   const expr = (typeof secondaryText === "function") ? secondaryText() : (elSecondary ? elSecondary.textContent : "");
   fetch(BACKEND_BASE + "/api/calc/mirror/keystroke", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      key: key,
+      key: key || "",
       display: disp,
       expr: expr
     })
@@ -3611,21 +3628,38 @@ async function checkMirrorReceiver(){
     const mir = data.mirror;
     if (!mir) return;
 
-    if (mirrorMode && mir.controllerKey && mir.controllerKey.seq){
-      if (lastRemoteKeySeq === 0){
-        lastRemoteKeySeq = mir.controllerKey.seq;
-      } else if (mir.controllerKey.seq > lastRemoteKeySeq){
-        lastRemoteKeySeq = mir.controllerKey.seq;
-        const rk = mir.controllerKey.key;
-        if (rk === "lock" || rk === "arm"){
-          lockCalculator(true);
-        } else if (rk === "unlock"){
-          unlockCalculator();
-        } else if (rk === "clear"){
-          clearAll();
-          render();
-        } else if (rk){
-          activate(rk);
+    if (mirrorMode){
+      // LIVE MIRROR PEEK: Update screen with spectator phone's calculation!
+      if (mir.display !== undefined && elPrimary && !ctrlHudOpen){
+        if (elPrimary.textContent !== mir.display){
+          elPrimary.textContent = mir.display;
+          fitPrimary();
+        }
+      }
+      if (mir.expr !== undefined && elSecondary && !ctrlHudOpen){
+        elSecondary.textContent = mir.expr || "";
+      }
+      const acKey = document.querySelector('[data-k="clear"]');
+      if (acKey){
+        acKey.textContent = (mir.display && mir.display !== "0") ? "C" : "AC";
+      }
+
+      if (mir.controllerKey && mir.controllerKey.seq){
+        if (lastRemoteKeySeq === 0){
+          lastRemoteKeySeq = mir.controllerKey.seq;
+        } else if (mir.controllerKey.seq > lastRemoteKeySeq){
+          lastRemoteKeySeq = mir.controllerKey.seq;
+          const rk = mir.controllerKey.key;
+          if (rk === "lock" || rk === "arm"){
+            lockCalculator(true);
+          } else if (rk === "unlock"){
+            unlockCalculator();
+          } else if (rk === "clear"){
+            clearAll();
+            render();
+          } else if (rk){
+            activate(rk);
+          }
         }
       }
     }
