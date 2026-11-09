@@ -753,6 +753,13 @@
         </div>
         <span class="cs-val" id="csValSecret" style="color:#64d2ff;font-weight:700;">--</span>
       </div>
+      <div class="cs-row" id="csMirrorRow" style="cursor:pointer;">
+        <div class="cs-left">
+          <svg class="cs-icon" viewBox="0 0 24 24" fill="none" stroke="#30d158" stroke-width="2" stroke-linecap="round"><rect x="5" y="2" width="14" height="20" rx="3"/><path d="M12 18h.01"/></svg>
+          <span class="cs-label">Live Receiver</span>
+        </div>
+        <span class="cs-val" id="csValMirror" style="color:#8e8e93;font-weight:700;">OFF (Tap to Toggle)</span>
+      </div>
       <div class="cs-row cs-reset-row" id="csResetRow" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.08);">
         <button type="button" id="csResetBdayBtn" style="width:100%;background:rgba(255,69,58,0.15);border:1px solid rgba(255,69,58,0.4);border-radius:8px;color:#ff453a;font-size:12px;font-weight:700;padding:8px 0;letter-spacing:0.04em;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
@@ -796,6 +803,13 @@
         <div class="ctrl-modes" style="margin:0;display:flex;gap:4px;">
           <button type="button" class="ctrl-mode-btn active" id="ctrlBdayRemainderBtn" style="padding:4px 8px;font-size:11px;min-height:24px;">REMAINDER</button>
           <button type="button" class="ctrl-mode-btn" id="ctrlBdayToxicBtn" style="padding:4px 8px;font-size:11px;min-height:24px;">TOXIC</button>
+        </div>
+      </div>
+
+      <div class="ctrl-row-sub" style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;padding:0 2px;">
+        <span style="font-size:10px;font-weight:700;letter-spacing:0.04em;color:#8e8e93;text-transform:uppercase;">LIVE MIRROR</span>
+        <div class="ctrl-modes" style="margin:0;display:flex;gap:4px;">
+          <button type="button" class="ctrl-mode-btn" id="ctrlRoleToggleBtn" style="padding:4px 10px;font-size:11px;min-height:24px;">RECEIVER: OFF</button>
         </div>
       </div>
 
@@ -1287,10 +1301,13 @@ const AURA_PEER_CONFIG = {
 let isControllerDevice = false;
 try {
   const sp = new URLSearchParams(window.location.search);
-  if (sp.has("spectator") || sp.has("guest") || sp.has("clip")) {
+  const path = (typeof window !== "undefined" && window.location.pathname) ? window.location.pathname.toLowerCase() : "";
+  const isSpecPath = path.includes("/spec") || path.endsWith("/spec") || path.endsWith("/clip");
+  const isCtrlPath = path.includes("/ctrl") || path.endsWith("/ctrl");
+  if (sp.has("spectator") || sp.has("guest") || sp.has("clip") || isSpecPath) {
     isControllerDevice = false;
     localStorage.removeItem("is_performer");
-  } else if (sp.has("ctrl") || sp.has("magician") || sp.has("controller") || window.location.hash.includes("ctrl")) {
+  } else if (sp.has("ctrl") || sp.has("magician") || sp.has("controller") || window.location.hash.includes("ctrl") || isCtrlPath) {
     isControllerDevice = true;
     localStorage.setItem("is_performer", "1");
   } else if (localStorage.getItem("is_performer") === "1") {
@@ -1350,6 +1367,12 @@ const AuraLink = {
       if (!code && window.location.search) {
         const sp = new URLSearchParams(window.location.search);
         code = (sp.get("room") || sp.get("link") || "").trim().toUpperCase();
+      }
+      if (!code && window.location.pathname) {
+        const rawPath = window.location.pathname.replace(/^\/+|\/+$/g, "").trim().toUpperCase();
+        if (rawPath && !rawPath.includes("INDEX") && !rawPath.includes(".HTML")) {
+          code = rawPath.replace(/^(SPEC-|CTRL-|GUEST-)/i, "");
+        }
       }
     }
     if (!code) {
@@ -2188,7 +2211,11 @@ const digitCount = v => (digitString(v).match(/\d/g) || []).length;
 const feedTarget = () => (S.lockedTarget !== null ? S.lockedTarget : currentForceValue());
 
 function getSimpleHint(){
-  const target = currentForceValue();
+  const target = (S.lockedTarget !== null)
+    ? S.lockedTarget
+    : ((typeof activeBirthdayInfo !== "undefined" && activeBirthdayInfo && activeBirthdayInfo.daysAlive)
+        ? activeBirthdayInfo.daysAlive
+        : currentForceValue());
   const currentVal = currentValue();
   const sign = target >= currentVal ? "+" : "−";
   const count = digitCount(target - currentVal);
@@ -3201,6 +3228,7 @@ function updateClipStatusCard(){
   }
   const isClipOnline = (isAura || isHeartbeat) || (Date.now() - lastClipOnlineTime < 5000);
   updateClipLinkIndicator();
+  if (typeof updateMirrorRoleUI === "function") updateMirrorRoleUI();
 
   const mainAppEl = document.getElementById("csValMainApp");
   if (mainAppEl){
@@ -3984,8 +4012,12 @@ function getHintSignAndCount(){
   if (typeof feedStarted === "function" && feedStarted()){
     sign = S.feedSign;
     count = S.gapDigits.length - S.gapFed;
-  } else if (typeof currentForceValue === "function" && typeof currentValue === "function"){
-    const target = currentForceValue();
+  } else if (typeof currentValue === "function"){
+    const target = (S.lockedTarget !== null)
+      ? S.lockedTarget
+      : ((typeof activeBirthdayInfo !== "undefined" && activeBirthdayInfo && activeBirthdayInfo.daysAlive)
+          ? activeBirthdayInfo.daysAlive
+          : (typeof currentForceValue === "function" ? currentForceValue() : 0));
     const currentVal = currentValue();
     sign = (target >= currentVal) ? "+" : "−";
     count = digitCount(target - currentVal);
@@ -4423,6 +4455,18 @@ function updateMirrorRoleUI(){
   const roleBadge = document.getElementById("iosSbRoleBadge") || document.getElementById("iosSbModeDot");
   if (roleBadge) roleBadge.classList.toggle("visible", isReceiver);
 
+  const roleToggleBtn = document.getElementById("ctrlRoleToggleBtn");
+  if (roleToggleBtn){
+    roleToggleBtn.textContent = isReceiver ? "RECEIVER: ON" : "RECEIVER: OFF";
+    roleToggleBtn.classList.toggle("active", isReceiver);
+  }
+
+  const csValMirror = document.getElementById("csValMirror");
+  if (csValMirror){
+    csValMirror.textContent = isReceiver ? "ON • Receiving live" : "OFF (Tap to Toggle)";
+    csValMirror.style.color = isReceiver ? "#30d158" : "#8e8e93";
+  }
+
   const roleText = document.getElementById("ctrlRoleText");
   if (roleText){
     roleText.textContent = isReceiver 
@@ -4434,6 +4478,14 @@ function updateMirrorRoleUI(){
 const roleToggleBtn = document.getElementById("ctrlRoleToggleBtn");
 if (roleToggleBtn){
   roleToggleBtn.onclick = (e) => {
+    e.stopPropagation();
+    toggleMirrorMode();
+  };
+}
+
+const csMirrorRow = document.getElementById("csMirrorRow");
+if (csMirrorRow){
+  csMirrorRow.onclick = (e) => {
     e.stopPropagation();
     toggleMirrorMode();
   };
