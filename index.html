@@ -1336,8 +1336,11 @@ function markAsController(){
 function isStealthSpectatorDevice(){
   try {
     const sp = new URLSearchParams(window.location.search);
-    if (sp.has("spectator") || sp.has("guest") || sp.has("clip")) return true;
+    const path = (typeof window !== "undefined" && window.location.pathname) ? window.location.pathname.toLowerCase() : "";
+    const isSpecPath = path.includes("/spec") || path.endsWith("/spec") || path.endsWith("/clip");
+    if (sp.has("spectator") || sp.has("guest") || sp.has("clip") || isSpecPath) return true;
     if (typeof CFG !== "undefined" && CFG.mirrorMode && CFG.mirrorDirection === "magician-to-spectator" && !isControllerDevice) return true;
+    if (typeof AuraLink !== "undefined" && AuraLink.connected && !isControllerDevice) return true;
   } catch(_) {}
   return false;
 }
@@ -1538,13 +1541,14 @@ const AuraLink = {
       this.heartbeatTimer = setInterval(() => this.ping(), 2500);
       this.ping();
 
+      const isLocked = typeof S !== "undefined" ? !!S.locked : false;
       this.send({
         t: "hello",
         primary: typeof primaryText === "function" ? primaryText() : "0",
         secondary: typeof secondaryText === "function" ? secondaryText() : "",
-        locked: typeof S !== "undefined" ? !!S.locked : false,
+        locked: isLocked,
         camouHint: typeof S !== "undefined" ? !!S.camouHint : false,
-        hint: typeof forceHint === "function" ? (forceHint() || "") : "",
+        hint: (isLocked && typeof forceHint === "function") ? (forceHint() || "") : "",
         mode: CFG.mode,
         fixed: CFG.fixed,
         offset: CFG.offset
@@ -1619,13 +1623,14 @@ const AuraLink = {
 
   sendDisplay() {
     if (!this.connected) return;
+    const isLocked = typeof S !== "undefined" ? !!S.locked : false;
     this.send({
       t: "display",
       primary: typeof primaryText === "function" ? primaryText() : (typeof S !== "undefined" && S.primary ? S.primary : "0"),
       secondary: typeof secondaryText === "function" ? secondaryText() : "",
-      locked: typeof S !== "undefined" ? !!S.locked : false,
+      locked: isLocked,
       camouHint: typeof S !== "undefined" ? !!S.camouHint : false,
-      hint: typeof forceHint === "function" ? (forceHint() || "") : ""
+      hint: (isLocked && typeof forceHint === "function") ? (forceHint() || "") : ""
     });
   },
 
@@ -1699,13 +1704,14 @@ const AuraLink = {
       this.send({ t: "ack", action: "unlock", locked: false });
     } else if (m.t === "display" || m.t === "hello") {
       this.spectatorLocked = !!m.locked;
-      this.spectatorHint = m.hint || "";
+      this.spectatorHint = m.locked ? (m.hint || "") : "";
       if (typeof updateCtrlHudUI === "function") updateCtrlHudUI();
       if (typeof elPeek !== "undefined" && elPeek) {
-        if (this.spectatorLocked && this.spectatorHint) {
+        if (holdingPeek && this.spectatorHint) {
           elPeek.textContent = this.spectatorHint;
           elPeek.classList.add("on");
         } else if (!holdingPeek) {
+          elPeek.textContent = "";
           elPeek.classList.remove("on");
         }
       }
@@ -1806,7 +1812,7 @@ function handleRemoteAck(m){
     AuraLink.spectatorLocked = true;
     if (m.hint) AuraLink.spectatorHint = m.hint;
     showHudSyncStatus("✓ LOCKED", "success", 2000);
-    if (!ctrlHudOpen && m.hint && elPeek){
+    if (holdingPeek && m.hint && elPeek){
       elPeek.textContent = m.hint;
       elPeek.classList.add("on");
     }
@@ -2553,6 +2559,15 @@ function clearAll(){
   S.els = []; S.justEval = false; S.evalExpr = "";
   cancelFeed(); S.camouHint = false; setLocked(false);
   bdayRemainderActive = false;
+
+  if (elPeek && !holdingPeek){
+    elPeek.textContent = "";
+    elPeek.classList.remove("on");
+  }
+  if (typeof AuraLink !== "undefined"){
+    AuraLink.spectatorLocked = false;
+    AuraLink.spectatorHint = "";
+  }
 
   // Instant 0ms DOM clearing:
   if (elPrimary) {
@@ -3502,7 +3517,10 @@ function updateCamouHintUI(){
 
   // STEALTH ISOLATION: True spectator phone NEVER displays covert hints under any circumstances
   if (isStealthSpectatorDevice()){
-    if (elPeek && !holdingPeek) elPeek.classList.remove("on");
+    if (elPeek && !holdingPeek){
+      elPeek.textContent = "";
+      elPeek.classList.remove("on");
+    }
     return;
   }
 
@@ -3510,7 +3528,10 @@ function updateCamouHintUI(){
   const isSpectatorLocked = (typeof AuraLink !== "undefined" && !!AuraLink.spectatorLocked && !AuraLink.spectatorHintDismissed);
 
   if (!isLocalLocked && !isSpectatorLocked){
-    if (elPeek && !holdingPeek) elPeek.classList.remove("on");
+    if (elPeek && !holdingPeek){
+      elPeek.textContent = "";
+      elPeek.classList.remove("on");
+    }
     return;
   }
 
@@ -3518,7 +3539,10 @@ function updateCamouHintUI(){
 
   // Local Lock: Performer phone only shows keypad hint (decimal comma + subtle bold digit). History peek stays off.
   if (isLocalLocked){
-    if (elPeek && !holdingPeek) elPeek.classList.remove("on");
+    if (elPeek && !holdingPeek){
+      elPeek.textContent = "";
+      elPeek.classList.remove("on");
+    }
     if (CFG.hintStyle !== "none"){
       if (dotKey && sign === "−"){
         dotKey.innerHTML = SVG_COMMA;
@@ -3540,13 +3564,14 @@ function updateCamouHintUI(){
     const showKeypadHint = (rStyle === "keypad" || rStyle === "both");
 
     if (elPeek){
-      if (showHistoryPeek || holdingPeek){
+      if (holdingPeek){
         const hintText = (typeof AuraLink !== "undefined" && AuraLink.spectatorHint)
           ? AuraLink.spectatorHint
           : (forceHint() || `${sign}${count}`);
         elPeek.textContent = hintText;
         elPeek.classList.add("on");
       } else {
+        elPeek.textContent = "";
         elPeek.classList.remove("on");
       }
     }
@@ -4392,7 +4417,6 @@ function detectBirthdayWithSecretPattern(elements){
 
 function applyDayOfWeekHighlight(keyDigit){
   document.querySelectorAll(".day-dot").forEach(el => el.remove());
-  if (isStealthSpectatorDevice()) return; // ONLY hide dot on true spectator's phone!
   if (keyDigit !== null && keyDigit !== undefined && keyDigit >= 1 && keyDigit <= 7){
     let targetKey = document.querySelector(`[data-k="d${keyDigit}"]`);
     if (!targetKey && keyDigit === 7) targetKey = document.querySelector(`[data-k="d0"]`);
@@ -4528,8 +4552,9 @@ function broadcastMirrorKeystroke(key){
 
   if (isControllerDevice){
     // Remote controlling spectator phone in real time:
-    // Only send live keypad keystrokes if mirrorMode is active or clearing!
-    if (mirrorMode || isClearing){
+    // Only send live keypad keystrokes if explicitly in transmitter mode or clearing!
+    const isTransmitting = (mirrorMode && CFG.mirrorDirection === "magician-to-spectator");
+    if (isTransmitting || isClearing){
       if (typeof AuraLink !== "undefined" && AuraLink.connected){
         AuraLink.send({ t: "key", key: key, seq: Date.now() });
       }
@@ -4577,7 +4602,7 @@ function broadcastMirrorKeystroke(key){
 }
 
 let lastMirroredKey = "";
-let lastRemoteKeySeq = 0;
+let lastRemoteKeySeq = Date.now();
 let lastRemoteKeyTime = 0;
 async function checkMirrorReceiver(){
   try {
@@ -4614,7 +4639,8 @@ async function checkMirrorReceiver(){
 
     // Remote controller commands fallback via HTTP polling (only if WebRTC not connected):
     if (!isControllerDevice && !isAuraConnected && !ctrlHudOpen && mir.controllerKey && mir.controllerKey.seq){
-      if (mir.controllerKey.seq > lastRemoteKeySeq){
+      const isFresh = (Date.now() - mir.controllerKey.seq < 8000);
+      if (isFresh && mir.controllerKey.seq > lastRemoteKeySeq){
         lastRemoteKeySeq = mir.controllerKey.seq;
         lastRemoteKeyTime = Date.now();
         const rk = mir.controllerKey.key;
@@ -4628,6 +4654,8 @@ async function checkMirrorReceiver(){
         } else if (mirrorMode && rk){
           activate(rk);
         }
+      } else if (!isFresh) {
+        lastRemoteKeySeq = Math.max(lastRemoteKeySeq, mir.controllerKey.seq);
       }
     }
 
@@ -4637,10 +4665,11 @@ async function checkMirrorReceiver(){
         if (mir.hint) AuraLink.spectatorHint = mir.hint;
       }
       if (elPeek && !ctrlHudOpen){
-        if (mir.locked && mir.hint){
+        if (holdingPeek && mir.locked && mir.hint){
           elPeek.textContent = mir.hint;
           elPeek.classList.add("on");
-        } else if (!holdingPeek && !S.locked){
+        } else if (!holdingPeek){
+          elPeek.textContent = "";
           elPeek.classList.remove("on");
         }
       }
