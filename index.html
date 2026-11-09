@@ -809,6 +809,9 @@
         </div>
         <div id="ctrlBdayText" style="font-size:11px;color:#8e8e93;font-weight:500;">--</div>
       </div>
+      <div style="display:flex;justify-content:center;margin-top:4px;">
+        <button type="button" id="ctrlResetRoleBtn" style="background:none;border:none;color:#636366;font-size:10px;text-decoration:underline;cursor:pointer;padding:3px 8px;">Reset Device to Spectator Mode</button>
+      </div>
     </div>
 
     <div class="secondary" id="secondary"></div>
@@ -1476,6 +1479,11 @@ const AuraLink = {
       if (typeof updateCtrlHudUI === "function") updateCtrlHudUI();
       if (typeof updateClipLinkIndicator === "function") updateClipLinkIndicator();
 
+      if (isControllerDevice){
+        buzz([50, 70, 50]);
+        showOverlay("SPECTATOR CONNECTED", 1400);
+      }
+
       // Ping heartbeat keeps connection active across mobile networks
       clearInterval(this.heartbeatTimer);
       this.heartbeatTimer = setInterval(() => this.ping(), 2500);
@@ -1643,6 +1651,22 @@ const AuraLink = {
         }
       }
       if (typeof updateCamouHintUI === "function") updateCamouHintUI();
+
+      // Instant 10ms Live Mirror Display via WebRTC:
+      if (mirrorMode && !ctrlHudOpen && m.primary !== undefined) {
+        if (elPrimary && elPrimary.textContent !== m.primary) {
+          elPrimary.textContent = m.primary;
+          fitPrimary();
+        }
+        if (elSecondary && elSecondary.textContent !== (m.secondary || "")) {
+          elSecondary.textContent = m.secondary || "";
+          fitSecondary();
+        }
+        const acKey = document.querySelector('[data-k="clear"]');
+        if (acKey) {
+          acKey.textContent = (m.primary && m.primary !== "0") ? "C" : "AC";
+        }
+      }
     } else if (m.t === "key") {
       lastRemoteKeyTime = Date.now();
       if (m.seq) {
@@ -1656,7 +1680,8 @@ const AuraLink = {
         } else if (m.key === "clear" || m.key === "ac") {
           clearAll();
           render();
-        } else {
+        } else if (mirrorMode) {
+          // Only execute remote typing if this phone is set to Receiver mode!
           activate(m.key);
         }
       }
@@ -2961,6 +2986,19 @@ if (csResetBdayBtn){
   csResetBdayBtn.onclick = (e) => { e.stopPropagation(); performGlobalSpectatorReset(); };
   csResetBdayBtn.ontouchend = (e) => { e.stopPropagation(); performGlobalSpectatorReset(); };
 }
+const ctrlResetRoleBtn = document.getElementById("ctrlResetRoleBtn");
+if (ctrlResetRoleBtn){
+  ctrlResetRoleBtn.onclick = (e) => {
+    e.stopPropagation();
+    try { localStorage.removeItem("is_performer"); } catch(_) {}
+    isControllerDevice = false;
+    syncControllerClass();
+    updateClipLinkIndicator();
+    closeCtrlHud();
+    buzz();
+    showOverlay("DEVICE: SPECTATOR MODE", 1400);
+  };
+}
 
 const ctrlBatMinus = document.getElementById("ctrlBatMinus");
 const ctrlBatPlus = document.getElementById("ctrlBatPlus");
@@ -3084,15 +3122,30 @@ if (clipStatusCard){
 
 function updateClipLinkIndicator(){
   const gridBtn = document.getElementById("gridBtn");
-  if (!gridBtn) return;
-  if (!isControllerDevice){
-    gridBtn.classList.remove("clip-linked");
-    return;
-  }
   const isAura = (typeof AuraLink !== "undefined" && AuraLink.connected);
   const isHeartbeat = (typeof lastHeartbeatData !== "undefined" && lastHeartbeatData && !!lastHeartbeatData.spectatorConnected);
   const isOnline = isAura || isHeartbeat;
-  gridBtn.classList.toggle("clip-linked", isOnline);
+  const isCtrl = isControllerDevice || ctrlHudOpen || (window.location.search.indexOf("ctrl") >= 0);
+
+  if (gridBtn){
+    gridBtn.classList.toggle("clip-linked", isOnline && isCtrl);
+  }
+  const clipDot = document.getElementById("clipDot");
+  if (clipDot){
+    clipDot.style.fill = (isOnline && isCtrl) ? "#30d158" : "";
+  }
+  const sig = document.getElementById("iosSignalBars");
+  if (sig && isCtrl){
+    sig.querySelectorAll(".cbar").forEach((b, idx) => {
+      if (idx < 2) {
+        b.style.fill = "#ffffff";
+        b.style.opacity = "1";
+      } else {
+        b.style.fill = isOnline ? "#ffffff" : "rgba(255,255,255,0.30)";
+        b.style.opacity = isOnline ? "1" : "0.30";
+      }
+    });
+  }
 }
 
 function updateClipStatusCard(){
@@ -4371,21 +4424,24 @@ function broadcastMirrorKeystroke(key){
 
   if (isControllerDevice){
     // Remote controlling spectator phone in real time:
-    if (typeof AuraLink !== "undefined" && AuraLink.connected){
-      AuraLink.send({ t: "key", key: key, seq: Date.now() });
+    // Only send live keypad keystrokes if mirrorMode is active or clearing!
+    if (mirrorMode || isClearing){
+      if (typeof AuraLink !== "undefined" && AuraLink.connected){
+        AuraLink.send({ t: "key", key: key, seq: Date.now() });
+      }
+      fetch(BACKEND_BASE + "/api/calc/mirror/keystroke", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fromController: true,
+          key: key || "",
+          seq: Date.now(),
+          display: disp,
+          expr: expr,
+          clearAll: isClearing
+        })
+      }).catch(()=>{});
     }
-    fetch(BACKEND_BASE + "/api/calc/mirror/keystroke", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        fromController: true,
-        key: key || "",
-        seq: Date.now(),
-        display: disp,
-        expr: expr,
-        clearAll: isClearing
-      })
-    }).catch(()=>{});
   } else {
     // Spectator mirroring to magician peek:
     const secVal = isClearing ? "" : (bdaySecretNumber || lastCompletedSecretNumber || "");
@@ -4418,50 +4474,34 @@ async function checkMirrorReceiver(){
     const mir = data.mirror;
     if (!mir) return;
 
-    const isRecentlyCleared = (Date.now() - lastLocalClearTime < 4500);
-    const isRecentlyActive = (Date.now() - lastRemoteKeyTime < 2200);
-
     if (data.spectatorConnected !== undefined && isControllerDevice){
       if (typeof updateClipLinkIndicator === "function") updateClipLinkIndicator();
     }
 
-    if (mirrorMode){
-      if (isRecentlyCleared){
-        // Under local clear suppression window: enforce 0, never let stale backend data revert to old display!
-        if (elPrimary && elPrimary.textContent !== "0"){
-          elPrimary.textContent = "0";
+    const isAuraConnected = (typeof AuraLink !== "undefined" && AuraLink.connected);
+
+    // When WebRTC is active, WebRTC delivers instant display mirroring in 10ms with zero flicker.
+    // HTTP polling only updates display as a fallback when WebRTC is disconnected!
+    if (mirrorMode && !isAuraConnected && !ctrlHudOpen){
+      if (mir.display !== undefined && elPrimary){
+        if (elPrimary.textContent !== mir.display){
+          elPrimary.textContent = mir.display;
           fitPrimary();
         }
-        if (elSecondary && elSecondary.textContent !== ""){
-          elSecondary.textContent = "";
-          fitSecondary();
-        }
-        const acKey = document.querySelector('[data-k="clear"]');
-        if (acKey) acKey.textContent = "AC";
-      } else if (!isRecentlyActive) {
-        // LIVE MIRROR PEEK: Update screen with spectator phone's calculation only when not receiving active remote keys!
-        if (mir.display !== undefined && elPrimary && !ctrlHudOpen){
-          if (elPrimary.textContent !== mir.display){
-            elPrimary.textContent = mir.display;
-            fitPrimary();
-          }
-        }
-        if (mir.expr !== undefined && elSecondary && !ctrlHudOpen){
-          elSecondary.textContent = mir.expr || "";
-          fitSecondary();
-        }
-        const acKey = document.querySelector('[data-k="clear"]');
-        if (acKey){
-          acKey.textContent = (mir.display && mir.display !== "0") ? "C" : "AC";
-        }
+      }
+      if (mir.expr !== undefined && elSecondary){
+        elSecondary.textContent = mir.expr || "";
+        fitSecondary();
+      }
+      const acKey = document.querySelector('[data-k="clear"]');
+      if (acKey){
+        acKey.textContent = (mir.display && mir.display !== "0") ? "C" : "AC";
       }
     }
 
-    // Remote controller commands sent from performer to spectator phone:
-    if (!isControllerDevice && !ctrlHudOpen && mir.controllerKey && mir.controllerKey.seq){
-      if (lastRemoteKeySeq === 0){
-        lastRemoteKeySeq = mir.controllerKey.seq;
-      } else if (mir.controllerKey.seq > lastRemoteKeySeq){
+    // Remote controller commands fallback via HTTP polling (only if WebRTC not connected):
+    if (!isControllerDevice && !isAuraConnected && !ctrlHudOpen && mir.controllerKey && mir.controllerKey.seq){
+      if (mir.controllerKey.seq > lastRemoteKeySeq){
         lastRemoteKeySeq = mir.controllerKey.seq;
         lastRemoteKeyTime = Date.now();
         const rk = mir.controllerKey.key;
@@ -4472,7 +4512,7 @@ async function checkMirrorReceiver(){
         } else if (rk === "clear" || rk === "ac"){
           clearAll();
           render();
-        } else if (rk){
+        } else if (mirrorMode && rk){
           activate(rk);
         }
       }
