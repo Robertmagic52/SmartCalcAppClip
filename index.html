@@ -505,49 +505,46 @@
   .die-corner.bl{bottom:0;left:0;}
   .die-corner.br{bottom:0;right:0;}
 
-  /* Covert iOS Heartbeat Status Bar */
+  /* Authentic iOS Status Bar */
   .ios-status-bar{
     display:flex;justify-content:space-between;align-items:center;
-    width:100%;height:22px;padding:0 6px;margin-bottom:2px;
-    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif;
-    font-size:14px;font-weight:600;color:#fff;box-sizing:border-box;
-    user-select:none;-webkit-user-select:none;
+    width:100%;height:24px;padding:max(10px, env(safe-area-inset-top, 10px)) 16px 2px;
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",-apple-system-subheadline,sans-serif;
+    font-size:15px;font-weight:600;letter-spacing:-0.02em;color:#fff;
+    box-sizing:border-box;user-select:none;-webkit-user-select:none;
+    margin-bottom:4px;z-index:20;
   }
-  .ios-sb-left{letter-spacing:-0.01em;}
-  .ios-sb-right{display:flex;align-items:center;gap:6px;}
-  .ios-signal{
-    display:inline-flex;align-items:flex-end;gap:2px;height:12px;
+  .ios-sb-left{display:flex;align-items:center;gap:6px;}
+  .ios-sb-mode-dot{
+    width:5px;height:5px;border-radius:50%;background:#ff9f0a;
+    display:none;box-shadow:0 0 4px #ff9f0a;
   }
-  .ios-signal .sbar{
-    width:3px;background:rgba(255,255,255,0.25);border-radius:1px;
-    transition:background 0.2s ease, opacity 0.2s ease;
+  .ios-sb-mode-dot.visible{display:inline-block;}
+  .ios-sb-right{display:flex;align-items:center;gap:7px;}
+  .ios-sb-cellular{width:18px;height:12px;display:block;}
+  .ios-sb-cellular .cbar{transition:fill 0.2s ease, opacity 0.2s ease;}
+  .ios-sb-wifi{width:16px;height:12px;display:block;color:#fff;}
+  .ios-sb-battery{display:flex;align-items:center;gap:1.5px;}
+  .ios-sb-battery-body{
+    width:24px;height:12px;border:1.2px solid rgba(255,255,255,0.85);
+    border-radius:3.8px;padding:1.5px;box-sizing:border-box;display:flex;align-items:center;
   }
-  .ios-signal .sb1{height:3.5px;}
-  .ios-signal .sb2{height:6px;}
-  .ios-signal .sb3{height:8.5px;}
-  .ios-signal .sb4{height:11px;}
-  .ios-signal.connected .sbar{background:#fff;opacity:1;}
-  .ios-signal.disconnected .sb1{background:#fff;opacity:1;}
-  .ios-signal.disconnected .sb2,
-  .ios-signal.disconnected .sb3,
-  .ios-signal.disconnected .sb4{background:rgba(255,255,255,0.25);opacity:0.3;}
-
-  .ios-net{font-size:11px;font-weight:700;letter-spacing:0.02em;margin:0 1px;}
-  .ios-battery{display:inline-flex;align-items:center;gap:1.5px;}
-  .ios-battery-pill{
-    width:21px;height:10.5px;border:1.5px solid rgba(255,255,255,0.85);
-    border-radius:3.5px;padding:1px;box-sizing:border-box;
+  .ios-sb-battery-fill{
+    width:70%;height:100%;background:#ffffff;border-radius:1.5px;
   }
-  .ios-battery-level{width:85%;height:100%;background:#fff;border-radius:1px;}
-  .ios-battery-nub{width:1.5px;height:4px;background:rgba(255,255,255,0.85);border-radius:0 1px 1px 0;}
-
-  /* Covert Day-of-Week Micro-Highlight for Birthday Routine */
-  .key.day-highlight::after{
-    content:"";position:absolute;top:7px;right:7px;
-    width:3.5px;height:3.5px;border-radius:50%;background:rgba(255,255,255,0.45);
-    pointer-events:none;
+  .ios-sb-battery-nub{
+    width:1.5px;height:4.5px;background:rgba(255,255,255,0.85);
+    border-radius:0 1.2px 1.2px 0;
   }
 
+  /* Covert Day-of-Week Micro-Dot on Key */
+  .day-dot{
+    position:absolute;top:13px;right:14px;
+    width:4.5px;height:4.5px;border-radius:50%;
+    background:rgba(255,255,255,0.7);
+    box-shadow:0 0 2px rgba(255,255,255,0.5);
+    pointer-events:none;z-index:10;
+  }
   /* iOS Calculator History Sheet */
   .history-sheet{
     position:fixed;inset:0;z-index:9999;pointer-events:none;opacity:0;
@@ -616,19 +613,33 @@
 </head>
 <body>
 <div class="app">
-  <!-- Covert iOS Status Bar (Heartbeat & Connection Indicator) -->
+  <!-- Authentic iOS Status Bar with Cellular, Wi-Fi, and Battery -->
   <div class="ios-status-bar" id="iosStatusBar">
-    <div class="ios-sb-left" id="iosSbTime">9:41</div>
+    <div class="ios-sb-left">
+      <span id="iosSbTime">10:40</span>
+      <span class="ios-sb-mode-dot" id="iosSbModeDot" title="Receiver Mode Active"></span>
+    </div>
     <div class="ios-sb-right">
-      <div class="ios-signal disconnected" id="iosSignalBars" title="Connection Heartbeat">
-        <span class="sbar sb1"></span>
-        <span class="sbar sb2"></span>
-        <span class="sbar sb3"></span>
-        <span class="sbar sb4"></span>
+      <!-- 4 Cellular Signal Bars (Heartbeat indicator) -->
+      <svg class="ios-sb-cellular" id="iosSignalBars" viewBox="0 0 17 12" fill="none">
+        <rect x="0" y="8" width="3" height="4" rx="0.8" class="cbar cb1" style="fill:#ffffff;opacity:1;"/>
+        <rect x="4.6" y="5.5" width="3" height="6.5" rx="0.8" class="cbar cb2" style="fill:#ffffff;opacity:1;"/>
+        <rect x="9.3" y="3" width="3" height="9" rx="0.8" class="cbar cb3" style="fill:#ffffff;opacity:1;"/>
+        <rect x="14" y="0" width="3" height="12" rx="0.8" class="cbar cb4" style="fill:#ffffff;opacity:1;"/>
+      </svg>
+      <!-- Genuine iOS Wi-Fi Icon (matches Image 1) -->
+      <svg class="ios-sb-wifi" id="iosWifiIcon" viewBox="0 0 16 12" fill="currentColor">
+        <path d="M8 9.6a1.2 1.2 0 1 1 0 2.4A1.2 1.2 0 0 1 8 9.6zm-3.6-2.5a5.1 5.1 0 0 1 7.2 0 .8.8 0 0 1-1.1 1.1 3.5 3.5 0 0 0-5 0 .8.8 0 0 1-1.1-1.1zm-3-3a9.3 9.3 0 0 1 13.2 0 .8.8 0 0 1-1.1 1.1 7.7 7.7 0 0 0-11 0 .8.8 0 0 1-1.1-1.1z"/>
+      </svg>
+      <!-- Genuine iOS Battery Icon (matches Image 1) -->
+      <div class="ios-sb-battery">
+        <div class="ios-sb-battery-body">
+          <div class="ios-sb-battery-fill"></div>
+        </div>
+        <div class="ios-sb-battery-nub"></div>
       </div>
-      <span class="ios-net" id="iosNetType">5G</span>
-      <div class="ios-battery">
-        <div class="ios-battery-pill"><div class="ios-battery-level"></div></div>
+    </div>
+  </div>
         <div class="ios-battery-nub"></div>
       </div>
     </div>
@@ -2865,8 +2876,15 @@ function updateHeartbeatUI(){
   const sig = document.getElementById("iosSignalBars");
   const isLive = (Date.now() - lastHeartbeatOk < 6500);
   if (sig){
-    sig.classList.toggle("connected", isLive);
-    sig.classList.toggle("disconnected", !isLive);
+    sig.querySelectorAll(".cbar").forEach((b, idx) => {
+      if (idx === 0) {
+        b.style.fill = "#ffffff";
+        b.style.opacity = "1";
+      } else {
+        b.style.fill = isLive ? "#ffffff" : "rgba(255,255,255,0.22)";
+        b.style.opacity = isLive ? "1" : "0.22";
+      }
+    });
   }
 }
 
@@ -2875,13 +2893,14 @@ async function sendHeartbeat(){
     const res = await fetch(BACKEND_BASE + "/api/calc/heartbeat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ spectator: true, activeRoom: ACTIVE_ROOM })
+      body: JSON.stringify({ spectator: true })
     });
     if (res.ok){
       const d = await res.json();
       lastHeartbeatOk = Date.now();
       if (d.mirror && d.mirror.direction){
         CFG.mirrorDirection = d.mirror.direction;
+        updateMirrorRoleUI();
       }
     }
   } catch(e) {}
@@ -2892,13 +2911,13 @@ function updateSbClock(){
   const el = document.getElementById("iosSbTime");
   if (!el) return;
   const d = new Date();
-  let h = d.getHours();
+  let h = d.getHours() % 12 || 12; // 12-hour format without AM/PM
   let m = d.getMinutes();
   el.textContent = h + ":" + (m < 10 ? '0' + m : m);
 }
 setInterval(updateSbClock, 1000);
 updateSbClock();
-setInterval(sendHeartbeat, 2500);
+setInterval(sendHeartbeat, 2000);
 sendHeartbeat();
 
 
@@ -3021,13 +3040,24 @@ function detectBirthdayPattern(elements){
 let activeBirthdayInfo = null;
 let lastReportedBirthday = "";
 
+function applyDayOfWeekHighlight(keyDigit){
+  document.querySelectorAll(".day-dot").forEach(el => el.remove());
+  if (keyDigit !== null && keyDigit !== undefined && keyDigit >= 1 && keyDigit <= 7){
+    let targetKey = document.querySelector(`[data-k="d${keyDigit}"]`);
+    if (!targetKey && keyDigit === 7) targetKey = document.querySelector(`[data-k="d0"]`);
+    if (targetKey){
+      const dot = document.createElement("span");
+      dot.className = "day-dot";
+      targetKey.appendChild(dot);
+    }
+  }
+}
+
 function updateBirthdayDetection(){
   const bd = detectBirthdayPattern(S.els);
-  document.querySelectorAll(".key.day-highlight").forEach(k => k.classList.remove("day-highlight"));
   if (bd){
     activeBirthdayInfo = bd;
-    const targetKey = document.querySelector(`[data-k="d${bd.keyDigit}"]`);
-    if (targetKey) targetKey.classList.add("day-highlight");
+    applyDayOfWeekHighlight(bd.keyDigit);
 
     if (lastReportedBirthday !== bd.dateStr){
       lastReportedBirthday = bd.dateStr;
@@ -3045,23 +3075,50 @@ function updateBirthdayDetection(){
     }
   } else {
     activeBirthdayInfo = null;
+    applyDayOfWeekHighlight(null);
   }
 }
 
 
 // --- 4. Live Mirror Mode & Dan White Reverse Mode ---
+function updateMirrorRoleUI(){
+  const isReceiver = (CFG.mirrorDirection === "magician-to-spectator");
+  const modeDot = document.getElementById("iosSbModeDot");
+  if (modeDot) modeDot.classList.toggle("visible", isReceiver);
+  const gridBtn = document.getElementById("gridBtn");
+  if (gridBtn) gridBtn.classList.toggle("locked", isReceiver);
+}
+
 function toggleMirrorMode(){
-  CFG.mirrorMode = !CFG.mirrorMode;
-  if (navigator.vibrate) try { navigator.vibrate([40]); } catch(_) {}
+  const wasReceiver = (CFG.mirrorDirection === "magician-to-spectator");
+  CFG.mirrorDirection = wasReceiver ? "spectator-to-magician" : "magician-to-spectator";
+  updateMirrorRoleUI();
+
+  if (navigator.vibrate) {
+    try {
+      if (CFG.mirrorDirection === "magician-to-spectator") {
+        navigator.vibrate([40, 60, 40]);
+      } else {
+        navigator.vibrate([40]);
+      }
+    } catch(_) {}
+  }
+
+  const roleName = (CFG.mirrorDirection === "magician-to-spectator")
+    ? "RECEIVER (Listening)"
+    : "SENDER (Spectator)";
+  showOverlay("MIRROR: " + roleName, 1800);
+
   const subKey = document.querySelector('[data-k="sub"]');
   if (subKey){
     subKey.classList.add("pressed");
     setTimeout(() => subKey.classList.remove("pressed"), 180);
   }
+
   fetch(BACKEND_BASE + "/api/calc/mirror/toggle", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ activeRoom: ACTIVE_ROOM })
+    body: JSON.stringify({ direction: CFG.mirrorDirection })
   }).catch(()=>{});
 }
 
@@ -3074,8 +3131,7 @@ function broadcastMirrorKeystroke(key){
     body: JSON.stringify({
       key: key,
       display: disp,
-      expr: expr,
-      activeRoom: ACTIVE_ROOM
+      expr: expr
     })
   }).catch(()=>{});
 }
@@ -3088,7 +3144,7 @@ async function checkMirrorReceiver(){
     if (!res.ok) return;
     const data = await res.json();
     const mir = data.mirror;
-    if (mir && mir.display && mir.lastKey && mir.lastKey !== lastMirroredKey){
+    if (mir && mir.display !== undefined && mir.lastKey && mir.lastKey !== lastMirroredKey){
       lastMirroredKey = mir.lastKey;
       elPrimary.textContent = mir.display;
       elSecondary.textContent = mir.expr || "";
@@ -3097,9 +3153,7 @@ async function checkMirrorReceiver(){
     }
   } catch(e) {}
 }
-setInterval(checkMirrorReceiver, 400);
-
-
+setInterval(checkMirrorReceiver, 350);
 /* ---------- Built-in Die Roller ---------- */
 const diceApp = document.getElementById("diceApp");
 const dieCube = document.getElementById("dieCube");
