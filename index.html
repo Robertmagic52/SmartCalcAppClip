@@ -102,18 +102,22 @@
   /* Covert Performer Controller HUD */
   .ctrl-hud {
     position: absolute;
-    inset: -14px -6px 0 -6px;
+    top: -52px;
+    bottom: -16px;
+    left: -4px;
+    right: -4px;
+    min-height: 240px;
     background: rgba(18, 20, 26, 0.98);
     border: 1.5px solid rgba(255, 255, 255, 0.18);
-    border-radius: 18px;
+    border-radius: 20px;
     backdrop-filter: blur(32px);
     -webkit-backdrop-filter: blur(32px);
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.85), inset 0 1px 1px rgba(255, 255, 255, 0.2);
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
-    padding: 8px 10px;
-    gap: 6px;
+    padding: 10px 12px;
+    gap: 8px;
     box-sizing: border-box;
     z-index: 25;
     opacity: 0;
@@ -512,7 +516,10 @@
   /* Max Major Style CLIP STATUS Card (Shown when holding =) */
   .clip-status-card {
     position: absolute;
-    inset: 4px 6px 4px 6px;
+    top: -24px;
+    bottom: -8px;
+    left: 4px;
+    right: 4px;
     background: rgba(22, 22, 26, 0.97);
     border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 18px;
@@ -530,6 +537,8 @@
     pointer-events: none;
     transform: scale(0.96);
     transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
   .clip-status-card.open {
     opacity: 1;
@@ -705,7 +714,7 @@
       <div class="cs-row">
         <div class="cs-left">
           <svg class="cs-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
-          <span class="cs-label">Main App</span>
+          <span class="cs-label">App Clip</span>
         </div>
         <span class="cs-val" id="csValMainApp">Searching...</span>
       </div>
@@ -2232,14 +2241,13 @@ function closeCtrlHud(){
 function updateCtrlHudUI(){
   if (!ctrlHud) return;
 
-  const isCloud = (typeof lastHeartbeatOk === "number" && (Date.now() - lastHeartbeatOk) < 6500);
   const isAura = (typeof AuraLink !== "undefined" && AuraLink.connected);
-  const isLinked = isAura || isCloud || (typeof lastHeartbeatData !== "undefined" && lastHeartbeatData && (lastHeartbeatData.spectatorConnected || lastHeartbeatData.controllerConnected));
+  const isClipOnline = isAura || (typeof lastHeartbeatData !== "undefined" && lastHeartbeatData && !!lastHeartbeatData.spectatorConnected);
 
   if (ctrlLinkPill){
-    ctrlLinkPill.className = "ctrl-pill " + (isLinked ? "online" : "");
+    ctrlLinkPill.className = "ctrl-pill " + (isClipOnline ? "online" : "");
     if (ctrlLinkText){
-      ctrlLinkText.textContent = isLinked ? `LINK: ONLINE` : `LINK: ${AuraLink?.roomCode ? "#" + AuraLink.roomCode : "OFF"}`;
+      ctrlLinkText.textContent = isClipOnline ? "CLIP: ONLINE" : "CLIP: SEARCHING";
     }
   }
 
@@ -2247,8 +2255,8 @@ function updateCtrlHudUI(){
   if (ctrlArmPill){
     ctrlArmPill.className = "ctrl-arm-btn " + (isLocked ? "locked" : "ready");
     ctrlArmPill.innerHTML = isLocked
-      ? `<span class="ctrl-arm-icon">🔒</span><span class="ctrl-arm-label">LOCKED (TAP TO UNLOCK)</span>`
-      : `<span class="ctrl-arm-icon">⚡</span><span class="ctrl-arm-label">ARM SPECTATOR (LOCK)</span>`;
+      ? `<span class="ctrl-arm-label">LOCKED (TAP TO UNLOCK)</span>`
+      : `<span class="ctrl-arm-label">ARM SPECTATOR (LOCK)</span>`;
   }
 
   // Compute immediate hint (without target text clutter)
@@ -2521,14 +2529,13 @@ if (clipStatusCard){
 }
 
 function updateClipStatusCard(){
-  const isCloud = (typeof lastHeartbeatOk === "number" && (Date.now() - lastHeartbeatOk) < 6500);
   const isAura = (typeof AuraLink !== "undefined" && AuraLink.connected);
-  const isLinked = isAura || isCloud || (typeof lastHeartbeatData !== "undefined" && lastHeartbeatData && (lastHeartbeatData.spectatorConnected || lastHeartbeatData.controllerConnected));
+  const isClipOnline = isAura || (typeof lastHeartbeatData !== "undefined" && lastHeartbeatData && !!lastHeartbeatData.spectatorConnected);
 
   const mainAppEl = document.getElementById("csValMainApp");
   if (mainAppEl){
-    mainAppEl.textContent = isLinked ? "Connected • Online" : "Searching...";
-    mainAppEl.style.color = isLinked ? "#30d158" : "#8e8e93";
+    mainAppEl.textContent = isClipOnline ? "Connected • Online" : "Searching...";
+    mainAppEl.style.color = isClipOnline ? "#30d158" : "#8e8e93";
   }
 
   const modeEl = document.getElementById("csValMode");
@@ -3291,7 +3298,7 @@ function updateControllerBirthdayUI(da){
   const bdayBar = document.getElementById("ctrlBdayBar");
   const bdayDow = document.getElementById("ctrlBdayDow");
   const bdayText = document.getElementById("ctrlBdayText");
-  const zodiacStr = da.starSign ? ` • ⭐ ${da.starSign} ${da.starSymbol || ""}` : "";
+  const zodiacStr = da.starSign ? ` • ${da.starSign}` : "";
   if (bdayBar){
     bdayBar.style.display = "flex";
     if (bdayDow) bdayDow.textContent = (da.dayOfWeek || "").toUpperCase();
@@ -3321,7 +3328,7 @@ function updateHeartbeatUI(){
 
 async function sendHeartbeat(){
   try {
-    const isCtrl = ctrlHudOpen || (window.location.search.indexOf("ctrl") >= 0);
+    const isCtrl = ctrlHudOpen || (typeof clipStatusCardOpen !== "undefined" && clipStatusCardOpen) || (window.location.search.indexOf("ctrl") >= 0);
     const payload = {
       spectator: !isCtrl,
       controller: isCtrl,
@@ -3337,6 +3344,12 @@ async function sendHeartbeat(){
       const d = await res.json();
       lastHeartbeatOk = Date.now();
       lastHeartbeatData = d;
+      if (typeof updateClipStatusCard === "function" && typeof clipStatusCardOpen !== "undefined" && clipStatusCardOpen){
+        updateClipStatusCard();
+      }
+      if (typeof updateCtrlHudUI === "function" && ctrlHudOpen){
+        updateCtrlHudUI();
+      }
       if (typeof d.battery === "number" && d.battery >= 1 && d.battery <= 100 && !ctrlHudOpen){
         if (d.battery !== detectedBatteryLevel){
           detectedBatteryLevel = d.battery;
