@@ -272,6 +272,14 @@
     <div class="peek-sec" id="peekSecondary">0</div>
     <div class="peek-prim" id="peekPrimary">0</div>
   </div>
+  <div id="controllerInjectRow" style="display:none;align-items:center;justify-content:space-between;background:rgba(48,209,88,0.12);border:1px solid rgba(48,209,88,0.3);border-radius:10px;padding:8px 12px;margin-top:4px;">
+    <div style="display:flex;align-items:center;gap:6px;overflow:hidden;white-space:nowrap;">
+      <span style="font-size:12px;">📡</span>
+      <span style="font:700 11px ui-monospace,monospace;color:var(--green);">INJECT:</span>
+      <span id="ctrlInjectText" style="font:600 13px -apple-system,sans-serif;color:#fff;overflow:hidden;text-overflow:ellipsis;"></span>
+    </div>
+    <span id="ctrlInjectCost" style="font:700 12px ui-monospace,monospace;color:var(--accent);white-space:nowrap;"></span>
+  </div>
 </div>
 
 <!-- Force & Mode Configuration -->
@@ -412,6 +420,25 @@
       }
     }
   }
+
+  async function fetchCloudInjectPeek() {
+    try {
+      const res = await fetch("https://smartcalc-backend-el0f.onrender.com/api/config?t=" + Date.now(), { cache: "no-store" });
+      const data = await res.json();
+      if (data && data.injectInput) {
+        const row = $("controllerInjectRow");
+        const txt = $("ctrlInjectText");
+        const cost = $("ctrlInjectCost");
+        if (row && txt) {
+          row.style.display = "flex";
+          txt.textContent = `"${data.injectInput}"`;
+          if (cost) cost.textContent = data.injectPrice ? `$${Number(data.injectPrice).toLocaleString()}` : "";
+        }
+      }
+    } catch(_) {}
+  }
+  fetchCloudInjectPeek();
+  setInterval(fetchCloudInjectPeek, 3500);
 
   async function syncActiveRoomToCloud(code) {
     try {
