@@ -2063,14 +2063,26 @@ function inputOperator(op){
 function inputEquals(){
   const shown = expressionText();
   if (feedStarted()) snapForceTerm();
-  if (birthdayMode && typeof activeBirthdayInfo !== "undefined" && activeBirthdayInfo){
+
+  // Max Major Style Birthday Routine: Reveal Days Alive upon pressing =
+  if ((birthdayMode || CFG.bdayAutoDetect) && !activeBirthdayInfo && typeof detectBirthdayPattern === "function"){
+    const detected = detectBirthdayPattern(S.els);
+    if (detected){
+      activeBirthdayInfo = detected;
+      birthdayMode = true;
+      persistentBdayDotDigit = detected.keyDigit;
+      if (typeof updateBirthdayDetection === "function") updateBirthdayDetection();
+    }
+  }
+
+  if ((birthdayMode || CFG.bdayAutoDetect) && typeof activeBirthdayInfo !== "undefined" && activeBirthdayInfo){
     const da = activeBirthdayInfo;
     CFG.fixed = da.daysAlive;
     S.els = [{t:"n", v:String(da.daysAlive)}];
     S.evalExpr = ""; // Clean spectator reveal: do NOT display formula for birthday force!
     S.justEval = true;
     if (typeof addHistoryEntry === "function"){
-      addHistoryEntry(shown, String(da.daysAlive), da.dayOfWeek + " • " + da.daysAlive.toLocaleString() + " days alive");
+      addHistoryEntry(shown, String(da.daysAlive), da.dayOfWeek + " • " + Number(da.daysAlive).toLocaleString() + " days alive");
     }
     cancelFeed();
     S.camouHint = false;
