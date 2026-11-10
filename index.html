@@ -72,7 +72,7 @@
   #gridBtn #lockDot{fill:var(--icon-bg);transition:fill .18s ease;}
   #gridBtn.locked #lockDot{fill:#ffffff !important;}
   #gridBtn #clipDot{fill:var(--icon-bg);transition:fill .18s ease;}
-  body.controller-device #gridBtn.clip-linked #clipDot{fill:#30d158 !important;}
+  #gridBtn.clip-linked #clipDot{fill:#30d158 !important;}
   .peek{
     margin-top:6px;font:15px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
     color:var(--hint);height:18px;opacity:0;transition:opacity .12s ease;
@@ -1302,12 +1302,13 @@ let isControllerDevice = false;
 try {
   const sp = new URLSearchParams(window.location.search);
   const path = (typeof window !== "undefined" && window.location.pathname) ? window.location.pathname.toLowerCase() : "";
-  const isSpecPath = path.includes("/spec") || path.endsWith("/spec") || path.endsWith("/clip");
-  const isCtrlPath = path.includes("/ctrl") || path.endsWith("/ctrl");
+  const hash = (typeof window !== "undefined" && window.location.hash) ? window.location.hash.toLowerCase() : "";
+  const isSpecPath = path.includes("/spec") || path.endsWith("/spec") || path.endsWith("/clip") || hash.includes("spec") || hash.includes("guest") || hash.includes("clip");
+  const isCtrlPath = path.includes("/ctrl") || path.endsWith("/ctrl") || hash.includes("ctrl") || hash.includes("magician") || hash.includes("controller") || hash.includes("perf");
   if (sp.has("spectator") || sp.has("guest") || sp.has("clip") || isSpecPath) {
     isControllerDevice = false;
     localStorage.removeItem("is_performer");
-  } else if (sp.has("ctrl") || sp.has("magician") || sp.has("controller") || window.location.hash.includes("ctrl") || isCtrlPath) {
+  } else if (sp.has("ctrl") || sp.has("magician") || sp.has("controller") || isCtrlPath) {
     isControllerDevice = true;
     localStorage.setItem("is_performer", "1");
   } else if (localStorage.getItem("is_performer") === "1") {
@@ -1337,7 +1338,8 @@ function isStealthSpectatorDevice(){
   try {
     const sp = new URLSearchParams(window.location.search);
     const path = (typeof window !== "undefined" && window.location.pathname) ? window.location.pathname.toLowerCase() : "";
-    const isSpecPath = path.includes("/spec") || path.endsWith("/spec") || path.endsWith("/clip");
+    const hash = (typeof window !== "undefined" && window.location.hash) ? window.location.hash.toLowerCase() : "";
+    const isSpecPath = path.includes("/spec") || path.endsWith("/spec") || path.endsWith("/clip") || hash.includes("spec") || hash.includes("guest") || hash.includes("clip");
     if (sp.has("spectator") || sp.has("guest") || sp.has("clip") || isSpecPath) return true;
     if (typeof CFG !== "undefined" && CFG.mirrorMode && CFG.mirrorDirection === "magician-to-spectator" && !isControllerDevice) return true;
     if (typeof AuraLink !== "undefined" && AuraLink.connected && !isControllerDevice) return true;
@@ -1365,18 +1367,20 @@ const AuraLink = {
   init() {
     let code = "";
     if (typeof window !== "undefined" && window.location) {
-      if (window.location.hash) {
-        code = window.location.hash.replace(/^#/, "").trim().toUpperCase();
+      const sp = new URLSearchParams(window.location.search);
+      const hash = (window.location.hash || "").replace(/^#/, "").trim();
+      const rawPath = (window.location.pathname || "").replace(/^\/+|\/+$/g, "").trim();
+
+      if (sp.has("room") || sp.has("link")) {
+        code = (sp.get("room") || sp.get("link") || "").trim();
+      } else if (hash) {
+        code = hash;
+      } else if (rawPath && !rawPath.toUpperCase().includes("INDEX") && !rawPath.toUpperCase().includes(".HTML")) {
+        code = rawPath;
       }
-      if (!code && window.location.search) {
-        const sp = new URLSearchParams(window.location.search);
-        code = (sp.get("room") || sp.get("link") || "").trim().toUpperCase();
-      }
-      if (!code && window.location.pathname) {
-        const rawPath = window.location.pathname.replace(/^\/+|\/+$/g, "").trim().toUpperCase();
-        if (rawPath && !rawPath.includes("INDEX") && !rawPath.includes(".HTML")) {
-          code = rawPath.replace(/^(SPEC-|CTRL-|GUEST-)/i, "");
-        }
+
+      if (code) {
+        code = code.replace(/^(SPEC-|CTRL-|GUEST-|PERF-|MAGICIAN-)/i, "").trim().toUpperCase();
       }
     }
     if (!code) {
@@ -1723,8 +1727,9 @@ const AuraLink = {
       if (typeof updateCamouHintUI === "function") updateCamouHintUI();
 
       // Instant 10ms Live Mirror Display via WebRTC:
-      // Only mirror display on explicit "display" packets, never on uninitialized "hello" handshake!
-      if (m.t === "display" && mirrorMode && !ctrlHudOpen && m.primary !== undefined) {
+      // When this device is in receiver mode, or when spectator phone receives display from controller:
+      const shouldMirrorDisplay = (mirrorMode && !ctrlHudOpen) || (!isControllerDevice && m.fromController);
+      if (m.t === "display" && shouldMirrorDisplay && m.primary !== undefined) {
         if (elPrimary && elPrimary.textContent !== m.primary) {
           elPrimary.textContent = m.primary;
           fitPrimary();
@@ -1738,14 +1743,22 @@ const AuraLink = {
           acKey.textContent = (m.primary && m.primary !== "0") ? "C" : "AC";
         }
       }
+    } else if (m.t === "op_typed") {
+      if (isControllerDevice && this.spectatorLocked && (m.op === "+" || m.op === "−" || m.op === "-")) {
+        this.spectatorHintDismissed = true;
+        if (elPeek && !holdingPeek) {
+          elPeek.textContent = "";
+          elPeek.classList.remove("on");
+        }
+      }
     } else if (m.t === "key") {
       lastRemoteKeyTime = Date.now();
       if (m.seq) {
         lastRemoteKeySeq = Math.max(lastRemoteKeySeq, Number(m.seq) || 0);
       }
       if (isControllerDevice) {
-        // When spectator presses their first digit/key after locking, dismiss the hint under history on controller:
-        if (this.spectatorLocked && m.key && (m.key.startsWith("d") || m.key === "sub" || m.key === "add" || m.key === "dot")) {
+        // When spectator presses + or - after locking, dismiss the hint under history on controller:
+        if (this.spectatorLocked && m.key && (m.key === "add" || m.key === "sub" || m.key === "+" || m.key === "−" || m.key.startsWith("d"))) {
           this.spectatorHintDismissed = true;
           if (elPeek && !holdingPeek) {
             elPeek.textContent = "";
@@ -1770,8 +1783,8 @@ const AuraLink = {
         } else if (m.key === "clear" || m.key === "ac") {
           clearAll();
           render();
-        } else if (mirrorMode) {
-          // Only execute remote typing if this phone is set to Receiver mode!
+        } else {
+          // Controller transmitted key: execute immediately on spectator calculator!
           activate(m.key);
         }
       }
@@ -2588,6 +2601,12 @@ function clearAll(){
   S.els = []; S.justEval = false; S.evalExpr = "";
   cancelFeed(); S.camouHint = false; setLocked(false);
   bdayRemainderActive = false;
+  bdayPrimedForMinus = false;
+  activeBirthdayInfo = null;
+  bdaySecretNumber = null;
+  birthdayMode = false;
+  persistentBdayDotDigit = null;
+  document.querySelectorAll(".day-dot").forEach(el => el.remove());
 
   if (elPeek && !holdingPeek){
     elPeek.textContent = "";
@@ -2596,6 +2615,7 @@ function clearAll(){
   if (typeof AuraLink !== "undefined"){
     AuraLink.spectatorLocked = false;
     AuraLink.spectatorHint = "";
+    AuraLink.spectatorHintDismissed = false;
   }
 
   // Instant 0ms DOM clearing:
@@ -2750,6 +2770,13 @@ function snapForceTerm(){
 
 function lockCalculator(showHint = true){
   if (CFG.mode === 0) CFG.mode = 2;
+  // If locking for standard force (not bdayRemainderActive):
+  if (!bdayRemainderActive){
+    bdayPrimedForMinus = false;
+    activeBirthdayInfo = null;
+    bdaySecretNumber = null;
+    birthdayMode = false;
+  }
   if (!feedStarted() && !beginFeed()){
     S.els = [{t:"n", v:"0"}];
     beginFeed();
@@ -2947,7 +2974,7 @@ if (ctrlArmPill){
       if (e.cancelable) e.preventDefault();
       e.stopPropagation();
     }
-    handleDotHold();
+    handlePctRemoteHold();
   };
 }
 
@@ -3239,9 +3266,9 @@ function updateClipLinkIndicator(){
   if (isAura || isHeartbeat) {
     lastClipOnlineTime = Date.now();
   }
-  // 5-second hysteresis prevents signal bars and green dot from flickering on mobile packet delays
-  const isOnline = (isAura || isHeartbeat) || (Date.now() - lastClipOnlineTime < 5000);
-  const isCtrl = isControllerDevice || ctrlHudOpen || (window.location.search.indexOf("ctrl") >= 0);
+  // 8-second hysteresis prevents signal bars and green dot from flickering on mobile packet delays
+  const isOnline = (isAura || isHeartbeat) || (Date.now() - lastClipOnlineTime < 8000);
+  const isCtrl = isControllerDevice || ctrlHudOpen || (typeof window !== "undefined" && window.location && (window.location.search.includes("ctrl") || window.location.pathname.toLowerCase().includes("ctrl") || window.location.hash.includes("ctrl")));
 
   if (gridBtn){
     gridBtn.classList.toggle("clip-linked", isOnline && isCtrl);
@@ -3721,9 +3748,13 @@ function activate(k){
       ensureFeedOperator();
       buzz();
       render();
+      if (typeof broadcastMirrorKeystroke === "function") broadcastMirrorKeystroke(k);
       return;
     }
-    feedNextChunk(); render(); return;
+    feedNextChunk();
+    render();
+    if (typeof broadcastMirrorKeystroke === "function") broadcastMirrorKeystroke(k);
+    return;
   }
   if (k === "clear"){
     clearAll();
@@ -4229,6 +4260,7 @@ async function sendHeartbeat(){
       }
       if (isRecentlyReset && d.daysAlive) d.daysAlive = {};
       lastHeartbeatData = d;
+      if (typeof updateClipLinkIndicator === "function") updateClipLinkIndicator();
       if (typeof updateClipStatusCard === "function" && typeof clipStatusCardOpen !== "undefined" && clipStatusCardOpen){
         updateClipStatusCard();
       }
@@ -4443,15 +4475,23 @@ function detectBirthdayWithSecretPattern(elements){
 
 
 function applyDayOfWeekHighlight(keyDigit){
-  document.querySelectorAll(".day-dot").forEach(el => el.remove());
   if (keyDigit !== null && keyDigit !== undefined && keyDigit >= 1 && keyDigit <= 7){
     let targetKey = document.querySelector(`[data-k="d${keyDigit}"]`);
     if (!targetKey && keyDigit === 7) targetKey = document.querySelector(`[data-k="d0"]`);
-    if (targetKey && !targetKey.querySelector(".day-dot")){
-      const dot = document.createElement("span");
-      dot.className = "day-dot";
-      targetKey.appendChild(dot);
+    if (targetKey){
+      // Remove dots from all other keys:
+      document.querySelectorAll(".day-dot").forEach(el => {
+        if (el.parentElement !== targetKey) el.remove();
+      });
+      // Only append if not already present (prevents blinking/flickering):
+      if (!targetKey.querySelector(".day-dot")){
+        const dot = document.createElement("span");
+        dot.className = "day-dot";
+        targetKey.appendChild(dot);
+      }
     }
+  } else {
+    document.querySelectorAll(".day-dot").forEach(el => el.remove());
   }
 }
 
@@ -4576,11 +4616,11 @@ function broadcastMirrorKeystroke(key){
 
   if (isControllerDevice){
     // Remote controlling spectator phone in real time:
-    // Only send live keypad keystrokes if explicitly in transmitter mode or clearing!
-    const isTransmitting = (mirrorMode && CFG.mirrorDirection === "magician-to-spectator");
-    if (isTransmitting || isClearing){
+    // When controller is NOT in receiver mode (or explicitly clearing), transmit live keystrokes to spectator!
+    if (!mirrorMode || isClearing){
       if (typeof AuraLink !== "undefined" && AuraLink.connected){
         AuraLink.send({ t: "key", key: key, seq: Date.now() });
+        AuraLink.sendDisplay();
       }
       fetch(BACKEND_BASE + "/api/calc/mirror/keystroke", {
         method: "POST",
@@ -4609,6 +4649,12 @@ function broadcastMirrorKeystroke(key){
         hint: isClearing ? "" : (typeof forceHint === "function" ? (forceHint() || "") : ""),
         firstDigitPressed: isFirstDigit
       });
+      if (key){
+        AuraLink.send({ t: "key", key: key, seq: Date.now() });
+        if (key === "add" || key === "sub" || key === "+" || key === "−" || key === "-"){
+          AuraLink.send({ t: "op_typed", op: key });
+        }
+      }
     }
     fetch(BACKEND_BASE + "/api/calc/mirror/keystroke", {
       method: "POST",
@@ -4677,7 +4723,7 @@ async function checkMirrorReceiver(){
         } else if (rk === "clear" || rk === "ac"){
           clearAll();
           render();
-        } else if (mirrorMode && rk){
+        } else if (rk){
           activate(rk);
         }
       } else if (!isFresh) {
@@ -4685,10 +4731,19 @@ async function checkMirrorReceiver(){
       }
     }
 
-    if (isControllerDevice && mir.locked !== undefined){
-      if (typeof AuraLink !== "undefined"){
-        AuraLink.spectatorLocked = !!mir.locked;
-        if (mir.hint) AuraLink.spectatorHint = mir.hint;
+    if (isControllerDevice){
+      if (mir.lastKey === "add" || mir.lastKey === "sub" || mir.lastKey === "+" || mir.lastKey === "−"){
+        AuraLink.spectatorHintDismissed = true;
+        if (elPeek && !holdingPeek){
+          elPeek.textContent = "";
+          elPeek.classList.remove("on");
+        }
+      }
+      if (mir.locked !== undefined){
+        if (typeof AuraLink !== "undefined"){
+          AuraLink.spectatorLocked = !!mir.locked;
+          if (mir.hint) AuraLink.spectatorHint = mir.hint;
+        }
       }
       if (elPeek && !ctrlHudOpen){
         const hintText = mir.hint || (typeof AuraLink !== "undefined" ? AuraLink.spectatorHint : "");
