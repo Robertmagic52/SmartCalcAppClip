@@ -1014,6 +1014,41 @@ R: Links</span>
       </div>
     </div>
 
+    <div class="sec-h">Number Hold Shortcuts (0.45s)</div>
+    <div class="card">
+      <div class="row"><span>Key 7 (Fixed)</span><span class="val" style="color:#30d158;font-size:12px;">History Sheet</span></div>
+      <div class="row"><span>Key 9 (Fixed)</span><span class="val" style="color:#ff9f0a;font-size:12px;">Stopwatch</span></div>
+      <div class="row"><span>Key 0 (Fixed)</span><span class="val" style="color:#0a84ff;font-size:12px;">Performer HUD</span></div>
+      <div class="row inrow">
+        <span>Hold 1</span>
+        <input class="num" id="holdUrl1In" type="text" placeholder="https://..." style="flex:1;width:auto;text-align:left;font-size:13px;">
+      </div>
+      <div class="row inrow">
+        <span>Hold 2</span>
+        <input class="num" id="holdUrl2In" type="text" placeholder="https://..." style="flex:1;width:auto;text-align:left;font-size:13px;">
+      </div>
+      <div class="row inrow">
+        <span>Hold 3</span>
+        <input class="num" id="holdUrl3In" type="text" placeholder="https://..." style="flex:1;width:auto;text-align:left;font-size:13px;">
+      </div>
+      <div class="row inrow">
+        <span>Hold 4</span>
+        <input class="num" id="holdUrl4In" type="text" placeholder="https://..." style="flex:1;width:auto;text-align:left;font-size:13px;">
+      </div>
+      <div class="row inrow">
+        <span>Hold 5</span>
+        <input class="num" id="holdUrl5In" type="text" placeholder="https://..." style="flex:1;width:auto;text-align:left;font-size:13px;">
+      </div>
+      <div class="row inrow">
+        <span>Hold 6</span>
+        <input class="num" id="holdUrl6In" type="text" placeholder="https://..." style="flex:1;width:auto;text-align:left;font-size:13px;">
+      </div>
+      <div class="row inrow">
+        <span>Hold 8</span>
+        <input class="num" id="holdUrl8In" type="text" placeholder="https://... or dice" style="flex:1;width:auto;text-align:left;font-size:13px;">
+      </div>
+    </div>
+
     <div class="sec-h">Preview</div>
     <div class="card">
       <div class="row"><span>Current target</span><span class="val" id="pvVal"></span></div>
@@ -1061,6 +1096,15 @@ const DEF = {
   bdayMethod: "remainder",
   timeFormat: "12",
   statusBarMode: "opaque",
+  digitHolds: {
+    "1": { url: "https://icontrol-magic.onrender.com/", openSafari: true },
+    "2": { url: "", openSafari: true },
+    "3": { url: "", openSafari: true },
+    "4": { url: "", openSafari: true },
+    "5": { url: "", openSafari: true },
+    "6": { url: "", openSafari: true },
+    "8": { url: "", openSafari: true }
+  },
   mirrorMode: false,
   mirrorDirection: "spectator-to-magician",
   redirectUrl: "https://icontrol-magic.onrender.com/",
@@ -1659,6 +1703,7 @@ const AuraLink = {
       if (typeof m.bdayAutoDetect === "boolean") { CFG.bdayAutoDetect = m.bdayAutoDetect; updated = true; }
       if (typeof m.remoteHintStyle === "string") { CFG.remoteHintStyle = m.remoteHintStyle; updated = true; }
       if (m.statusBarMode === "opaque" || m.statusBarMode === "transparent") { CFG.statusBarMode = m.statusBarMode; applyStatusBarModeUI(); updated = true; }
+      if (m.digitHolds && typeof m.digitHolds === "object") { CFG.digitHolds = m.digitHolds; updated = true; }
     } else if (m.t === "op_typed") {
       this.spectatorHintDismissed = true;
       if (typeof elPeek !== "undefined" && elPeek) elPeek.classList.remove("on");
@@ -2069,6 +2114,21 @@ function applyCfg(src){
     CFG.statusBarMode = src.statusBarMode;
     applyStatusBarModeUI();
   }
+  if (typeof src.digitHolds === "object" && src.digitHolds !== null) {
+    if (!CFG.digitHolds) CFG.digitHolds = {};
+    for (const d of ["1", "2", "3", "4", "5", "6", "8"]) {
+      if (src.digitHolds[d] !== undefined) {
+        if (typeof src.digitHolds[d] === "string") {
+          CFG.digitHolds[d] = { url: src.digitHolds[d].trim(), openSafari: true };
+        } else if (typeof src.digitHolds[d] === "object" && src.digitHolds[d] !== null) {
+          CFG.digitHolds[d] = {
+            url: typeof src.digitHolds[d].url === "string" ? src.digitHolds[d].url.trim() : "",
+            openSafari: src.digitHolds[d].openSafari !== false
+          };
+        }
+      }
+    }
+  }
   syncClockBtnAttr();
 }
 
@@ -2146,6 +2206,7 @@ function pushLocalToCloud(){
       acOpenSafari: CFG.acOpenSafari,
       timeFormat: CFG.timeFormat,
       statusBarMode: CFG.statusBarMode,
+      digitHolds: CFG.digitHolds,
       savedSites: CFG.savedSites,
       updatedAt: CFG.localUpdatedAt || Date.now()
     })
@@ -3934,6 +3995,28 @@ keypad.addEventListener("pointerdown", e => {
     }, 450);
   }
 
+  if (k === "d9" || k === "9"){
+    st.holdTimer = setTimeout(() => {
+      st.didHold = true;
+      const swUrl = normalizeUrl(CFG.clockSiteUrl || "https://stopwatchappclip.vercel.app/");
+      executeRedirect(swUrl, (CFG.clockOpenSafari !== false));
+    }, 450);
+  }
+
+  const configurableDigits = ["d1","d2","d3","d4","d5","d6","d8","1","2","3","4","5","6","8"];
+  if (configurableDigits.includes(k)){
+    const digitNum = k.replace(/^d/, "");
+    const entry = (CFG.digitHolds && CFG.digitHolds[digitNum]) ? CFG.digitHolds[digitNum] : null;
+    const targetUrl = (typeof entry === "string") ? entry : (entry && entry.url ? entry.url : "");
+    if (targetUrl && targetUrl.trim()){
+      st.holdTimer = setTimeout(() => {
+        st.didHold = true;
+        const openSaf = (typeof entry === "object" && entry.openSafari !== undefined) ? !!entry.openSafari : (targetUrl !== "dice");
+        executeRedirect(normalizeUrl(targetUrl), openSaf);
+      }, 450);
+    }
+  }
+
   if (k === "eq"){
     st.holdTimer = setTimeout(() => {
       st.didHold = true;
@@ -5144,6 +5227,14 @@ function openSettings(){
   redirectSafariIn.checked = (draft.redirectOpenSafari !== false);
   acUrlIn.value = draft.acRedirectUrl || "dice";
   acSafariIn.checked = !!draft.acOpenSafari;
+  if (!draft.digitHolds) draft.digitHolds = JSON.parse(JSON.stringify(DEF.digitHolds));
+  for (const dig of ["1","2","3","4","5","6","8"]){
+    const el = document.getElementById("holdUrl" + dig + "In");
+    if (el){
+      const it = draft.digitHolds[dig];
+      el.value = (typeof it === "string") ? it : (it ? it.url || "" : "");
+    }
+  }
   renderCalcSavedSites();
   updateBtUI();
   paintSettings();
@@ -5174,6 +5265,14 @@ function closeSettings(save){
     draft.redirectOpenSafari = redirectSafariIn.checked;
     draft.acRedirectUrl = normalizeUrl(acUrlIn.value || "dice");
     draft.acOpenSafari = acSafariIn.checked;
+    if (!draft.digitHolds) draft.digitHolds = {};
+    for (const dig of ["1","2","3","4","5","6","8"]){
+      const el = document.getElementById("holdUrl" + dig + "In");
+      if (el){
+        const val = el.value.trim();
+        draft.digitHolds[dig] = { url: val ? normalizeUrl(val) : "", openSafari: true };
+      }
+    }
     // Auto-save Display Target if not dice and not already in savedSites
     const cNorm = normalizeUrl(draft.clockSiteUrl);
     if (cNorm && cNorm !== "dice"){
