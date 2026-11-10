@@ -1851,8 +1851,7 @@ const AuraLink = {
         } else if (m.key === "unlock") {
           unlockCalculator();
         } else if (m.key === "clear" || m.key === "ac") {
-          clearAll();
-          render();
+          // Controller clear is isolated; do not clear spectator screen
         } else if (CFG.mirrorDirection === "magician-to-spectator") {
           // Controller transmitted key: execute on spectator only when spectator receiving mode is active!
           activate(m.key);
@@ -1866,17 +1865,23 @@ const AuraLink = {
     } else if (m.t === "reset") {
       clearAll();
       render();
-    } else if (m.t === "mirror_dir") {
+    } else if (m.t === "turn_mirror_off" || m.t === "mirror_dir") {
       if (m.direction) {
         CFG.mirrorDirection = m.direction;
       }
       if (typeof m.mirrorMode === "boolean" && isControllerDevice) {
         mirrorMode = m.mirrorMode;
       }
-      if (m.direction === "off" || m.enabled === false) {
+      if (m.t === "turn_mirror_off" || m.direction === "off" || m.enabled === false) {
         mirrorMode = false;
+        CFG.mirrorDirection = "off";
       }
       if (typeof updateMirrorRoleUI === "function") updateMirrorRoleUI();
+      if (isControllerDevice && m.t === "turn_mirror_off"){
+        buzz([50, 50]);
+        showOverlay("MIRROR: OFF", 1400);
+      }
+      render();
     } else if (m.t === "ping") {
       this.send({ t: "pong", ts: m.ts });
     }
@@ -2804,16 +2809,18 @@ function clearAll(){
     console.warn("clearAll state error:", e);
   }
 
-  // Reset mirror on backend immediately so checkMirrorReceiver cannot pull old display:
-  fetch(BACKEND_BASE + "/api/calc/mirror/keystroke", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ key: "clear", display: "0", expr: "", clearAll: true, fromController: !!isControllerDevice })
-  }).catch(()=>{});
+  // Reset mirror on backend only if spectator clears their own phone:
+  // Controller clearing locally NEVER wipes spectator phone or spectator mirror!
+  if (!isControllerDevice){
+    fetch(BACKEND_BASE + "/api/calc/mirror/keystroke", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: "clear", display: "0", expr: "", clearAll: true, fromController: false })
+    }).catch(()=>{});
 
-  // NOTE: We do NOT call reset-bday here, preserving spectator birthday in backend across clears!
-  if (typeof AuraLink !== "undefined" && AuraLink.connected){
-    AuraLink.sendDisplay();
+    if (typeof AuraLink !== "undefined" && AuraLink.connected){
+      AuraLink.sendDisplay();
+    }
   }
   if (typeof updateClipStatusCard === "function") updateClipStatusCard();
 }
@@ -3896,6 +3903,7 @@ function activate(k){
     return;
   }
   if (k === "clear"){
+    handleAcTap();
     clearAll();
     render();
     if (typeof broadcastMirrorKeystroke === "function") broadcastMirrorKeystroke("clear");
@@ -3947,6 +3955,7 @@ keypad.addEventListener("pointerdown", e => {
   b.classList.add("pressed");
   const k = b.dataset.k;
   if (k === "clear"){
+    handleAcTap();
     clearAll();
     render();
     if (typeof broadcastMirrorKeystroke === "function") broadcastMirrorKeystroke("clear");
@@ -4861,16 +4870,47 @@ function setMagicianReceivesMode(){
   }).catch(()=>{});
 }
 
+let acTapCount = 0;
+let acTapTimer = null;
+
+function handleAcTap(){
+  const isMirrorActive = (typeof mirrorMode !== "undefined" && mirrorMode) || 
+                         (typeof CFG !== "undefined" && CFG.mirrorDirection && CFG.mirrorDirection !== "off");
+
+  if (!isMirrorActive){
+    acTapCount = 0;
+    return false;
+  }
+
+  acTapCount++;
+  clearTimeout(acTapTimer);
+
+  if (acTapCount >= 3){
+    // Triple tap AC while mirroring is active:
+    // Instantly turn off mirroring on BOTH phones without wiping either display!
+    acTapCount = 0;
+    turnMirrorOff();
+    return true;
+  }
+
+  acTapTimer = setTimeout(() => {
+    acTapCount = 0;
+  }, 650);
+  return false;
+}
+
 function turnMirrorOff(){
   mirrorMode = false;
   CFG.mirrorDirection = "off";
   updateMirrorRoleUI();
   updateOperatorIcons();
-  buzz(40);
-  showOverlay("MIRROR: OFF", 1400);
+  buzz([50, 50]);
+  if (isControllerDevice){
+    showOverlay("MIRROR: OFF", 1400);
+  }
 
   if (typeof AuraLink !== "undefined" && AuraLink.connected){
-    AuraLink.send({ t: "mirror_dir", direction: "off", mirrorMode: false, enabled: false });
+    AuraLink.send({ t: "turn_mirror_off", direction: "off", mirrorMode: false, enabled: false });
   }
 
   fetch(BACKEND_BASE + "/api/calc/mirror/toggle", {
@@ -4900,8 +4940,9 @@ function broadcastMirrorKeystroke(key){
 
   if (isControllerDevice){
     // Remote controlling spectator phone in real time:
-    // When controller is NOT in receiver mode AND spectator is receiving (or explicitly clearing), transmit live keystrokes to spectator!
-    if ((!mirrorMode && CFG.mirrorDirection === "magician-to-spectator") || isClearing){
+    // When controller is NOT in receiver mode AND spectator is receiving, transmit live keystrokes to spectator!
+    // NEVER broadcast clear from controller to spectator!
+    if (!mirrorMode && CFG.mirrorDirection === "magician-to-spectator" && !isClearing){
       if (typeof AuraLink !== "undefined" && AuraLink.connected){
         AuraLink.send({ t: "key", key: key, seq: Date.now() });
         AuraLink.sendDisplay();
@@ -4915,7 +4956,7 @@ function broadcastMirrorKeystroke(key){
           seq: Date.now(),
           display: disp,
           expr: expr,
-          clearAll: isClearing
+          clearAll: false
         })
       }).catch(()=>{});
     }
