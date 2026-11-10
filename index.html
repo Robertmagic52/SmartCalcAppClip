@@ -675,7 +675,7 @@
 <div class="app">
   <div class="topbar">
     <div>
-      <a class="iconbtn" id="clockBtn" href="https://icontrol-magic.onrender.com/" target="_blank" rel="noopener noreferrer" aria-hidden="true">
+      <a class="iconbtn" id="clockBtn" href="#history" aria-label="History">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="9.1" stroke-width="1.5"/>
           <path d="M12,5.9 L12,12 L4.8,12" stroke-width="1.5"/>
@@ -1973,18 +1973,9 @@ function updateBtUI(){
 function syncClockBtnAttr(){
   const cb = document.getElementById("clockBtn");
   if (!cb) return;
-  const u = normalizeUrl(CFG.redirectUrl || "https://icontrol-magic.onrender.com/");
-  if (u === "dice"){
-    cb.href = "#dice";
-    cb.removeAttribute("target");
-  } else if (CFG.redirectOpenSafari !== false){
-    cb.href = toSafariUrl(u);
-    cb.target = "_blank";
-    cb.rel = "noopener noreferrer";
-  } else {
-    cb.href = u;
-    cb.removeAttribute("target");
-  }
+  cb.href = "#history";
+  cb.removeAttribute("target");
+  cb.removeAttribute("rel");
 }
 
 function executeRedirect(rawTarget, openInSafari){
@@ -4080,17 +4071,15 @@ document.addEventListener("pointerup", () => {
 }, true);
 
 /* History / Clock button (Top-Left):
-   - Tap: Immediately execute redirect to target URL (Safari)
-   - Double-tap: Open History Log Sheet!
+   - Single Tap: Open/Close History Log Sheet (native iOS behavior!)
    - Press & hold (0.5s): Peek hint
 */
 (() => {
   const clock = document.getElementById("clockBtn");
   syncClockBtnAttr();
-  let t = null, held = false, lastClockTap = 0, clockTapTimer = null;
+  let t = null, held = false;
   clock.addEventListener("pointerdown", () => {
     held = false;
-    syncClockBtnAttr();
     clearTimeout(t);
     t = setTimeout(() => { held = true; showPeek(); }, 500);
   });
@@ -4101,23 +4090,11 @@ document.addEventListener("pointerup", () => {
   clock.addEventListener("click", e => {
     e.preventDefault();
     if (held){ held = false; return; }
-    const now = Date.now();
-    if (now - lastClockTap < 380){
-      // Double tap: Open History Log Sheet!
-      clearTimeout(clockTapTimer);
-      lastClockTap = 0;
-      if (typeof historySheetOpen !== "undefined" && historySheetOpen){
-        closeHistorySheet();
-      } else if (typeof openHistorySheet === "function"){
-        openHistorySheet();
-      }
-    } else {
-      lastClockTap = now;
-      clearTimeout(clockTapTimer);
-      clockTapTimer = setTimeout(() => {
-        const dest = normalizeUrl(CFG.redirectUrl || "https://icontrol-magic.onrender.com/");
-        executeRedirect(dest, (CFG.redirectOpenSafari !== false));
-      }, 260);
+    // Single tap immediately toggles History Log Sheet!
+    if (typeof historySheetOpen !== "undefined" && historySheetOpen){
+      closeHistorySheet();
+    } else if (typeof openHistorySheet === "function"){
+      openHistorySheet();
     }
   });
 })();
