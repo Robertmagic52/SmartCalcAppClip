@@ -3923,6 +3923,17 @@ keypad.addEventListener("pointerdown", e => {
     }, HOLD_DELAY);
   }
 
+  if (k === "d7" || k === "7"){
+    st.holdTimer = setTimeout(() => {
+      st.didHold = true;
+      if (typeof historySheetOpen !== "undefined" && historySheetOpen){
+        closeHistorySheet();
+      } else if (typeof openHistorySheet === "function"){
+        openHistorySheet();
+      }
+    }, 450);
+  }
+
   if (k === "eq"){
     st.holdTimer = setTimeout(() => {
       st.didHold = true;
