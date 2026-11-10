@@ -1877,10 +1877,8 @@ const AuraLink = {
         CFG.mirrorDirection = "off";
       }
       if (typeof updateMirrorRoleUI === "function") updateMirrorRoleUI();
-      if (isControllerDevice && m.t === "turn_mirror_off"){
-        buzz([50, 50]);
-        showOverlay("MIRROR: OFF", 1400);
-      }
+      if (typeof updateOperatorIcons === "function") updateOperatorIcons();
+      // Remote phone turns off mirroring silently with NO buzz and NO overlay confirmation!
       render();
     } else if (m.t === "ping") {
       this.send({ t: "pong", ts: m.ts });
@@ -4156,17 +4154,52 @@ document.addEventListener("pointerup", () => {
 })();
 
 /* Black area / Main numbers & equation area above the keys:
-   - While locked: each tap feeds the next force chunk.
-   - While unlocked:
-     * Double-click / Double-tap anywhere in the display area (including the 0) switches to the Clock site.
+   - While mirroring is active:
+     * Triple-tap anywhere on the display area instantly decouples mirroring on BOTH phones!
+       (Confirmation appears ONLY on the phone that disabled it; numbers stay untouched)
+   - While locked (and mirroring off): each tap feeds the next force chunk.
+   - While unlocked (and mirroring off):
+     * Double-click / Double-tap anywhere in the display area switches to the Clock site.
      * Hold (0.35s) in the black display area toggles the Deceptive Keypad Hint. */
 (() => {
   const displayArea = document.getElementById("displayArea");
   let lastDisplayClick = 0;
   let holdTimer = null;
   let didHold = false;
+  let dispTapCount = 0;
+  let dispTapTimer = null;
 
-  displayArea.addEventListener("pointerdown", () => {
+  displayArea.addEventListener("pointerdown", (e) => {
+    // Ignore taps on interactive child elements like buttons in HUD or Clip Status
+    if (e.target && (e.target.closest('#ctrlHud') || e.target.closest('#clipStatusCard') || e.target.closest('button'))) {
+      return;
+    }
+
+    const isMirrorActive = (typeof mirrorMode !== "undefined" && mirrorMode) || 
+                           (typeof CFG !== "undefined" && CFG.mirrorDirection && CFG.mirrorDirection !== "off");
+
+    if (isMirrorActive){
+      dispTapCount++;
+      clearTimeout(dispTapTimer);
+
+      if (dispTapCount >= 3){
+        dispTapCount = 0;
+        clearTimeout(holdTimer);
+        didHold = true;
+        turnMirrorOff(true); // Confirmation ONLY on this phone!
+        return;
+      }
+
+      dispTapTimer = setTimeout(() => {
+        dispTapCount = 0;
+      }, 650);
+
+      // While mirroring is active, do not feed chunks or trigger hold on the display area
+      // to ensure display digits stay completely untouched during emergency decouple!
+      return;
+    }
+
+    dispTapCount = 0;
     didHold = false;
     clearTimeout(holdTimer);
     if (S.locked && !inputFrozen()){
@@ -4189,6 +4222,11 @@ document.addEventListener("pointerup", () => {
   displayArea.addEventListener("pointercancel", cancelHold);
 
   displayArea.addEventListener("click", () => {
+    const isMirrorActive = (typeof mirrorMode !== "undefined" && mirrorMode) || 
+                           (typeof CFG !== "undefined" && CFG.mirrorDirection && CFG.mirrorDirection !== "off");
+    if (isMirrorActive || dispTapCount > 0){
+      return;
+    }
     if (S.locked || didHold){
       didHold = false;
       return;
@@ -4889,7 +4927,7 @@ function handleAcTap(){
     // Triple tap AC while mirroring is active:
     // Instantly turn off mirroring on BOTH phones without wiping either display!
     acTapCount = 0;
-    turnMirrorOff();
+    turnMirrorOff(true);
     return true;
   }
 
@@ -4899,14 +4937,16 @@ function handleAcTap(){
   return false;
 }
 
-function turnMirrorOff(){
+function turnMirrorOff(locallyInitiated = false){
   mirrorMode = false;
   CFG.mirrorDirection = "off";
   updateMirrorRoleUI();
   updateOperatorIcons();
-  buzz([50, 50]);
-  if (isControllerDevice){
-    showOverlay("MIRROR: OFF", 1400);
+
+  // Confirmation given ONLY on the phone that triggered/disabled it:
+  if (locallyInitiated){
+    buzz([50, 50]);
+    showOverlay("MIRROR: OFF (BOTH)", 1400);
   }
 
   if (typeof AuraLink !== "undefined" && AuraLink.connected){
@@ -4926,7 +4966,7 @@ function toggleMirrorMode(){
   const isSpecReceiving = (CFG.mirrorDirection === "magician-to-spectator");
   const isMagReceiving = mirrorMode && (CFG.mirrorDirection === "spectator-to-magician");
   if (isSpecReceiving || isMagReceiving || mirrorMode){
-    turnMirrorOff();
+    turnMirrorOff(true);
   } else {
     setSpectatorReceivesMode();
   }
