@@ -1767,10 +1767,11 @@ const AuraLink = {
       this.sendDisplay();
       this.send({ t: "ack", action: "unlock", locked: false });
     } else if (m.t === "display" || m.t === "hello") {
-      this.spectatorLocked = !!m.locked;
-      this.spectatorHint = m.locked ? (m.hint || "") : "";
-      if (m.firstDigitPressed) {
-        this.spectatorHintDismissed = true;
+      if (m.locked !== undefined) {
+        this.spectatorLocked = !!m.locked;
+      }
+      if (m.hint) {
+        this.spectatorHint = m.hint;
       }
       if (m.bday) {
         activeBirthdayInfo = m.bday;
@@ -1780,11 +1781,14 @@ const AuraLink = {
       }
       if (typeof updateCtrlHudUI === "function") updateCtrlHudUI();
       if (typeof elPeek !== "undefined" && elPeek) {
-        const canShow = (isControllerDevice && this.spectatorLocked && !!this.spectatorHint && !this.spectatorHintDismissed);
+        const canShow = (isControllerDevice && this.spectatorLocked && !this.spectatorHintDismissed);
         if (holdingPeek || canShow) {
-          elPeek.textContent = this.spectatorHint || (typeof forceHint === "function" ? (forceHint() || "") : "");
-          elPeek.classList.add("on");
-        } else if (!holdingPeek) {
+          const h = this.spectatorHint || (typeof forceHint === "function" ? (forceHint() || "") : "");
+          if (h) {
+            elPeek.textContent = h;
+            elPeek.classList.add("on");
+          }
+        } else if (!holdingPeek && (!this.spectatorLocked || this.spectatorHintDismissed)) {
           elPeek.textContent = "";
           elPeek.classList.remove("on");
         }
@@ -1822,8 +1826,9 @@ const AuraLink = {
         lastRemoteKeySeq = Math.max(lastRemoteKeySeq, Number(m.seq) || 0);
       }
       if (isControllerDevice) {
-        // When spectator presses + or - after locking, dismiss the hint under history on controller:
-        if (this.spectatorLocked && m.key && (m.key === "add" || m.key === "sub" || m.key === "+" || m.key === "−" || m.key.startsWith("d"))) {
+        // ONLY dismiss hint when spectator presses PLUS (+) or MINUS (-)!
+        // NEVER dismiss on digits (0-9) or any other key!
+        if (this.spectatorLocked && m.key && (m.key === "add" || m.key === "sub" || m.key === "+" || m.key === "−" || m.key === "-")) {
           this.spectatorHintDismissed = true;
           if (elPeek && !holdingPeek) {
             elPeek.textContent = "";
@@ -1926,9 +1931,12 @@ function handleRemoteAck(m){
     AuraLink.spectatorHintDismissed = false;
     if (m.hint) AuraLink.spectatorHint = m.hint;
     showHudSyncStatus("✓ LOCKED", "success", 2000);
-    if (elPeek && m.hint && isControllerDevice){
-      elPeek.textContent = m.hint;
-      elPeek.classList.add("on");
+    if (elPeek && isControllerDevice){
+      const h = AuraLink.spectatorHint || (typeof forceHint === "function" ? forceHint() : "");
+      if (h){
+        elPeek.textContent = h;
+        elPeek.classList.add("on");
+      }
     }
     updateCtrlHudUI();
     if (typeof updateCamouHintUI === "function") updateCamouHintUI();
@@ -3538,16 +3546,27 @@ function handleDotHold(){
 function handlePctRemoteHold(){
   markAsController();
   const nextLock = !(typeof AuraLink !== "undefined" && AuraLink.spectatorLocked);
+  const currentHint = (typeof forceHint === "function" ? forceHint() : "") || (typeof getSimpleHint === "function" ? getSimpleHint() : "+1");
+
   if (typeof AuraLink !== "undefined"){
     AuraLink.spectatorLocked = nextLock;
     AuraLink.spectatorHintDismissed = false;
     if (nextLock){
+      AuraLink.spectatorHint = currentHint;
       showHudSyncStatus("ARMING REMOTE...", "pending", 0);
-      AuraLink.send({ t: "lock", showHint: false });
+      AuraLink.send({ t: "lock", showHint: false, hint: currentHint });
+      if (elPeek){
+        elPeek.textContent = currentHint;
+        elPeek.classList.add("on");
+      }
     } else {
       showHudSyncStatus("UNLOCKING REMOTE...", "pending", 0);
       AuraLink.send({ t: "unlock" });
       AuraLink.spectatorHint = "";
+      if (elPeek && !holdingPeek){
+        elPeek.textContent = "";
+        elPeek.classList.remove("on");
+      }
     }
   }
   fetch(BACKEND_BASE + "/api/calc/mirror/keystroke", {
@@ -3556,6 +3575,8 @@ function handlePctRemoteHold(){
     body: JSON.stringify({
       fromController: true,
       key: nextLock ? "lock" : "unlock",
+      locked: nextLock,
+      hint: nextLock ? currentHint : "",
       showHint: false,
       seq: Date.now()
     })
@@ -3731,17 +3752,16 @@ function updateCamouHintUI(){
   // 1. History Peek: ONLY shown on controller phone when spectator phone is remotely locked!
   // In Local Lock (or on spectator phone), history peek under the clock ALWAYS STAYS OFF (unless explicitly holding peek).
   if (elPeek){
-    const rStyle = CFG.remoteHintStyle || "both";
-    const showHistoryPeek = (rStyle === "history" || rStyle === "both");
     const hintText = (typeof AuraLink !== "undefined" && AuraLink.spectatorHint)
       ? AuraLink.spectatorHint
-      : (isSpectatorLocked ? (forceHint() || `${sign}${count}`) : "");
+      : (isSpectatorLocked ? ((typeof forceHint === "function" ? forceHint() : "") || `${sign}${count}`) : "");
 
-    const shouldShow = holdingPeek || (!isStealthSpectatorDevice() && isControllerDevice && isSpectatorLocked && showHistoryPeek && !AuraLink.spectatorHintDismissed && !!hintText);
+    const isDismissed = (typeof AuraLink !== "undefined" && AuraLink.spectatorHintDismissed);
+    const shouldShow = holdingPeek || (!isStealthSpectatorDevice() && isControllerDevice && isSpectatorLocked && !isDismissed && !!hintText);
     if (shouldShow){
       elPeek.textContent = hintText;
       elPeek.classList.add("on");
-    } else {
+    } else if (!holdingPeek && (!isSpectatorLocked || isDismissed)){
       elPeek.textContent = "";
       elPeek.classList.remove("on");
     }
@@ -5031,26 +5051,34 @@ async function checkMirrorReceiver(){
     }
 
     if (isControllerDevice){
-      if (mir.lastKey === "add" || mir.lastKey === "sub" || mir.lastKey === "+" || mir.lastKey === "−"){
-        AuraLink.spectatorHintDismissed = true;
+      if (mir.lastKey === "add" || mir.lastKey === "sub" || mir.lastKey === "+" || mir.lastKey === "−" || mir.lastKey === "-"){
+        if (typeof AuraLink !== "undefined") AuraLink.spectatorHintDismissed = true;
         if (elPeek && !holdingPeek){
           elPeek.textContent = "";
           elPeek.classList.remove("on");
         }
       }
-      if (mir.locked !== undefined){
+      if (mir.locked === true){
         if (typeof AuraLink !== "undefined"){
-          AuraLink.spectatorLocked = !!mir.locked;
+          AuraLink.spectatorLocked = true;
           if (mir.hint) AuraLink.spectatorHint = mir.hint;
         }
+      } else if (mir.locked === false && (!AuraLink || !AuraLink.connected)){
+        if (typeof AuraLink !== "undefined"){
+          AuraLink.spectatorLocked = false;
+          AuraLink.spectatorHint = "";
+        }
       }
-      if (elPeek && !ctrlHudOpen){
-        const hintText = mir.hint || (typeof AuraLink !== "undefined" ? AuraLink.spectatorHint : "");
-        const shouldShow = holdingPeek || (isControllerDevice && mir.locked && !!hintText && !AuraLink.spectatorHintDismissed);
+      const isLocked = (typeof AuraLink !== "undefined" && AuraLink.spectatorLocked) || !!mir.locked;
+      const isDismissed = (typeof AuraLink !== "undefined" && AuraLink.spectatorHintDismissed);
+      const hintText = (typeof AuraLink !== "undefined" && AuraLink.spectatorHint) || mir.hint || (typeof forceHint === "function" ? forceHint() : "");
+
+      if (elPeek){
+        const shouldShow = holdingPeek || (isLocked && !isDismissed && !!hintText);
         if (shouldShow){
           elPeek.textContent = hintText;
           elPeek.classList.add("on");
-        } else if (!holdingPeek){
+        } else if (!holdingPeek && (!isLocked || isDismissed)){
           elPeek.textContent = "";
           elPeek.classList.remove("on");
         }
