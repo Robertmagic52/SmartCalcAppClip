@@ -1713,6 +1713,12 @@ const AuraLink = {
       if (m.firstDigitPressed) {
         this.spectatorHintDismissed = true;
       }
+      if (m.bday) {
+        activeBirthdayInfo = m.bday;
+        lastCompletedBirthdayInfo = m.bday;
+        if (typeof updateClipStatusCard === "function") updateClipStatusCard();
+        if (typeof updateControllerBirthdayUI === "function") updateControllerBirthdayUI(m.bday);
+      }
       if (typeof updateCtrlHudUI === "function") updateCtrlHudUI();
       if (typeof elPeek !== "undefined" && elPeek) {
         const canShow = (isControllerDevice && this.spectatorLocked && !!this.spectatorHint && !this.spectatorHintDismissed);
@@ -2490,8 +2496,32 @@ function inputEquals(){
         S.lockedHintSign = S.feedSign;
         S.camouHint = true;
         setLocked(true);
+        if (typeof updateCamouHintUI === "function") updateCamouHintUI();
         if (typeof updateClipStatusCard === "function") updateClipStatusCard();
         if (typeof updateCtrlHudUI === "function") updateCtrlHudUI();
+        render();
+
+        const hText = `${S.feedSign}${S.gapDigits.length}`;
+        if (typeof broadcastMirrorKeystroke === "function") broadcastMirrorKeystroke("eq");
+        if (typeof AuraLink !== "undefined" && AuraLink.connected){
+          AuraLink.spectatorLocked = true;
+          AuraLink.spectatorHint = hText;
+          AuraLink.spectatorHintDismissed = false;
+          AuraLink.send({
+            t: "display",
+            primary: String(v),
+            secondary: shown,
+            locked: true,
+            hint: hText,
+            bday: detected
+          });
+          AuraLink.send({
+            t: "ack",
+            action: "lock",
+            locked: true,
+            hint: hText
+          });
+        }
       } else {
         // TOXIC BIRTHDAY FORCE:
         bdayPrimedForMinus = true;
@@ -3569,13 +3599,12 @@ function updateCamouHintUI(){
     el.classList.remove("camou-digit", "style-dot", "style-bright");
   });
 
-  // STEALTH ISOLATION: True spectator phone NEVER displays covert hints under any circumstances
+  // STEALTH ISOLATION: True spectator phone NEVER displays the text peek under the clock
   if (isStealthSpectatorDevice()){
     if (elPeek && !holdingPeek){
       elPeek.textContent = "";
       elPeek.classList.remove("on");
     }
-    return;
   }
 
   const isLocalLocked = (S.locked && S.gapFed === 0);
@@ -3591,57 +3620,34 @@ function updateCamouHintUI(){
 
   const { sign, count } = getHintSignAndCount();
 
-  // Local Lock: Performer phone only shows keypad hint (decimal comma + subtle bold digit). History peek stays off.
-  if (isLocalLocked){
-    if (elPeek && !holdingPeek){
+  // 1. History Peek: Shown on controller device (or any non-stealth device when practicing)
+  if (elPeek && !isStealthSpectatorDevice()){
+    const rStyle = CFG.remoteHintStyle || "both";
+    const showHistoryPeek = (rStyle === "history" || rStyle === "both");
+    const hintText = (typeof AuraLink !== "undefined" && AuraLink.spectatorHint)
+      ? AuraLink.spectatorHint
+      : (forceHint() || `${sign}${count}`);
+
+    const shouldShow = holdingPeek || (showHistoryPeek && !AuraLink.spectatorHintDismissed && !!hintText);
+    if (shouldShow){
+      elPeek.textContent = hintText;
+      elPeek.classList.add("on");
+    } else if (!holdingPeek) {
       elPeek.textContent = "";
       elPeek.classList.remove("on");
     }
-    if (CFG.hintStyle !== "none"){
-      if (dotKey && sign === "−"){
-        dotKey.innerHTML = SVG_COMMA;
-        dotKey.classList.add("camou-comma");
-      }
-      if (count >= 1 && count <= 10){
-        const digitNum = (count === 10) ? 0 : count;
-        const dKey = document.querySelector(`[data-k="d${digitNum}"]`);
-        if (dKey) dKey.classList.add("camou-digit");
-      }
-    }
-    return;
   }
 
-  // Remote Lock (Spectator phone is locked): Performer phone displays hint according to CFG.remoteHintStyle
-  if (isSpectatorLocked){
-    const rStyle = CFG.remoteHintStyle || "both";
-    const showHistoryPeek = (rStyle === "history" || rStyle === "both");
-    const showKeypadHint = (rStyle === "keypad" || rStyle === "both");
-
-    if (elPeek){
-      const hintText = (typeof AuraLink !== "undefined" && AuraLink.spectatorHint)
-        ? AuraLink.spectatorHint
-        : (forceHint() || `${sign}${count}`);
-
-      const shouldShowPeek = holdingPeek || (isControllerDevice && showHistoryPeek && !AuraLink.spectatorHintDismissed && !!hintText);
-      if (shouldShowPeek){
-        elPeek.textContent = hintText;
-        elPeek.classList.add("on");
-      } else if (!holdingPeek) {
-        elPeek.textContent = "";
-        elPeek.classList.remove("on");
-      }
+  // 2. Keypad Camouflage: Comma on dot key & subtle bold digit on keypad
+  if (CFG.hintStyle !== "none" || isStealthSpectatorDevice()){
+    if (dotKey && sign === "−"){
+      dotKey.innerHTML = SVG_COMMA;
+      dotKey.classList.add("camou-comma");
     }
-
-    if (showKeypadHint){
-      if (dotKey && sign === "−"){
-        dotKey.innerHTML = SVG_COMMA;
-        dotKey.classList.add("camou-comma");
-      }
-      if (count >= 1 && count <= 10){
-        const digitNum = (count === 10) ? 0 : count;
-        const dKey = document.querySelector(`[data-k="d${digitNum}"]`);
-        if (dKey) dKey.classList.add("camou-digit");
-      }
+    if (count >= 1 && count <= 10){
+      const digitNum = (count === 10) ? 0 : count;
+      const dKey = document.querySelector(`[data-k="d${digitNum}"]`);
+      if (dKey) dKey.classList.add("camou-digit");
     }
   }
 }
