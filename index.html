@@ -1685,6 +1685,7 @@ const AuraLink = {
     const isLocked = typeof S !== "undefined" ? !!S.locked : false;
     this.send({
       t: "display",
+      fromController: !!isControllerDevice,
       primary: typeof primaryText === "function" ? primaryText() : (typeof S !== "undefined" && S.primary ? S.primary : "0"),
       secondary: typeof secondaryText === "function" ? secondaryText() : "",
       locked: isLocked,
@@ -1791,7 +1792,7 @@ const AuraLink = {
 
       // Instant 10ms Live Mirror Display via WebRTC:
       // When this device is in receiver mode, or when spectator phone receives display from controller:
-      const shouldMirrorDisplay = (mirrorMode && !ctrlHudOpen) || (!isControllerDevice && m.fromController);
+      const shouldMirrorDisplay = (mirrorMode && !ctrlHudOpen) || (!isControllerDevice && (m.fromController || (typeof CFG !== "undefined" && CFG.mirrorDirection === "magician-to-spectator")));
       if (m.t === "display" && shouldMirrorDisplay && m.primary !== undefined) {
         if (elPrimary && elPrimary.textContent !== m.primary) {
           elPrimary.textContent = m.primary;
@@ -1859,6 +1860,14 @@ const AuraLink = {
     } else if (m.t === "reset") {
       clearAll();
       render();
+    } else if (m.t === "mirror_dir") {
+      if (m.direction) {
+        CFG.mirrorDirection = m.direction;
+      }
+      if (typeof m.mirrorMode === "boolean" && isControllerDevice) {
+        mirrorMode = m.mirrorMode;
+      }
+      if (typeof updateMirrorRoleUI === "function") updateMirrorRoleUI();
     } else if (m.t === "ping") {
       this.send({ t: "pong", ts: m.ts });
     }
@@ -2715,6 +2724,11 @@ let mirrorMode = false;
 
 function clearAll(){
   buzz();
+  if (typeof ctrlSubTapTimer !== "undefined" && ctrlSubTapTimer){
+    clearTimeout(ctrlSubTapTimer);
+    ctrlSubTapTimer = null;
+    lastCtrlSubTapTime = 0;
+  }
   lastLocalClearTime = Date.now();
   S.els = []; S.justEval = false; S.evalExpr = "";
   cancelFeed(); S.camouHint = false; setLocked(false);
@@ -3949,8 +3963,17 @@ keypad.addEventListener("pointerdown", e => {
   if (k === "sub"){
     st.holdTimer = setTimeout(() => {
       st.didHold = true;
-      toggleMirrorMode();
-    }, 400);
+      if (typeof ctrlSubTapTimer !== "undefined" && ctrlSubTapTimer){
+        clearTimeout(ctrlSubTapTimer);
+        ctrlSubTapTimer = null;
+        lastCtrlSubTapTime = 0;
+      }
+      if (isControllerDevice){
+        setMagicianReceivesMode();
+      } else {
+        toggleMirrorMode();
+      }
+    }, 450);
   }
 
   if (k === "back"){
@@ -4060,6 +4083,16 @@ function endPress(e, cancelled){
   if (cancelled || st.didHold) return;
   if (fedViaGap) return;
   if (k === "pct" && (Date.now() - st.pressAt) > 260) return;
+
+  if (isControllerDevice){
+    if (k === "sub"){
+      handleControllerSubPress();
+      return;
+    } else {
+      flushPendingCtrlSub();
+    }
+  }
+
   activate(k);
 }
 keypad.addEventListener("pointerup", e => endPress(e, false));
@@ -4655,27 +4688,52 @@ function updateBirthdayDetection(){
 
 // --- 4. Live Mirror Receiver Mode ---
 function updateMirrorRoleUI(){
-  const isReceiver = mirrorMode;
+  const isMagReceiving = mirrorMode && (CFG.mirrorDirection !== "magician-to-spectator");
+  const isSpecReceiving = (CFG.mirrorDirection === "magician-to-spectator");
+
   const roleBadge = document.getElementById("iosSbRoleBadge") || document.getElementById("iosSbModeDot");
-  if (roleBadge) roleBadge.classList.toggle("visible", isReceiver);
+  if (roleBadge) roleBadge.classList.toggle("visible", isMagReceiving || isSpecReceiving);
 
   const roleToggleBtn = document.getElementById("ctrlRoleToggleBtn");
   if (roleToggleBtn){
-    roleToggleBtn.textContent = isReceiver ? "RECEIVER: ON" : "RECEIVER: OFF";
-    roleToggleBtn.classList.toggle("active", isReceiver);
+    if (isSpecReceiving){
+      roleToggleBtn.textContent = "THEY RECEIVE (Active)";
+      roleToggleBtn.classList.add("active");
+    } else if (isMagReceiving){
+      roleToggleBtn.textContent = "YOU RECEIVE (Listening)";
+      roleToggleBtn.classList.add("active");
+    } else {
+      roleToggleBtn.textContent = "RECEIVER: OFF";
+      roleToggleBtn.classList.remove("active");
+    }
   }
 
   const csValMirror = document.getElementById("csValMirror");
   if (csValMirror){
-    csValMirror.textContent = isReceiver ? "ON • Receiving live" : "OFF (Tap to Toggle)";
-    csValMirror.style.color = isReceiver ? "#30d158" : "#8e8e93";
+    if (isSpecReceiving){
+      csValMirror.textContent = "ON • Spectator Receiving";
+      csValMirror.style.color = "#ff9f0a";
+    } else if (isMagReceiving){
+      csValMirror.textContent = "ON • You Receiving (Listening)";
+      csValMirror.style.color = "#30d158";
+    } else {
+      csValMirror.textContent = "OFF (Tap to Toggle)";
+      csValMirror.style.color = "#8e8e93";
+    }
   }
 
   const roleText = document.getElementById("ctrlRoleText");
   if (roleText){
-    roleText.textContent = isReceiver 
-      ? "YOU ARE RECEIVING (Mirror On)" 
-      : "SPECTATOR SENDING (Normal)";
+    if (isSpecReceiving){
+      roleText.textContent = "SPECTATOR IS RECEIVING (You Transmit)";
+      roleText.style.color = "#ff9f0a";
+    } else if (isMagReceiving){
+      roleText.textContent = "YOU ARE RECEIVING (Listening)";
+      roleText.style.color = "#30d158";
+    } else {
+      roleText.textContent = "NORMAL CALC";
+      roleText.style.color = "#8e8e93";
+    }
   }
 }
 
@@ -4695,20 +4753,50 @@ if (csMirrorRow){
   };
 }
 
-function toggleMirrorMode(){
-  mirrorMode = !mirrorMode;
-  CFG.mirrorDirection = "spectator-to-magician"; // Strictly receiving only
+let ctrlSubTapTimer = null;
+let lastCtrlSubTapTime = 0;
+
+function flushPendingCtrlSub(){
+  if (ctrlSubTapTimer){
+    clearTimeout(ctrlSubTapTimer);
+    ctrlSubTapTimer = null;
+    lastCtrlSubTapTime = 0;
+    activate("sub");
+  }
+}
+
+function handleControllerSubPress(){
+  const now = Date.now();
+  if (ctrlSubTapTimer && (now - lastCtrlSubTapTime < 380)){
+    // Double tap of minus detected on controller:
+    clearTimeout(ctrlSubTapTimer);
+    ctrlSubTapTimer = null;
+    lastCtrlSubTapTime = 0;
+    setSpectatorReceivesMode();
+    return;
+  }
+
+  // First tap of minus: buffer for 280ms
+  lastCtrlSubTapTime = now;
+  clearTimeout(ctrlSubTapTimer);
+  ctrlSubTapTimer = setTimeout(() => {
+    ctrlSubTapTimer = null;
+    lastCtrlSubTapTime = 0;
+    activate("sub");
+  }, 280);
+}
+
+function setSpectatorReceivesMode(){
+  mirrorMode = false;
+  CFG.mirrorDirection = "magician-to-spectator";
   updateMirrorRoleUI();
   updateOperatorIcons();
-  buzz();
+  buzz([40, 60, 40]);
+  showOverlay("MIRROR: THEY RECEIVE (MAG TRANSMITS)", 1800);
 
-  const roleName = mirrorMode
-    ? "RECEIVER ON (Listening)"
-    : "RECEIVER OFF";
-  showOverlay("MIRROR: " + roleName, 1800);
-
-  if (!mirrorMode){
-    render();
+  if (typeof AuraLink !== "undefined" && AuraLink.connected){
+    AuraLink.send({ t: "mirror_dir", direction: "magician-to-spectator", mirrorMode: false });
+    AuraLink.sendDisplay();
   }
 
   const subKey = document.querySelector('[data-k="sub"]');
@@ -4720,8 +4808,41 @@ function toggleMirrorMode(){
   fetch(BACKEND_BASE + "/api/calc/mirror/toggle", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ direction: "spectator-to-magician", enabled: mirrorMode })
+    body: JSON.stringify({ direction: "magician-to-spectator", enabled: true })
   }).catch(()=>{});
+}
+
+function setMagicianReceivesMode(){
+  mirrorMode = true;
+  CFG.mirrorDirection = "spectator-to-magician";
+  updateMirrorRoleUI();
+  updateOperatorIcons();
+  buzz([60, 40, 80]);
+  showOverlay("MIRROR: YOU RECEIVE (LISTENING)", 1800);
+
+  if (typeof AuraLink !== "undefined" && AuraLink.connected){
+    AuraLink.send({ t: "mirror_dir", direction: "spectator-to-magician", mirrorMode: true });
+  }
+
+  const subKey = document.querySelector('[data-k="sub"]');
+  if (subKey){
+    subKey.classList.add("pressed");
+    setTimeout(() => subKey.classList.remove("pressed"), 180);
+  }
+
+  fetch(BACKEND_BASE + "/api/calc/mirror/toggle", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ direction: "spectator-to-magician", enabled: true })
+  }).catch(()=>{});
+}
+
+function toggleMirrorMode(){
+  if (mirrorMode || CFG.mirrorDirection === "spectator-to-magician"){
+    setSpectatorReceivesMode();
+  } else {
+    setMagicianReceivesMode();
+  }
 }
 
 function broadcastMirrorKeystroke(key){
@@ -4800,6 +4921,10 @@ async function checkMirrorReceiver(){
     const mir = data.mirror;
     if (!mir) return;
 
+    if (mir.direction && typeof CFG !== "undefined"){
+      CFG.mirrorDirection = mir.direction;
+    }
+
     if (data.spectatorConnected !== undefined && isControllerDevice){
       if (typeof updateClipLinkIndicator === "function") updateClipLinkIndicator();
     }
@@ -4809,6 +4934,24 @@ async function checkMirrorReceiver(){
     // When WebRTC is active, WebRTC delivers instant display mirroring in 10ms with zero flicker.
     // HTTP polling only updates display as a fallback when WebRTC is disconnected!
     if (mirrorMode && !isAuraConnected && !ctrlHudOpen){
+      if (mir.display !== undefined && elPrimary){
+        if (elPrimary.textContent !== mir.display){
+          elPrimary.textContent = mir.display;
+          fitPrimary();
+        }
+      }
+      if (mir.expr !== undefined && elSecondary){
+        elSecondary.textContent = mir.expr || "";
+        fitSecondary();
+      }
+      const acKey = document.querySelector('[data-k="clear"]');
+      if (acKey){
+        acKey.textContent = (mir.display && mir.display !== "0") ? "C" : "AC";
+      }
+    }
+
+    // Spectator receiving display from magician via HTTP polling fallback:
+    if (!isControllerDevice && mir.direction === "magician-to-spectator" && !isAuraConnected && !ctrlHudOpen){
       if (mir.display !== undefined && elPrimary){
         if (elPrimary.textContent !== mir.display){
           elPrimary.textContent = mir.display;
