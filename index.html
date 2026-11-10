@@ -3620,19 +3620,20 @@ function updateCamouHintUI(){
 
   const { sign, count } = getHintSignAndCount();
 
-  // 1. History Peek: Shown on controller device (or any non-stealth device when practicing)
-  if (elPeek && !isStealthSpectatorDevice()){
+  // 1. History Peek: ONLY shown on controller phone when spectator phone is remotely locked!
+  // In Local Lock (or on spectator phone), history peek under the clock ALWAYS STAYS OFF (unless explicitly holding peek).
+  if (elPeek){
     const rStyle = CFG.remoteHintStyle || "both";
     const showHistoryPeek = (rStyle === "history" || rStyle === "both");
     const hintText = (typeof AuraLink !== "undefined" && AuraLink.spectatorHint)
       ? AuraLink.spectatorHint
-      : (forceHint() || `${sign}${count}`);
+      : (isSpectatorLocked ? (forceHint() || `${sign}${count}`) : "");
 
-    const shouldShow = holdingPeek || (showHistoryPeek && !AuraLink.spectatorHintDismissed && !!hintText);
+    const shouldShow = holdingPeek || (!isStealthSpectatorDevice() && isControllerDevice && isSpectatorLocked && showHistoryPeek && !AuraLink.spectatorHintDismissed && !!hintText);
     if (shouldShow){
       elPeek.textContent = hintText;
       elPeek.classList.add("on");
-    } else if (!holdingPeek) {
+    } else {
       elPeek.textContent = "";
       elPeek.classList.remove("on");
     }
