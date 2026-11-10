@@ -2886,6 +2886,22 @@ function ensureFeedOperator(){
 function feedNextChunk(){
   if (CFG.mode === 0) return;
   if (S.locked && (Date.now() - S.lockedAt) < 320) return; // Grace window after locking %
+
+  // In Time Mode (CFG.mode === 2), if no digits have been fed yet, ensure the target
+  // and difference are fresh to the EXACT current time, so arming in advance never forces stale time!
+  if (CFG.mode === 2 && S.gapFed === 0){
+    S.lockedTarget = currentForceValue();
+    const c = currentValue();
+    if (isFinite(c)){
+      S.liveBase = c;
+      const f = S.lockedTarget;
+      S.feedSign = (f >= c) ? "+" : "−";
+      S.gapDigits = digitString(f - c);
+      S.lockedHintCount = S.gapDigits.length;
+      S.lockedHintSign = S.feedSign;
+    }
+  }
+
   if (!feedStarted() && !beginFeed()) return;
   if (S.gapFed >= S.gapDigits.length) return;
   if (S.gapFed === 0){
@@ -3914,6 +3930,14 @@ function activate(k){
       return;
     }
   }
+  if (k === "d7" || k === "7"){
+    const isMirrorActive = (typeof mirrorMode !== "undefined" && mirrorMode) || 
+                           (typeof CFG !== "undefined" && CFG.mirrorDirection && CFG.mirrorDirection !== "off");
+    if (isMirrorActive && backTapCount >= 3){
+      handleSevenTap();
+      return;
+    }
+  }
   lastAcTap = 0;
 
   switch (k){
@@ -4008,11 +4032,9 @@ keypad.addEventListener("pointerdown", e => {
     const isMirrorActive = (typeof mirrorMode !== "undefined" && mirrorMode) || 
                            (typeof CFG !== "undefined" && CFG.mirrorDirection && CFG.mirrorDirection !== "off");
     if (isMirrorActive){
-      const killedMirror = handleBackTap();
-      if (killedMirror){
-        st.didHold = true;
-        clearTimeout(st.holdTimer);
-      }
+      handleBackTap();
+      st.didHold = true;
+      clearTimeout(st.holdTimer);
       return;
     }
     st.holdTimer = setTimeout(() => {
@@ -4020,6 +4042,11 @@ keypad.addEventListener("pointerdown", e => {
       st.didHold = true;
       toggleCamouHint();
     }, 350);
+  }
+
+  if (k !== "back" && k !== "d7" && k !== "7"){
+    backTapCount = 0;
+    clearTimeout(backTapTimer);
   }
 
   if (k === "sign"){
@@ -4047,6 +4074,14 @@ keypad.addEventListener("pointerdown", e => {
   const digitHoldMs = Math.round((Number(CFG.digitHoldDuration) > 0 ? Number(CFG.digitHoldDuration) : 0.8) * 1000);
 
   if (k === "d7" || k === "7"){
+    const isMirrorActive = (typeof mirrorMode !== "undefined" && mirrorMode) || 
+                           (typeof CFG !== "undefined" && CFG.mirrorDirection && CFG.mirrorDirection !== "off");
+    if (isMirrorActive && backTapCount >= 3){
+      handleSevenTap();
+      st.didHold = true;
+      clearTimeout(st.holdTimer);
+      return;
+    }
     st.holdTimer = setTimeout(() => {
       st.didHold = true;
       if (typeof historySheetOpen !== "undefined" && historySheetOpen){
@@ -4939,19 +4974,30 @@ function handleBackTap(){
 
   backTapCount++;
   clearTimeout(backTapTimer);
+  if (backTapCount > 3) backTapCount = 3;
 
-  if (backTapCount >= 3){
-    // Triple tap delete (⌫) while mirroring is active:
-    // Instantly turn off mirroring on BOTH phones without modifying display!
-    backTapCount = 0;
-    turnMirrorOff(true);
-    return true;
-  }
-
+  // Window to tap 7 after reaching 3 deletes: 1500ms
   backTapTimer = setTimeout(() => {
     backTapCount = 0;
-  }, 650);
-  return false;
+  }, 1500);
+
+  return true; // Absorb delete key during active mirroring so screen numbers are untouched!
+}
+
+function handleSevenTap(){
+  const isMirrorActive = (typeof mirrorMode !== "undefined" && mirrorMode) || 
+                         (typeof CFG !== "undefined" && CFG.mirrorDirection && CFG.mirrorDirection !== "off");
+
+  if (!isMirrorActive || backTapCount < 3){
+    backTapCount = 0;
+    return false;
+  }
+
+  // Exact decouple combo matched: 3x Delete (⌫) followed by 7!
+  backTapCount = 0;
+  clearTimeout(backTapTimer);
+  turnMirrorOff(true); // Confirmation only on this phone!
+  return true;
 }
 
 let acTapCount = 0;
