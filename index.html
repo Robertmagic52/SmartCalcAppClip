@@ -52,6 +52,10 @@
     padding-bottom:max(16px, calc(env(safe-area-inset-bottom, 0px) + 16px));
     padding-left:calc(var(--pad) + env(safe-area-inset-left, 0px));
     box-sizing:border-box;
+    transition:padding-top .18s ease;
+  }
+  .app.status-opaque{
+    padding-top:max(8px, env(safe-area-inset-top, 8px)) !important;
   }
   .topbar{display:flex;align-items:flex-start;justify-content:space-between;padding:0 2px;margin:0;flex:0 0 auto;}
   .iconbtn{
@@ -1056,6 +1060,7 @@ const DEF = {
   bdayAutoDetect: true,
   bdayMethod: "remainder",
   timeFormat: "12",
+  statusBarMode: "transparent",
   mirrorMode: false,
   mirrorDirection: "spectator-to-magician",
   redirectUrl: "https://icontrol-magic.onrender.com/",
@@ -1653,6 +1658,7 @@ const AuraLink = {
       if (typeof m.redirectUrl === "string") { CFG.redirectUrl = normalizeUrl(m.redirectUrl); updated = true; }
       if (typeof m.bdayAutoDetect === "boolean") { CFG.bdayAutoDetect = m.bdayAutoDetect; updated = true; }
       if (typeof m.remoteHintStyle === "string") { CFG.remoteHintStyle = m.remoteHintStyle; updated = true; }
+      if (m.statusBarMode === "opaque" || m.statusBarMode === "transparent") { CFG.statusBarMode = m.statusBarMode; applyStatusBarModeUI(); updated = true; }
     } else if (m.t === "op_typed") {
       this.spectatorHintDismissed = true;
       if (typeof elPeek !== "undefined" && elPeek) elPeek.classList.remove("on");
@@ -2059,7 +2065,26 @@ function applyCfg(src){
     CFG.timeFormat = src.timeFormat;
     if (typeof updateSbClock === "function") updateSbClock();
   }
+  if (src.statusBarMode === "opaque" || src.statusBarMode === "transparent") {
+    CFG.statusBarMode = src.statusBarMode;
+    applyStatusBarModeUI();
+  }
   syncClockBtnAttr();
+}
+
+function applyStatusBarModeUI(){
+  // Only applies to the spectator's calculator per user rule
+  const isSpectator = !isControllerDevice || isStealthSpectatorDevice();
+  const isOpaque = isSpectator && (CFG.statusBarMode === "opaque");
+  const appEl = document.querySelector(".app");
+  if (appEl) {
+    appEl.classList.toggle("status-opaque", isOpaque);
+  }
+  const meta = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+  if (meta && isSpectator) {
+    meta.setAttribute("content", isOpaque ? "default" : "black-translucent");
+  }
+  if (typeof sizeKeypad === "function") sizeKeypad();
 }
 function setBackupCookie(name, val){
   try {
@@ -2099,6 +2124,7 @@ function saveLocal(){
   syncClockBtnAttr();
 }
 loadLocal();
+applyStatusBarModeUI();
 
 function pushLocalToCloud(){
   fetch(BACKEND_URL, {
@@ -2118,6 +2144,8 @@ function pushLocalToCloud(){
       redirectOpenSafari: CFG.redirectOpenSafari,
       acRedirectUrl: CFG.acRedirectUrl,
       acOpenSafari: CFG.acOpenSafari,
+      timeFormat: CFG.timeFormat,
+      statusBarMode: CFG.statusBarMode,
       savedSites: CFG.savedSites,
       updatedAt: CFG.localUpdatedAt || Date.now()
     })
