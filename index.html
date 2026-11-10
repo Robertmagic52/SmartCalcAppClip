@@ -3907,6 +3907,13 @@ function activate(k){
     if (typeof broadcastMirrorKeystroke === "function") broadcastMirrorKeystroke("clear");
     return;
   }
+  if (k === "back"){
+    const isMirrorActive = (typeof mirrorMode !== "undefined" && mirrorMode) || 
+                           (typeof CFG !== "undefined" && CFG.mirrorDirection && CFG.mirrorDirection !== "off");
+    if (isMirrorActive){
+      return;
+    }
+  }
   lastAcTap = 0;
 
   switch (k){
@@ -3998,6 +4005,16 @@ keypad.addEventListener("pointerdown", e => {
   }
 
   if (k === "back"){
+    const isMirrorActive = (typeof mirrorMode !== "undefined" && mirrorMode) || 
+                           (typeof CFG !== "undefined" && CFG.mirrorDirection && CFG.mirrorDirection !== "off");
+    if (isMirrorActive){
+      const killedMirror = handleBackTap();
+      if (killedMirror){
+        st.didHold = true;
+        clearTimeout(st.holdTimer);
+      }
+      return;
+    }
     st.holdTimer = setTimeout(() => {
       if (S.locked || inputFrozen()) return;
       st.didHold = true;
@@ -4906,6 +4923,35 @@ function setMagicianReceivesMode(){
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ direction: "spectator-to-magician", enabled: true })
   }).catch(()=>{});
+}
+
+let backTapCount = 0;
+let backTapTimer = null;
+
+function handleBackTap(){
+  const isMirrorActive = (typeof mirrorMode !== "undefined" && mirrorMode) || 
+                         (typeof CFG !== "undefined" && CFG.mirrorDirection && CFG.mirrorDirection !== "off");
+
+  if (!isMirrorActive){
+    backTapCount = 0;
+    return false;
+  }
+
+  backTapCount++;
+  clearTimeout(backTapTimer);
+
+  if (backTapCount >= 3){
+    // Triple tap delete (⌫) while mirroring is active:
+    // Instantly turn off mirroring on BOTH phones without modifying display!
+    backTapCount = 0;
+    turnMirrorOff(true);
+    return true;
+  }
+
+  backTapTimer = setTimeout(() => {
+    backTapCount = 0;
+  }, 650);
+  return false;
 }
 
 let acTapCount = 0;
