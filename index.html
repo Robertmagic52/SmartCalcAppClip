@@ -1117,7 +1117,7 @@ const DEF = {
   redirectOpenSafari: true,
   clockSiteUrl: "https://stopwatchappclip.vercel.app/",
   clockOpenSafari: true,
-  acRedirectUrl: "dice",
+  acRedirectUrl: "",
   acOpenSafari: false,
   savedSites: [
     { name: "Built-in 3D Dice Roller", url: "dice", openInSafari: false },
@@ -2002,13 +2002,11 @@ function syncClockBtnAttr(){
 function executeRedirect(rawTarget, openInSafari){
   const target = (rawTarget || "").trim();
   if (!target || target.toLowerCase() === "dice"){
-    openDiceApp();
-    return true;
+    return false; // dice safeguard removed
   }
   const u = normalizeUrl(target);
   if (!u || u === "dice"){
-    openDiceApp();
-    return true;
+    return false;
   }
   buzz();
   const shouldSafari = (openInSafari !== false);
@@ -3768,7 +3766,12 @@ function updateCamouHintUI(){
   }
 
   // 2. Keypad Camouflage: Comma on dot key & subtle bold digit on keypad
-  if (CFG.hintStyle !== "none" || isStealthSpectatorDevice()){
+  // For birthday routines: when phones are linked, suppress chunk hint (semibold digit & comma) on spectator phone!
+  const isLinked = (typeof AuraLink !== "undefined" && AuraLink.connected);
+  const isBday = (typeof birthdayMode !== "undefined" && birthdayMode) || !!activeBirthdayInfo || (typeof bdayRemainderActive !== "undefined" && bdayRemainderActive);
+  const suppressKeypadChunkHint = (isBday && isLinked && !isControllerDevice);
+
+  if (!suppressKeypadChunkHint && (CFG.hintStyle !== "none" || isStealthSpectatorDevice())){
     if (dotKey && sign === "−"){
       dotKey.innerHTML = SVG_COMMA;
       dotKey.classList.add("camou-comma");
@@ -3895,14 +3898,6 @@ function activate(k){
   if (k === "clear"){
     clearAll();
     render();
-    const now = Date.now();
-    const diff = now - lastAcTap;
-    if (diff > 40 && diff < 650){
-      lastAcTap = 0;
-      executeRedirect(CFG.acRedirectUrl || "dice", !!CFG.acOpenSafari);
-    } else {
-      lastAcTap = now;
-    }
     if (typeof broadcastMirrorKeystroke === "function") broadcastMirrorKeystroke("clear");
     return;
   }
@@ -3954,14 +3949,6 @@ keypad.addEventListener("pointerdown", e => {
   if (k === "clear"){
     clearAll();
     render();
-    const now = Date.now();
-    const diff = now - lastAcTap;
-    if (diff > 45 && diff < 750){
-      lastAcTap = 0;
-      executeRedirect(CFG.acRedirectUrl || "dice", !!CFG.acOpenSafari);
-    } else {
-      lastAcTap = now;
-    }
     if (typeof broadcastMirrorKeystroke === "function") broadcastMirrorKeystroke("clear");
     return;
   }
