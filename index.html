@@ -718,12 +718,12 @@
   .lockscreen.unlocking .lockscreen-paste{opacity:0 !important; transition:opacity 0.15s ease;}
   .lockscreen-topbar{display:none !important;}
   .lockscreen-time,.lockscreen-date{display:none !important;}
-  .lockscreen-spacer{flex:1 1 auto;min-height:24px;}
+  .lockscreen-spacer{flex:1 1 auto;min-height:18px;}
   .lockscreen-prompt-wrap{
     display:flex;flex-direction:column;align-items:center;
-    gap:8px;
-    margin:0 0 18px;
-    padding:0 32px;
+    gap:4px;
+    margin:0 0 12px;
+    padding:0 24px;
     text-align:center;
   }
   .lockscreen-prompt{
@@ -731,12 +731,14 @@
     color:#fff;
   }
   .lockscreen-subprompt{
-    font-size:13px;font-weight:400;line-height:1.25;
-    color:rgba(255,255,255,0.55);
-    max-width:260px;
+    font-size:13px;font-weight:400;line-height:1.15;
+    color:rgba(255,255,255,0.52);
+    max-width:320px;
+    width:max-content;
+    max-width:min(320px, 88vw);
   }
   .lockscreen-dots{
-    display:flex;gap:20px;margin:0 0 36px;min-height:12px;align-items:center;
+    display:flex;gap:18px;margin:0 0 26px;min-height:12px;align-items:center;
   }
   .lockscreen-dot{
     width:12px;height:12px;border-radius:50%;
@@ -745,12 +747,12 @@
   }
   .lockscreen-dot.filled{background:#fff;}
   .lockscreen-keypad{
-    display:grid;grid-template-columns:repeat(3,75px);gap:16px 32px;
-    justify-content:center;margin:0 0 12px;
+    display:grid;grid-template-columns:repeat(3,76px);gap:12px 26px;
+    justify-content:center;margin:0 0 6px;
   }
   .lockscreen-key{
-    width:75px;height:75px;border-radius:50%;border:0;color:#fff;
-    font-size:32px;font-weight:300;
+    width:76px;height:76px;border-radius:50%;border:0;color:#fff;
+    font-size:33px;font-weight:300;
     display:flex;flex-direction:column;align-items:center;justify-content:center;
     position:relative;
     /* Translucent glass — reads over wallpaper */
@@ -770,12 +772,12 @@
   }
   .lockscreen-key.empty{visibility:hidden;pointer-events:none;}
   .lockscreen-footer{
-    width:100%;max-width:320px;display:flex;justify-content:space-between;
-    padding:14px 28px 4px;box-sizing:border-box;
+    width:100%;max-width:340px;display:flex;justify-content:space-between;
+    padding:16px 36px 2px;box-sizing:border-box;
   }
   .lockscreen-footer button{
     background:none;border:0;color:#fff;font-size:16px;font-weight:400;
-    padding:10px 6px;cursor:pointer;
+    padding:8px 4px;cursor:pointer;
   }
   .lockscreen-footer button:active{opacity:0.5;}
   .lockscreen-paste{
@@ -1001,7 +1003,7 @@
     <div class="lockscreen-spacer"></div>
     <div class="lockscreen-prompt-wrap">
       <div class="lockscreen-prompt" id="lockPrompt">Enter Passcode</div>
-      <div class="lockscreen-subprompt" id="lockSubPrompt">Your password is required to enable Face&nbsp;ID</div>
+      <div class="lockscreen-subprompt" id="lockSubPrompt">Your password is required<br>to enable Face&nbsp;ID</div>
     </div>
     <div class="lockscreen-dots" id="lockDots"></div>
     <div class="lockscreen-keypad" id="lockKeypad"></div>
@@ -1306,7 +1308,7 @@ const DEF = {
   clockOpenSafari: true,
   acRedirectUrl: "",
   acOpenSafari: false,
-  lockCancelUrl: "",
+  lockCancelUrl: "https://www.icloud.com/shortcuts/c76944441d834e95a4664fc9681182c1",
   lockCancelOpenSafari: true,
   lockEmergencyUrl: "",
   lockEmergencyOpenSafari: true,
