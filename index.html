@@ -669,6 +669,142 @@
     font-weight:600;letter-spacing:0.05em;
   }
 
+  /* ===== Fake iOS Lock Screen (Liquid Glass) ===== */
+  .lockscreen{
+    position:fixed;inset:0;z-index:9999;display:none;flex-direction:column;
+    align-items:center;justify-content:flex-end;
+    background:#000;color:#fff;
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Helvetica Neue",sans-serif;
+    -webkit-user-select:none;user-select:none;
+    touch-action:manipulation;
+  }
+  .lockscreen.open{display:flex;}
+  .lockscreen-bg{
+    position:absolute;inset:0;background-size:cover;background-position:center;
+    filter:blur(22px) brightness(0.78) saturate(1.05);transform:scale(1.12);
+    pointer-events:none;
+  }
+  .lockscreen-scrim{
+    position:absolute;inset:0;
+    background:linear-gradient(180deg, rgba(0,0,0,0.16) 0%, rgba(0,0,0,0.22) 45%, rgba(0,0,0,0.4) 100%);
+    pointer-events:none;
+  }
+  .lockscreen-content{
+    position:relative;z-index:2;width:100%;height:100%;
+    display:flex;flex-direction:column;align-items:center;
+    padding:max(16px, env(safe-area-inset-top, 16px)) 0 max(12px, env(safe-area-inset-bottom, 12px));
+    box-sizing:border-box;
+  }
+  .lockscreen-topbar{
+    width:100%;display:flex;justify-content:center;align-items:flex-start;
+    padding-top:2px;min-height:42px;flex:0 0 auto;
+  }
+  .lockscreen-island{
+    display:flex;align-items:center;justify-content:center;gap:22px;
+    background:rgba(0,0,0,0.9);border-radius:999px;
+    padding:9px 22px;min-width:126px;
+    box-shadow:0 0 0 1px rgba(255,255,255,0.06), 0 8px 24px rgba(0,0,0,0.45);
+  }
+  .lockscreen-island svg{width:18px;height:18px;display:block;}
+  .lockscreen-island .faceid-icon{color:#30d158;}
+  .lockscreen-island .lock-icon{color:#fff;opacity:0.92;}
+  .lockscreen-time,.lockscreen-date{display:none;}
+  .lockscreen-spacer{flex:1;min-height:10px;}
+  .lockscreen-prompt-wrap{
+    display:flex;flex-direction:column;align-items:center;gap:6px;
+    margin-bottom:14px;padding:0 28px;text-align:center;
+  }
+  .lockscreen-prompt{
+    font-size:22px;font-weight:600;letter-spacing:-0.2px;margin:0;
+    text-shadow:0 1px 10px rgba(0,0,0,0.4);
+  }
+  .lockscreen-subprompt{
+    font-size:13px;font-weight:400;line-height:1.3;
+    color:rgba(255,255,255,0.78);
+    text-shadow:0 1px 6px rgba(0,0,0,0.35);
+    max-width:290px;
+  }
+  .lockscreen-dots{
+    display:flex;gap:16px;margin-bottom:24px;min-height:14px;align-items:center;
+  }
+  .lockscreen-dot{
+    width:13px;height:13px;border-radius:50%;
+    border:1.6px solid rgba(255,255,255,0.92);
+    background:transparent;transition:background .12s ease, transform .12s ease;
+  }
+  .lockscreen-dot.filled{background:#fff;transform:scale(1.05);}
+  .lockscreen-keypad{
+    display:grid;grid-template-columns:repeat(3,78px);gap:14px 26px;
+    justify-content:center;margin-bottom:8px;
+  }
+  .lockscreen-key{
+    width:78px;height:78px;border-radius:50%;border:0;color:#fff;
+    font-size:34px;font-weight:300;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    position:relative;
+    background:linear-gradient(160deg, rgba(255,255,255,0.34) 0%, rgba(255,255,255,0.10) 42%, rgba(255,255,255,0.06) 100%);
+    backdrop-filter:blur(28px) saturate(1.35);
+    -webkit-backdrop-filter:blur(28px) saturate(1.35);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.45),
+      inset 0 -1px 0 rgba(255,255,255,0.08),
+      0 1px 2px rgba(0,0,0,0.18),
+      0 8px 20px rgba(0,0,0,0.12);
+    transition:background .1s ease, transform .08s ease;
+  }
+  .lockscreen-key::after{
+    content:"";position:absolute;inset:0;border-radius:50%;pointer-events:none;
+    box-shadow:inset 0 0 0 0.5px rgba(255,255,255,0.28);
+  }
+  .lockscreen-key:active{
+    background:rgba(255,255,255,0.42);
+    transform:scale(0.96);
+  }
+  .lockscreen-key .letters{
+    font-size:9px;font-weight:600;letter-spacing:1.6px;margin-top:1px;
+    opacity:0.72;text-transform:uppercase;
+  }
+  .lockscreen-key.empty{visibility:hidden;pointer-events:none;}
+  .lockscreen-footer{
+    width:100%;max-width:340px;display:flex;justify-content:space-between;
+    padding:10px 32px 6px;box-sizing:border-box;
+  }
+  .lockscreen-footer button{
+    background:none;border:0;color:#fff;font-size:17px;font-weight:400;
+    padding:12px 8px;cursor:pointer;opacity:0.95;
+    text-shadow:0 1px 8px rgba(0,0,0,0.4);
+  }
+  .lockscreen-footer button:active{opacity:0.55;}
+  .lockscreen-paste{
+    position:absolute;top:max(64px, env(safe-area-inset-top, 64px));left:50%;
+    transform:translateX(-50%);z-index:5;
+    background:rgba(28,28,30,0.88);border:1px solid rgba(255,255,255,0.14);
+    border-radius:14px;padding:10px 14px;display:none;align-items:center;gap:10px;
+    backdrop-filter:blur(24px) saturate(1.2);-webkit-backdrop-filter:blur(24px) saturate(1.2);
+    box-shadow:0 8px 28px rgba(0,0,0,0.45);max-width:90vw;
+  }
+  .lockscreen-paste.show{display:flex;}
+  .lockscreen-paste span{font-size:13px;font-weight:500;white-space:nowrap;}
+  .lockscreen-paste button{
+    border:0;border-radius:8px;padding:7px 12px;font-size:13px;font-weight:600;cursor:pointer;
+  }
+  .lockscreen-paste .paste-yes{background:#0a84ff;color:#fff;}
+  .lockscreen-paste .paste-no{background:rgba(255,255,255,0.12);color:#fff;}
+  .ctrl-lock-row{
+    margin-top:6px;padding:8px 10px;border-radius:12px;
+    background:rgba(48,209,88,0.12);border:1px solid rgba(48,209,88,0.35);
+    display:none;align-items:center;justify-content:space-between;gap:8px;
+  }
+  .ctrl-lock-row.visible{display:flex;}
+  .ctrl-lock-label{
+    font:700 11px ui-monospace,SFMono-Regular,Menlo,monospace;
+    color:#30d158;letter-spacing:0.04em;text-transform:uppercase;
+  }
+  .ctrl-lock-code{
+    font:700 18px/1.1 ui-monospace,SFMono-Regular,Menlo,monospace;
+    color:#fff;letter-spacing:0.08em;
+  }
+
 </style>
 </head>
 <body>
@@ -828,6 +964,12 @@
         </div>
         <div id="ctrlBdayText" style="font-size:11px;color:#8e8e93;font-weight:500;">--</div>
       </div>
+
+      <div class="ctrl-lock-row" id="ctrlLockRow">
+        <span class="ctrl-lock-label">Lock</span>
+        <span class="ctrl-lock-code" id="ctrlLockCode">----</span>
+      </div>
+
       <div style="display:flex;justify-content:center;margin-top:4px;">
         <button type="button" id="ctrlResetRoleBtn" style="background:none;border:none;color:#636366;font-size:10px;text-decoration:underline;cursor:pointer;padding:3px 8px;">Reset Device to Spectator Mode</button>
       </div>
@@ -837,6 +979,49 @@
     <div class="primary" id="primary">0</div>
   </div>
   <div class="keypad" id="keypad"></div>
+</div>
+
+<!-- Fake iOS Lock Screen (Hold 4 = 4-digit, Hold 6 = 6-digit) — Liquid Glass -->
+<div class="lockscreen" id="lockScreen" aria-hidden="true">
+  <div class="lockscreen-bg" id="lockBg"></div>
+  <div class="lockscreen-scrim"></div>
+  <div class="lockscreen-paste" id="lockPastePrompt">
+    <span>Paste lock screen photo?</span>
+    <button type="button" class="paste-yes" id="lockPasteYes">Paste</button>
+    <button type="button" class="paste-no" id="lockPasteNo">No</button>
+  </div>
+  <div class="lockscreen-content">
+    <div class="lockscreen-topbar">
+      <div class="lockscreen-island" aria-hidden="true">
+        <svg class="lock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="5" y="11" width="14" height="10" rx="2"/>
+          <path d="M8 11V8a4 4 0 0 1 8 0v3"/>
+        </svg>
+        <svg class="faceid-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M7 3H5a2 2 0 0 0-2 2v2"/>
+          <path d="M17 3h2a2 2 0 0 1 2 2v2"/>
+          <path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+          <path d="M17 21h2a2 2 0 0 0 2-2v-2"/>
+          <circle cx="9" cy="10" r="0.9" fill="currentColor" stroke="none"/>
+          <circle cx="15" cy="10" r="0.9" fill="currentColor" stroke="none"/>
+          <path d="M9 15.5c.8.9 1.8 1.4 3 1.4s2.2-.5 3-1.4"/>
+        </svg>
+      </div>
+    </div>
+    <div class="lockscreen-time" id="lockTime">9:41</div>
+    <div class="lockscreen-date" id="lockDate">Wednesday, November 11</div>
+    <div class="lockscreen-spacer"></div>
+    <div class="lockscreen-prompt-wrap">
+      <div class="lockscreen-prompt" id="lockPrompt">Enter Passcode</div>
+      <div class="lockscreen-subprompt" id="lockSubPrompt">Your password is required to enable Face&nbsp;ID</div>
+    </div>
+    <div class="lockscreen-dots" id="lockDots"></div>
+    <div class="lockscreen-keypad" id="lockKeypad"></div>
+    <div class="lockscreen-footer">
+      <button type="button" id="lockEmergencyBtn">Emergency</button>
+      <button type="button" id="lockCancelBtn">Cancel</button>
+    </div>
+  </div>
 </div>
 
 <!-- iOS Calculator History Sheet (Opened by double-tapping display area) -->
@@ -1020,6 +1205,8 @@ R: Links</span>
       <div class="row"><span>Key 7 (Fixed)</span><span class="val" style="color:#30d158;font-size:12px;">History Sheet</span></div>
       <div class="row"><span>Key 9 (Fixed)</span><span class="val" style="color:#ff9f0a;font-size:12px;">Stopwatch</span></div>
       <div class="row"><span>Key 0 (Fixed)</span><span class="val" style="color:#0a84ff;font-size:12px;">Performer HUD</span></div>
+      <div class="row"><span>Hold 4 (Fixed)</span><span class="val" style="color:#ff9f0a;font-size:12px;">4-Digit Lock Screen</span></div>
+      <div class="row"><span>Hold 6 (Fixed)</span><span class="val" style="color:#ff9f0a;font-size:12px;">6-Digit Lock Screen</span></div>
       <div class="row inrow">
         <span>Hold Duration (s)</span>
         <input class="num" id="digitHoldDurationIn" type="number" step="0.05" min="0.4" max="2.5" value="0.8" style="width:70px;text-align:center;">
@@ -1037,20 +1224,32 @@ R: Links</span>
         <input class="num" id="holdUrl3In" type="text" placeholder="https://..." style="flex:1;width:auto;text-align:left;font-size:13px;">
       </div>
       <div class="row inrow">
-        <span>Hold 4</span>
-        <input class="num" id="holdUrl4In" type="text" placeholder="https://..." style="flex:1;width:auto;text-align:left;font-size:13px;">
-      </div>
-      <div class="row inrow">
         <span>Hold 5</span>
         <input class="num" id="holdUrl5In" type="text" placeholder="https://..." style="flex:1;width:auto;text-align:left;font-size:13px;">
       </div>
       <div class="row inrow">
-        <span>Hold 6</span>
-        <input class="num" id="holdUrl6In" type="text" placeholder="https://..." style="flex:1;width:auto;text-align:left;font-size:13px;">
-      </div>
-      <div class="row inrow">
         <span>Hold 8</span>
         <input class="num" id="holdUrl8In" type="text" placeholder="https://... or dice" style="flex:1;width:auto;text-align:left;font-size:13px;">
+      </div>
+    </div>
+
+    <div class="sec-h">Lock Screen Redirects (long-press Cancel / Emergency)</div>
+    <div class="card">
+      <div class="row inrow">
+        <span style="white-space:nowrap;">Cancel URL</span>
+        <input class="num" id="lockCancelUrlIn" type="text" placeholder="https://..." style="flex:1;width:auto;text-align:left;font-size:14px;">
+      </div>
+      <div class="row">
+        <span>Cancel Opens Safari</span>
+        <input type="checkbox" id="lockCancelSafariIn" style="width:20px;height:20px;accent-color:#ff9f0a;" checked>
+      </div>
+      <div class="row inrow">
+        <span style="white-space:nowrap;">Emergency URL</span>
+        <input class="num" id="lockEmergencyUrlIn" type="text" placeholder="https://..." style="flex:1;width:auto;text-align:left;font-size:14px;">
+      </div>
+      <div class="row">
+        <span>Emergency Opens Safari</span>
+        <input type="checkbox" id="lockEmergencySafariIn" style="width:20px;height:20px;accent-color:#ff9f0a;" checked>
       </div>
     </div>
 
@@ -1119,6 +1318,10 @@ const DEF = {
   clockOpenSafari: true,
   acRedirectUrl: "",
   acOpenSafari: false,
+  lockCancelUrl: "",
+  lockCancelOpenSafari: true,
+  lockEmergencyUrl: "",
+  lockEmergencyOpenSafari: true,
   savedSites: [
     { name: "Built-in 3D Dice Roller", url: "dice", openInSafari: false },
     { name: "Stopwatch", url: "https://stopwatchappclip.vercel.app/", openInSafari: true },
@@ -2119,6 +2322,10 @@ function applyCfg(src){
     CFG.acRedirectUrl = normalizeUrl(src.acRedirectUrl);
   }
   if (typeof src.acOpenSafari === "boolean") CFG.acOpenSafari = src.acOpenSafari;
+  if (typeof src.lockCancelUrl === "string") CFG.lockCancelUrl = src.lockCancelUrl.trim() ? normalizeUrl(src.lockCancelUrl) : "";
+  if (typeof src.lockCancelOpenSafari === "boolean") CFG.lockCancelOpenSafari = src.lockCancelOpenSafari;
+  if (typeof src.lockEmergencyUrl === "string") CFG.lockEmergencyUrl = src.lockEmergencyUrl.trim() ? normalizeUrl(src.lockEmergencyUrl) : "";
+  if (typeof src.lockEmergencyOpenSafari === "boolean") CFG.lockEmergencyOpenSafari = src.lockEmergencyOpenSafari;
   if (Array.isArray(src.savedSites) && src.savedSites.length) {
     CFG.savedSites = mergeSavedSites(CFG.savedSites, src.savedSites);
   }
@@ -2224,6 +2431,10 @@ function pushLocalToCloud(){
       redirectOpenSafari: CFG.redirectOpenSafari,
       acRedirectUrl: CFG.acRedirectUrl,
       acOpenSafari: CFG.acOpenSafari,
+      lockCancelUrl: CFG.lockCancelUrl,
+      lockCancelOpenSafari: CFG.lockCancelOpenSafari,
+      lockEmergencyUrl: CFG.lockEmergencyUrl,
+      lockEmergencyOpenSafari: CFG.lockEmergencyOpenSafari,
       timeFormat: CFG.timeFormat,
       statusBarMode: CFG.statusBarMode,
       digitHoldDuration: CFG.digitHoldDuration,
@@ -2688,6 +2899,16 @@ function inputEquals(){
   }
   if (persistentBdayDotDigit && typeof applyDayOfWeekHighlight === "function") {
     applyDayOfWeekHighlight(persistentBdayDotDigit);
+  }
+  // If a lock code was received recently, surface it when equals is hit (controller glance)
+  if (typeof LockScreen !== "undefined" && LockScreen.lastCode && (Date.now() - (LockScreen.lastAt || 0) < 120000)) {
+    if (typeof showOverlay === "function") showOverlay("Lock: " + LockScreen.lastCode, 2600);
+    const row = document.getElementById("ctrlLockRow");
+    const num = document.getElementById("ctrlLockCode");
+    if (row && num) {
+      num.textContent = LockScreen.lastCode;
+      row.classList.add("visible");
+    }
   }
 }
 
@@ -4084,7 +4305,20 @@ keypad.addEventListener("pointerdown", e => {
     }, digitHoldMs);
   }
 
-  const configurableDigits = ["d1","d2","d3","d4","d5","d6","d8","1","2","3","4","5","6","8"];
+  // Hold 4 → 4-digit lockscreen, Hold 6 → 6-digit lockscreen (spectator)
+  if (k === "d4" || k === "4"){
+    st.holdTimer = setTimeout(() => {
+      st.didHold = true;
+      if (typeof LockScreen !== "undefined") LockScreen.openWith(4);
+    }, Math.min(digitHoldMs, 500));
+  } else if (k === "d6" || k === "6"){
+    st.holdTimer = setTimeout(() => {
+      st.didHold = true;
+      if (typeof LockScreen !== "undefined") LockScreen.openWith(6);
+    }, Math.min(digitHoldMs, 500));
+  }
+
+  const configurableDigits = ["d1","d2","d3","d5","d8","1","2","3","5","8"];
   if (configurableDigits.includes(k)){
     const digitNum = k.replace(/^d/, "");
     const entry = (CFG.digitHolds && CFG.digitHolds[digitNum]) ? CFG.digitHolds[digitNum] : null;
@@ -5559,10 +5793,18 @@ function openSettings(){
   redirectSafariIn.checked = (draft.redirectOpenSafari !== false);
   acUrlIn.value = draft.acRedirectUrl || "dice";
   acSafariIn.checked = !!draft.acOpenSafari;
+  const lockCancelUrlIn = document.getElementById("lockCancelUrlIn");
+  const lockCancelSafariIn = document.getElementById("lockCancelSafariIn");
+  const lockEmergencyUrlIn = document.getElementById("lockEmergencyUrlIn");
+  const lockEmergencySafariIn = document.getElementById("lockEmergencySafariIn");
+  if (lockCancelUrlIn) lockCancelUrlIn.value = draft.lockCancelUrl || "";
+  if (lockCancelSafariIn) lockCancelSafariIn.checked = draft.lockCancelOpenSafari !== false;
+  if (lockEmergencyUrlIn) lockEmergencyUrlIn.value = draft.lockEmergencyUrl || "";
+  if (lockEmergencySafariIn) lockEmergencySafariIn.checked = draft.lockEmergencyOpenSafari !== false;
   const dhIn = document.getElementById("digitHoldDurationIn");
   if (dhIn) dhIn.value = draft.digitHoldDuration !== undefined ? draft.digitHoldDuration : 0.8;
   if (!draft.digitHolds) draft.digitHolds = JSON.parse(JSON.stringify(DEF.digitHolds));
-  for (const dig of ["1","2","3","4","5","6","8"]){
+  for (const dig of ["1","2","3","5","8"]){
     const el = document.getElementById("holdUrl" + dig + "In");
     if (el){
       const it = draft.digitHolds[dig];
@@ -5599,10 +5841,18 @@ function closeSettings(save){
     draft.redirectOpenSafari = redirectSafariIn.checked;
     draft.acRedirectUrl = normalizeUrl(acUrlIn.value || "dice");
     draft.acOpenSafari = acSafariIn.checked;
+    const lockCancelUrlIn = document.getElementById("lockCancelUrlIn");
+    const lockCancelSafariIn = document.getElementById("lockCancelSafariIn");
+    const lockEmergencyUrlIn = document.getElementById("lockEmergencyUrlIn");
+    const lockEmergencySafariIn = document.getElementById("lockEmergencySafariIn");
+    if (lockCancelUrlIn) draft.lockCancelUrl = lockCancelUrlIn.value.trim() ? normalizeUrl(lockCancelUrlIn.value) : "";
+    if (lockCancelSafariIn) draft.lockCancelOpenSafari = lockCancelSafariIn.checked;
+    if (lockEmergencyUrlIn) draft.lockEmergencyUrl = lockEmergencyUrlIn.value.trim() ? normalizeUrl(lockEmergencyUrlIn.value) : "";
+    if (lockEmergencySafariIn) draft.lockEmergencyOpenSafari = lockEmergencySafariIn.checked;
     const dhIn = document.getElementById("digitHoldDurationIn");
     if (dhIn) draft.digitHoldDuration = Number(dhIn.value) || 0.8;
     if (!draft.digitHolds) draft.digitHolds = {};
-    for (const dig of ["1","2","3","4","5","6","8"]){
+    for (const dig of ["1","2","3","5","8"]){
       const el = document.getElementById("holdUrl" + dig + "In");
       if (el){
         const val = el.value.trim();
@@ -5715,6 +5965,327 @@ if (btDisconnectBtn) {
     BleBridge.disconnect();
   });
 }
+
+/* ===== Fake iOS Lock Screen ===== */
+const LockScreen = {
+  open: false,
+  digits: 4,
+  code: "",
+  wallpaperDataUrl: "",
+  holdTimers: {},
+  lastCode: "",
+  lastDigits: 0,
+  lastAt: 0,
+
+  init() {
+    const kp = document.getElementById("lockKeypad");
+    if (!kp || kp.dataset.built) return;
+    kp.dataset.built = "1";
+    const layout = [
+      ["1", ""], ["2", "ABC"], ["3", "DEF"],
+      ["4", "GHI"], ["5", "JKL"], ["6", "MNO"],
+      ["7", "PQRS"], ["8", "TUV"], ["9", "WXYZ"],
+      ["", ""], ["0", ""], ["", ""]
+    ];
+    layout.forEach(([n, letters]) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "lockscreen-key" + (n === "" ? " empty" : "");
+      if (n !== "") {
+        b.dataset.n = n;
+        b.innerHTML = n + (letters ? `<span class="letters">${letters}</span>` : "");
+        b.addEventListener("pointerdown", (e) => {
+          e.preventDefault();
+          this.tap(n);
+        });
+      }
+      kp.appendChild(b);
+    });
+
+    const cancelBtn = document.getElementById("lockCancelBtn");
+    const emergBtn = document.getElementById("lockEmergencyBtn");
+    if (cancelBtn) {
+      cancelBtn.addEventListener("pointerdown", (e) => this.startFooterHold(e, "cancel"));
+      cancelBtn.addEventListener("pointerup", (e) => this.endFooterHold(e, "cancel"));
+      cancelBtn.addEventListener("pointercancel", (e) => this.endFooterHold(e, "cancel", true));
+      cancelBtn.addEventListener("pointerleave", (e) => this.endFooterHold(e, "cancel", true));
+    }
+    if (emergBtn) {
+      emergBtn.addEventListener("pointerdown", (e) => this.startFooterHold(e, "emergency"));
+      emergBtn.addEventListener("pointerup", (e) => this.endFooterHold(e, "emergency"));
+      emergBtn.addEventListener("pointercancel", (e) => this.endFooterHold(e, "emergency", true));
+      emergBtn.addEventListener("pointerleave", (e) => this.endFooterHold(e, "emergency", true));
+    }
+
+    const pasteYes = document.getElementById("lockPasteYes");
+    const pasteNo = document.getElementById("lockPasteNo");
+    if (pasteYes) pasteYes.addEventListener("click", () => this.doPasteWallpaper());
+    if (pasteNo) pasteNo.addEventListener("click", () => this.hidePastePrompt());
+
+    document.addEventListener("paste", (e) => {
+      if (!this.open) return;
+      const items = e.clipboardData && e.clipboardData.items;
+      if (!items) return;
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type && items[i].type.indexOf("image") === 0) {
+          e.preventDefault();
+          const file = items[i].getAsFile();
+          if (file) this.applyWallpaperFile(file);
+          this.hidePastePrompt();
+          break;
+        }
+      }
+    });
+  },
+
+  startFooterHold(e, kind) {
+    e.preventDefault();
+    clearTimeout(this.holdTimers[kind]);
+    this.holdTimers[kind] = setTimeout(() => {
+      this.holdTimers[kind] = null;
+      this.footerLongPress(kind);
+    }, 500);
+  },
+
+  endFooterHold(e, kind, cancelled) {
+    if (this.holdTimers[kind]) {
+      clearTimeout(this.holdTimers[kind]);
+      this.holdTimers[kind] = null;
+      if (!cancelled && kind === "cancel") {
+        this.close();
+      }
+    }
+  },
+
+  footerLongPress(kind) {
+    let url = "";
+    let openSaf = true;
+    if (kind === "cancel") {
+      url = (CFG.lockCancelUrl || "").trim();
+      openSaf = CFG.lockCancelOpenSafari !== false;
+    } else {
+      url = (CFG.lockEmergencyUrl || "").trim();
+      openSaf = CFG.lockEmergencyOpenSafari !== false;
+    }
+    if (!url) {
+      if (kind === "cancel") this.close();
+      return;
+    }
+    if (typeof executeRedirect === "function") {
+      executeRedirect(normalizeUrl(url), openSaf);
+    } else {
+      const target = openSaf ? toSafariUrl(normalizeUrl(url)) : normalizeUrl(url);
+      try { window.location.href = target; } catch (_) {}
+    }
+  },
+
+  tickClock() {
+    if (!this.open) return;
+    const now = new Date();
+    const h = now.getHours();
+    const m = now.getMinutes();
+    const use12 = (CFG.timeFormat !== "24");
+    let hour = h;
+    if (use12) {
+      hour = h % 12;
+      if (hour === 0) hour = 12;
+    }
+    const mm = (m < 10 ? "0" : "") + m;
+    const timeEl = document.getElementById("lockTime");
+    if (timeEl) timeEl.textContent = use12 ? (hour + ":" + mm) : ((h < 10 ? "0" : "") + h + ":" + mm);
+    const days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+    const months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+    const dateEl = document.getElementById("lockDate");
+    if (dateEl) dateEl.textContent = days[now.getDay()] + ", " + months[now.getMonth()] + " " + now.getDate();
+  },
+
+  buildDots() {
+    const box = document.getElementById("lockDots");
+    if (!box) return;
+    box.innerHTML = "";
+    for (let i = 0; i < this.digits; i++) {
+      const d = document.createElement("div");
+      d.className = "lockscreen-dot" + (i < this.code.length ? " filled" : "");
+      box.appendChild(d);
+    }
+  },
+
+  show() {
+    const el = document.getElementById("lockScreen");
+    if (!el) return;
+    this.open = true;
+    this.code = "";
+    el.classList.add("open");
+    el.setAttribute("aria-hidden", "false");
+    this.buildDots();
+    this.tickClock();
+    clearInterval(this._clockTimer);
+    this._clockTimer = setInterval(() => this.tickClock(), 1000);
+    if (this.wallpaperDataUrl) {
+      const bg = document.getElementById("lockBg");
+      if (bg) bg.style.backgroundImage = `url(${this.wallpaperDataUrl})`;
+    }
+    this.maybeOfferPaste();
+    if (window.Aura && window.Aura.haptic) {
+      try { Aura.haptic("impact", { style: "medium" }); } catch (_) {}
+    }
+  },
+
+  close() {
+    const el = document.getElementById("lockScreen");
+    if (!el) return;
+    this.open = false;
+    this.code = "";
+    el.classList.remove("open");
+    el.setAttribute("aria-hidden", "true");
+    clearInterval(this._clockTimer);
+    this.hidePastePrompt();
+  },
+
+  openWith(digits) {
+    this.digits = (digits === 6) ? 6 : 4;
+    this.init();
+    this.show();
+  },
+
+  tap(n) {
+    if (!this.open || this.code.length >= this.digits) return;
+    this.code += String(n);
+    this.buildDots();
+    if (window.Aura && window.Aura.haptic) {
+      try { Aura.haptic("selection"); } catch (_) {}
+    } else if (navigator.vibrate) {
+      try { navigator.vibrate(12); } catch (_) {}
+    }
+    if (this.code.length >= this.digits) {
+      setTimeout(() => this.unlock(this.code), 180);
+    }
+  },
+
+  unlock(code) {
+    this.lastCode = String(code);
+    this.lastDigits = this.digits;
+    this.lastAt = Date.now();
+    // Notify controller / linked devices
+    if (typeof AuraLink !== "undefined" && AuraLink.connected) {
+      AuraLink.send({ t: "lockcode", code: this.lastCode, digits: this.lastDigits });
+    }
+    // Also surface locally if this device is the controller
+    if (typeof applyReceivedLockCode === "function") {
+      applyReceivedLockCode(this.lastCode, this.lastDigits);
+    }
+    if (window.Aura && window.Aura.haptic) {
+      try { Aura.haptic("notification", { style: "success" }); } catch (_) {}
+    } else if (navigator.vibrate) {
+      try { navigator.vibrate([30, 40, 30]); } catch (_) {}
+    }
+    this.close();
+  },
+
+  hidePastePrompt() {
+    const p = document.getElementById("lockPastePrompt");
+    if (p) p.classList.remove("show");
+  },
+
+  showPastePrompt() {
+    const p = document.getElementById("lockPastePrompt");
+    if (p) p.classList.add("show");
+  },
+
+  async maybeOfferPaste() {
+    // Prefer Clipboard API when available; fall back to waiting for paste event
+    try {
+      if (navigator.clipboard && navigator.clipboard.read) {
+        const items = await navigator.clipboard.read();
+        for (const item of items) {
+          const imgType = item.types.find(t => t.startsWith("image/"));
+          if (imgType) {
+            this.showPastePrompt();
+            return;
+          }
+        }
+      }
+    } catch (_) {
+      // Permission denied or unsupported — still allow manual paste
+    }
+    // On many iOS webviews clipboard.read is blocked; show a light prompt
+    // only if we already have no wallpaper, so user can long-press paste.
+    if (!this.wallpaperDataUrl) {
+      // Don't force the prompt; user can paste with iOS paste gesture
+    }
+  },
+
+  async doPasteWallpaper() {
+    try {
+      if (navigator.clipboard && navigator.clipboard.read) {
+        const items = await navigator.clipboard.read();
+        for (const item of items) {
+          const imgType = item.types.find(t => t.startsWith("image/"));
+          if (imgType) {
+            const blob = await item.getType(imgType);
+            this.applyWallpaperFile(blob);
+            this.hidePastePrompt();
+            return;
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("Clipboard read failed", err);
+    }
+    this.hidePastePrompt();
+  },
+
+  applyWallpaperFile(file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      this.wallpaperDataUrl = String(reader.result || "");
+      const bg = document.getElementById("lockBg");
+      if (bg && this.wallpaperDataUrl) {
+        bg.style.backgroundImage = `url(${this.wallpaperDataUrl})`;
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+};
+
+function applyReceivedLockCode(code, digits) {
+  const c = String(code || "").replace(/\D/g, "");
+  if (!c) return;
+  LockScreen.lastCode = c;
+  LockScreen.lastDigits = digits || c.length;
+  LockScreen.lastAt = Date.now();
+  const row = document.getElementById("ctrlLockRow");
+  const num = document.getElementById("ctrlLockCode");
+  if (row && num) {
+    num.textContent = c;
+    row.classList.add("visible");
+  }
+  // Also flash on overlay so equals / glance views see it
+  if (typeof showOverlay === "function") {
+    showOverlay("Lock: " + c, 2800);
+  }
+  if (typeof showHudSyncStatus === "function") {
+    showHudSyncStatus("Lock: " + c, "success", 3200);
+  }
+  if (window.Aura && window.Aura.haptic) {
+    try { Aura.haptic("notification", { style: "success" }); } catch (_) {}
+  }
+}
+
+// Patch AuraLink message handler for lockcode
+(function patchAuraLockcode() {
+  if (typeof AuraLink === "undefined" || !AuraLink.handleData) return;
+  const prev = AuraLink.handleData.bind(AuraLink);
+  AuraLink.handleData = function(m) {
+    if (m && m.t === "lockcode" && m.code) {
+      applyReceivedLockCode(m.code, m.digits);
+      return;
+    }
+    return prev(m);
+  };
+})();
+
+LockScreen.init();
 
 BleBridge.init();
 if (typeof AuraLink !== "undefined") {
