@@ -6522,26 +6522,33 @@ const LockScreen = {
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.ok || !data.url) {
         console.warn("clean failed", data);
-        if (typeof showOverlay === "function") showOverlay("CLEAN FAILED", 1200);
+        const errMsg = data && data.error ? String(data.error).slice(0, 30) : "CLEAN FAILED";
+        if (typeof showOverlay === "function") showOverlay(errMsg, 1500);
         return;
       }
-      // Fetch result as data URL so it stays local / offline-safe in the clip
-      const imgRes = await fetch(data.url, { cache: "no-store" });
-      const blob = await imgRes.blob();
-      const reader = new FileReader();
-      const cleaned = await new Promise((resolve, reject) => {
-        reader.onload = () => resolve(String(reader.result || ""));
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
-      if (!cleaned) return;
-      this.setWallpaper(cleaned, true);
+      // Apply the cleaned image URL immediately!
+      this.setWallpaper(data.url, true);
       if (window.Aura && window.Aura.haptic) {
         try { Aura.haptic("notification", { style: "success" }); } catch (_) {}
       } else if (navigator.vibrate) {
         try { navigator.vibrate(30); } catch (_) {}
       }
       if (typeof showOverlay === "function") showOverlay("WALLPAPER READY", 1000);
+
+      // In background, cache as data URL so it remains offline-safe
+      try {
+        const imgRes = await fetch(data.url, { cache: "no-store" });
+        if (imgRes.ok) {
+          const blob = await imgRes.blob();
+          const reader = new FileReader();
+          reader.onload = () => {
+            if (reader.result) this.wallpaperDataUrl = String(reader.result);
+          };
+          reader.readAsDataURL(blob);
+        }
+      } catch (cacheErr) {
+        console.warn("wallpaper cache warn", cacheErr);
+      }
     } catch (err) {
       console.warn("cleanWallpaperAI", err);
       if (typeof showOverlay === "function") showOverlay("CLEAN ERROR", 1200);
