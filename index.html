@@ -682,18 +682,20 @@
   .lockscreen.unlocking{pointer-events:none;}
   .lockscreen-bg{
     position:absolute;inset:-20px;background-size:cover;background-position:center;
-    filter:blur(var(--lock-blur, 28px)) brightness(0.88) saturate(1.05);
-    transform:scale(1.12);
+    filter:blur(var(--lock-blur, 28px)) brightness(0.9) saturate(1.06);
+    transform:scale(1.14);
+    opacity:0;
     pointer-events:none;
     background-color:#1c1c1e;
     transition:filter 0.6s cubic-bezier(0.22, 1, 0.36, 1),
-                opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+                opacity 0.45s cubic-bezier(0.22, 1, 0.36, 1),
                 transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
   }
+  .lockscreen.open:not(.unlocking) .lockscreen-bg{opacity:1;}
   .lockscreen.has-wallpaper .lockscreen-bg{background-color:transparent;}
   .lockscreen.unlocking .lockscreen-bg{
-    filter:blur(calc(var(--lock-blur, 28px) + 24px)) brightness(1.1) saturate(1.1);
-    transform:scale(1.22);
+    filter:blur(calc(var(--lock-blur, 28px) + 28px)) brightness(1.12) saturate(1.12);
+    transform:scale(1.28);
     opacity:0;
   }
   .lockscreen-scrim{
@@ -709,28 +711,29 @@
     padding:max(48px, env(safe-area-inset-top, 48px)) 0 max(16px, env(safe-area-inset-bottom, 16px));
     box-sizing:border-box;
     opacity:0;
-    transform:scale(1.04);
-    transition:opacity 0.42s cubic-bezier(0.22, 1, 0.36, 1),
-                transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+    transform:translateY(18px) scale(1.015);
+    transition:opacity 0.48s cubic-bezier(0.2, 0.9, 0.25, 1),
+                transform 0.55s cubic-bezier(0.2, 0.9, 0.25, 1);
     will-change:opacity, transform;
   }
   .lockscreen.open:not(.unlocking) .lockscreen-content{
     opacity:1;
-    transform:scale(1);
+    transform:translateY(0) scale(1);
   }
   .lockscreen.unlocking .lockscreen-content{
     opacity:0;
-    transform:scale(1.08) translateY(-10px);
+    transform:translateY(-14px) scale(1.1);
+    transition:opacity 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+                transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
   }
-  .lockscreen.unlocking .lockscreen-paste{opacity:0 !important; transition:opacity 0.15s ease;}
+  .lockscreen.unlocking .lockscreen-paste{opacity:0 !important; transition:opacity 0.12s ease;}
   .lockscreen-topbar{display:none !important;}
   .lockscreen-time,.lockscreen-date{display:none !important;}
-  /* Keypad higher; Emergency/Cancel low near home indicator */
   .lockscreen-spacer{flex:0.48 1 auto;min-height:2px;}
   .lockscreen-prompt-wrap{
     display:flex;flex-direction:column;align-items:center;
-    gap:4px;
-    margin:0 0 14px;
+    gap:5px;
+    margin:0 0 16px;
     padding:0 28px;
     text-align:center;
   }
@@ -743,8 +746,9 @@
     color:rgba(255,255,255,0.55);
     max-width:280px;
   }
+  /* More air between text/dots and keypad */
   .lockscreen-dots{
-    display:flex;gap:20px;margin:0 0 30px;min-height:12px;align-items:center;
+    display:flex;gap:20px;margin:0 0 44px;min-height:12px;align-items:center;
   }
   .lockscreen-dot{
     width:12.5px;height:12.5px;border-radius:50%;
@@ -756,32 +760,35 @@
     display:grid;grid-template-columns:repeat(3,84px);gap:18px 30px;
     justify-content:center;margin:0;
   }
-  /* Real iOS style: translucent frosted glass — wallpaper must read through */
+  /* Liquid Glass — milky translucent discs with crisp rim */
   .lockscreen-key{
     width:84px;height:84px;border-radius:50%;border:0;color:#fff;
     font-size:36px;font-weight:300;
     display:flex;flex-direction:column;align-items:center;justify-content:center;
     position:relative;
-    background:rgba(255,255,255,0.15);
-    backdrop-filter:blur(16px) saturate(1.4);
-    -webkit-backdrop-filter:blur(16px) saturate(1.4);
-    box-shadow:inset 0 0 0 0.5px rgba(255,255,255,0.42);
-    transition:background .08s ease, transform .08s ease;
+    background:rgba(255,255,255,0.20);
+    -webkit-backdrop-filter:saturate(180%) blur(22px);
+    backdrop-filter:saturate(180%) blur(22px);
+    box-shadow:
+      inset 0 0.6px 0 rgba(255,255,255,0.55),
+      inset 0 0 0 0.5px rgba(255,255,255,0.28),
+      0 0.5px 1px rgba(0,0,0,0.08);
+    transition:background .1s ease, transform .1s ease;
     -webkit-tap-highlight-color:transparent;
   }
   .lockscreen-key:active{
-    background:rgba(255,255,255,0.30);
-    transform:scale(0.97);
+    background:rgba(255,255,255,0.36);
+    transform:scale(0.96);
   }
   .lockscreen-key .letters{
-    font-size:9.5px;font-weight:600;letter-spacing:1.6px;margin-top:2px;
-    opacity:0.75;text-transform:uppercase;
+    font-size:9.5px;font-weight:600;letter-spacing:1.8px;margin-top:2px;
+    opacity:0.78;text-transform:uppercase;
   }
   .lockscreen-key.empty{visibility:hidden;pointer-events:none;}
   .lockscreen-footer{
     width:100%;max-width:360px;display:flex;justify-content:space-between;
     margin-top:auto;
-    padding:32px 42px max(8px, env(safe-area-inset-bottom, 8px));
+    padding:28px 42px max(8px, env(safe-area-inset-bottom, 8px));
     box-sizing:border-box;
   }
   .lockscreen-footer button{
