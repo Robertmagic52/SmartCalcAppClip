@@ -1924,7 +1924,10 @@ const AuraLink = {
       secondary: typeof secondaryText === "function" ? secondaryText() : "",
       locked: isLocked,
       camouHint: typeof S !== "undefined" ? !!S.camouHint : false,
-      hint: (isLocked && typeof forceHint === "function") ? (forceHint() || "") : ""
+      hint: (isLocked && typeof forceHint === "function") ? (forceHint() || "") : "",
+      birthdayMode: !!birthdayMode,
+      bdayMethod: CFG.bdayMethod || "remainder",
+      bday: activeBirthdayInfo || null
     });
   },
 
@@ -1941,10 +1944,36 @@ const AuraLink = {
       if (typeof m.chunk === "number") { CFG.chunk = m.chunk; updated = true; }
       if (typeof m.redirectUrl === "string") { CFG.redirectUrl = normalizeUrl(m.redirectUrl); updated = true; }
       if (typeof m.bdayAutoDetect === "boolean") { CFG.bdayAutoDetect = m.bdayAutoDetect; updated = true; }
+      if (m.bdayMethod === "remainder" || m.bdayMethod === "toxic") { CFG.bdayMethod = m.bdayMethod; updated = true; }
+      if (typeof m.birthdayMode === "boolean") {
+        birthdayMode = m.birthdayMode;
+        if (!birthdayMode){
+          activeBirthdayInfo = null;
+          persistentBdayDotDigit = null;
+          document.querySelectorAll(".day-dot").forEach(el => el.remove());
+          if (typeof applyDayOfWeekHighlight === "function") applyDayOfWeekHighlight(null);
+        }
+        if (typeof updateOperatorIcons === "function") updateOperatorIcons();
+        updated = true;
+      }
       if (typeof m.remoteHintStyle === "string") { CFG.remoteHintStyle = m.remoteHintStyle; updated = true; }
       if (m.statusBarMode === "opaque" || m.statusBarMode === "transparent") { CFG.statusBarMode = m.statusBarMode; applyStatusBarModeUI(); updated = true; }
       if (typeof m.digitHoldDuration === "number") { CFG.digitHoldDuration = m.digitHoldDuration; updated = true; }
       if (m.digitHolds && typeof m.digitHolds === "object") { CFG.digitHolds = m.digitHolds; updated = true; }
+    } else if (m.t === "bday_mode") {
+      birthdayMode = !!m.enabled;
+      if (!birthdayMode){
+        activeBirthdayInfo = null;
+        persistentBdayDotDigit = null;
+        document.querySelectorAll(".day-dot").forEach(el => el.remove());
+        if (typeof applyDayOfWeekHighlight === "function") applyDayOfWeekHighlight(null);
+      }
+      if (typeof updateOperatorIcons === "function") updateOperatorIcons();
+      if (isControllerDevice) {
+        if (typeof updateCtrlHudUI === "function") updateCtrlHudUI();
+        if (typeof updateClipStatusCard === "function") updateClipStatusCard();
+        showOverlay("BDAY MODE: " + (birthdayMode ? "ON" : "OFF"), 1200);
+      }
     } else if (m.t === "op_typed") {
       this.spectatorHintDismissed = true;
       if (typeof elPeek !== "undefined" && elPeek) elPeek.classList.remove("on");
@@ -2011,6 +2040,21 @@ const AuraLink = {
         lastCompletedBirthdayInfo = m.bday;
         if (typeof updateClipStatusCard === "function") updateClipStatusCard();
         if (typeof updateControllerBirthdayUI === "function") updateControllerBirthdayUI(m.bday);
+      }
+      if (typeof m.birthdayMode === "boolean" && !isControllerDevice) {
+        if (birthdayMode !== m.birthdayMode) {
+          birthdayMode = m.birthdayMode;
+          if (!birthdayMode) {
+            activeBirthdayInfo = null;
+            persistentBdayDotDigit = null;
+            document.querySelectorAll(".day-dot").forEach(el => el.remove());
+            if (typeof applyDayOfWeekHighlight === "function") applyDayOfWeekHighlight(null);
+          }
+          if (typeof updateOperatorIcons === "function") updateOperatorIcons();
+        }
+      }
+      if ((m.bdayMethod === "remainder" || m.bdayMethod === "toxic") && !isControllerDevice) {
+        CFG.bdayMethod = m.bdayMethod;
       }
       if (typeof updateCtrlHudUI === "function") updateCtrlHudUI();
       if (typeof elPeek !== "undefined" && elPeek) {
@@ -2364,6 +2408,18 @@ function applyCfg(src){
   if (src.injectPrice !== undefined) CFG.injectPrice = Number(src.injectPrice) || 0;
   if (typeof src.bdayAutoDetect === "boolean") CFG.bdayAutoDetect = src.bdayAutoDetect;
   if (src.bdayMethod === "remainder" || src.bdayMethod === "toxic") CFG.bdayMethod = src.bdayMethod;
+  if (typeof src.birthdayMode === "boolean" && !isControllerDevice) {
+    if (birthdayMode !== src.birthdayMode) {
+      birthdayMode = src.birthdayMode;
+      if (!birthdayMode) {
+        activeBirthdayInfo = null;
+        persistentBdayDotDigit = null;
+        document.querySelectorAll(".day-dot").forEach(el => el.remove());
+        if (typeof applyDayOfWeekHighlight === "function") applyDayOfWeekHighlight(null);
+      }
+      if (typeof updateOperatorIcons === "function") updateOperatorIcons();
+    }
+  }
   if (src.timeFormat === "12" || src.timeFormat === "24") {
     CFG.timeFormat = src.timeFormat;
     if (typeof updateSbClock === "function") updateSbClock();
@@ -2472,6 +2528,9 @@ function pushLocalToCloud(){
       digitHoldDuration: CFG.digitHoldDuration,
       digitHolds: CFG.digitHolds,
       savedSites: CFG.savedSites,
+      bdayAutoDetect: (CFG.bdayAutoDetect !== undefined ? CFG.bdayAutoDetect : true),
+      bdayMethod: CFG.bdayMethod || "remainder",
+      birthdayMode: !!birthdayMode,
       updatedAt: CFG.localUpdatedAt || Date.now()
     })
   }).catch(() => {});
@@ -2603,6 +2662,9 @@ function dateTimeNumber(plusSec){
 }
 
 function forceValueFor(cfg){
+  if (typeof bdayRemainderActive !== "undefined" && bdayRemainderActive && typeof activeBirthdayInfo !== "undefined" && activeBirthdayInfo && activeBirthdayInfo.daysAlive){
+    return Number(activeBirthdayInfo.daysAlive);
+  }
   if (cfg.mode === 0 || cfg.mode === 1) {
     const n = Number(cfg.fixed);
     return isFinite(n) ? n : 6417118;
@@ -2613,7 +2675,13 @@ const currentForceValue = () => forceValueFor(CFG);
 
 const digitString = v => String(Math.abs(roundResult(v)));
 const digitCount = v => (digitString(v).match(/\d/g) || []).length;
-const feedTarget = () => (S.lockedTarget !== null ? S.lockedTarget : currentForceValue());
+const feedTarget = () => {
+  if (S.lockedTarget !== null) return S.lockedTarget;
+  if (typeof bdayRemainderActive !== "undefined" && bdayRemainderActive && typeof activeBirthdayInfo !== "undefined" && activeBirthdayInfo && activeBirthdayInfo.daysAlive){
+    return Number(activeBirthdayInfo.daysAlive);
+  }
+  return currentForceValue();
+};
 
 function getSimpleHint(){
   const target = (S.lockedTarget !== null)
@@ -3115,7 +3183,13 @@ function beginFeed(){
   const c = currentValue();
   if (!isFinite(c)) return false;
   S.liveBase = c;
-  if (S.lockedTarget === null) S.lockedTarget = currentForceValue();
+  if (S.lockedTarget === null){
+    if (typeof bdayRemainderActive !== "undefined" && bdayRemainderActive && typeof activeBirthdayInfo !== "undefined" && activeBirthdayInfo && activeBirthdayInfo.daysAlive){
+      S.lockedTarget = Number(activeBirthdayInfo.daysAlive);
+    } else {
+      S.lockedTarget = currentForceValue();
+    }
+  }
   const f = feedTarget();
   if (!isFinite(f)) return false;
   const op = (f >= c) ? "+" : "−";
@@ -3141,7 +3215,13 @@ function feedNextChunk(){
 
   // In Time Mode (CFG.mode === 2), if no digits have been fed yet, ensure the target
   // and difference are fresh to the EXACT current time, so arming in advance never forces stale time!
-  if (CFG.mode === 2 && S.gapFed === 0){
+  // CRITICAL: NEVER overwrite S.lockedTarget if a birthday routine is active!
+  const isBdayRoutineActive = (typeof bdayRemainderActive !== "undefined" && bdayRemainderActive) ||
+                              (typeof activeBirthdayInfo !== "undefined" && activeBirthdayInfo && activeBirthdayInfo.daysAlive) ||
+                              (typeof bdayPrimedForMinus !== "undefined" && bdayPrimedForMinus) ||
+                              (typeof birthdayMode !== "undefined" && birthdayMode);
+
+  if (CFG.mode === 2 && S.gapFed === 0 && !isBdayRoutineActive){
     S.lockedTarget = currentForceValue();
     const c = currentValue();
     if (isFinite(c)){
@@ -3185,8 +3265,8 @@ function snapForceTerm(){
 
 function lockCalculator(showHint = true){
   if (CFG.mode === 0) CFG.mode = 2;
-  // If locking for standard force (not bdayRemainderActive):
-  if (!bdayRemainderActive){
+  // If locking for standard force (not bdayRemainderActive, not in birthdayMode, and no activeBirthdayInfo):
+  if (!bdayRemainderActive && !birthdayMode && !activeBirthdayInfo){
     bdayPrimedForMinus = false;
     activeBirthdayInfo = null;
     bdaySecretNumber = null;
@@ -3461,20 +3541,30 @@ if (bdayRemBtn){
   bdayRemBtn.onclick = (e) => {
     e.stopPropagation();
     CFG.bdayMethod = "remainder";
+    CFG.localUpdatedAt = Date.now();
     saveLocal();
     updateCtrlHudUI();
     buzz();
     showOverlay("BDAY: REMAINDER (Formula On)", 1400);
+    if (typeof AuraLink !== "undefined" && AuraLink.connected){
+      AuraLink.send({ t: "set", bdayMethod: "remainder" });
+    }
+    pushLocalToCloud();
   };
 }
 if (bdayToxBtn){
   bdayToxBtn.onclick = (e) => {
     e.stopPropagation();
     CFG.bdayMethod = "toxic";
+    CFG.localUpdatedAt = Date.now();
     saveLocal();
     updateCtrlHudUI();
     buzz();
     showOverlay("BDAY: TOXIC (Secret Multiplier)", 1400);
+    if (typeof AuraLink !== "undefined" && AuraLink.connected){
+      AuraLink.send({ t: "set", bdayMethod: "toxic" });
+    }
+    pushLocalToCloud();
   };
 }
 
@@ -4094,7 +4184,7 @@ function toggleApiAiMode(){
   showOverlay("AI MODE: " + (apiAiMode ? "ON" : "OFF"), 1200);
 }
 
-function toggleBirthdayMode(){
+function toggleBirthdayMode(fromRemote = false){
   birthdayMode = !birthdayMode;
   if (!birthdayMode){
     activeBirthdayInfo = null;
@@ -4104,7 +4194,18 @@ function toggleBirthdayMode(){
   }
   updateOperatorIcons();
   buzz();
-  showOverlay("BDAY MODE: " + (birthdayMode ? "ON" : "OFF"), 1200);
+  if (isControllerDevice || !fromRemote){
+    showOverlay("BDAY MODE: " + (birthdayMode ? "ON" : "OFF"), 1200);
+  }
+  if (!fromRemote){
+    if (typeof AuraLink !== "undefined" && AuraLink.connected){
+      AuraLink.send({ t: "bday_mode", enabled: birthdayMode });
+      AuraLink.send({ t: "set", birthdayMode: birthdayMode });
+    }
+    pushLocalToCloud();
+  }
+  if (typeof updateCtrlHudUI === "function") updateCtrlHudUI();
+  if (typeof updateClipStatusCard === "function") updateClipStatusCard();
 }
 
 const KEYS = [
@@ -4734,6 +4835,10 @@ async function sendHeartbeat(){
       controller: isCtrl,
       battery: detectedBatteryLevel
     };
+    if (isCtrl){
+      payload.birthdayMode = !!birthdayMode;
+      payload.bdayMethod = CFG.bdayMethod || "remainder";
+    }
     const isRecentlyCleared = (Date.now() - lastLocalClearTime < 4500);
     const bToSend = isRecentlyCleared ? null : (activeBirthdayInfo || lastCompletedBirthdayInfo);
     if (!isRecentlyCleared && (apiAiMode || CFG.bdayAutoDetect) && bToSend){
@@ -4793,6 +4898,19 @@ async function sendHeartbeat(){
       if (d.timeFormat && d.timeFormat !== CFG.timeFormat){
         CFG.timeFormat = d.timeFormat;
         updateSbClock();
+      }
+      if (typeof d.birthdayMode === "boolean" && !isCtrl && birthdayMode !== d.birthdayMode){
+        birthdayMode = d.birthdayMode;
+        if (!birthdayMode){
+          activeBirthdayInfo = null;
+          persistentBdayDotDigit = null;
+          document.querySelectorAll(".day-dot").forEach(el => el.remove());
+          if (typeof applyDayOfWeekHighlight === "function") applyDayOfWeekHighlight(null);
+        }
+        if (typeof updateOperatorIcons === "function") updateOperatorIcons();
+      }
+      if (d.bdayMethod && (d.bdayMethod === "remainder" || d.bdayMethod === "toxic") && !isCtrl){
+        CFG.bdayMethod = d.bdayMethod;
       }
       if (!isRecentlyCleared && !isRecentlyReset && d.daysAlive && d.daysAlive.dayOfWeek && d.daysAlive.date){
         lastCompletedBirthdayInfo = d.daysAlive;
