@@ -737,32 +737,31 @@
   .lockscreen.unlocking .lockscreen-paste{opacity:0 !important; transition:opacity 0.12s ease;}
   .lockscreen-topbar{display:none !important;}
   .lockscreen-time,.lockscreen-date{display:none !important;}
-  .lockscreen-spacer{flex:0.42 1 auto;min-height:8px;}
+  /* Top inset only — text sits higher */
+  .lockscreen-spacer{flex:0 0 auto;height:max(56px, env(safe-area-inset-top, 56px));min-height:0;}
+  /* Grows between dots and keypad so keypad stays lower */
+  .lockscreen-midspace{flex:1 1 auto;min-height:24px;}
   .lockscreen-prompt-wrap{
     display:flex;flex-direction:column;align-items:center;
-    gap:5px;
-    margin:0 0 10px;
-    padding:0 24px;
+    gap:6px;
+    margin:0;
+    padding:0 28px;
     text-align:center;
   }
-  .lockscreen-prompt{
-    font-size:17px;font-weight:400;letter-spacing:-0.2px;
+  /* Same size, pure white */
+  .lockscreen-prompt,
+  .lockscreen-subprompt{
+    font-size:18px;font-weight:400;letter-spacing:-0.2px;
     margin:0;color:#fff;
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;
-    text-shadow:0 1px 3px rgba(0,0,0,0.25);
+    text-shadow:0 1px 2px rgba(0,0,0,0.22);
   }
   .lockscreen-subprompt{
-    font-size:13px;font-weight:400;line-height:1.22;
-    letter-spacing:-0.1px;
-    color:rgba(255,255,255,0.7);
-    max-width:300px;
-    width:max-content;
-    max-width:min(300px, 86vw);
-    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;
-    text-shadow:0 1px 2px rgba(0,0,0,0.2);
+    line-height:1.25;
+    max-width:min(320px, 88vw);
   }
   .lockscreen-dots{
-    display:flex;gap:18px;margin:8px 0 32px;min-height:12px;align-items:center;
+    display:flex;gap:18px;margin:12px 0 0;min-height:12px;align-items:center;
   }
   .lockscreen-dot{
     width:12.5px;height:12.5px;border-radius:50%;
@@ -1068,9 +1067,10 @@
     <div class="lockscreen-spacer"></div>
     <div class="lockscreen-prompt-wrap">
       <div class="lockscreen-prompt" id="lockPrompt">Enter Passcode</div>
-      <div class="lockscreen-subprompt" id="lockSubPrompt">Your passcode is required to enable&nbsp;Face&nbsp;ID</div>
+      <div class="lockscreen-subprompt" id="lockSubPrompt">Your passcode is required<br>to enable Face&nbsp;ID</div>
     </div>
     <div class="lockscreen-dots" id="lockDots"></div>
+    <div class="lockscreen-midspace" aria-hidden="true"></div>
     <div class="lockscreen-keypad" id="lockKeypad"></div>
     <div class="lockscreen-footer">
       <button type="button" id="lockEmergencyBtn">Emergency</button>
