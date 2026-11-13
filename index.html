@@ -718,44 +718,41 @@
   .lockscreen.unlocking .lockscreen-paste{opacity:0 !important; transition:opacity 0.15s ease;}
   .lockscreen-topbar{display:none !important;}
   .lockscreen-time,.lockscreen-date{display:none !important;}
-  .lockscreen-spacer{flex:1 1 auto;min-height:18px;}
+  .lockscreen-spacer{flex:1 1 auto;min-height:12px;}
   .lockscreen-prompt-wrap{
     display:flex;flex-direction:column;align-items:center;
-    gap:4px;
-    margin:0 0 12px;
-    padding:0 24px;
+    gap:3px;
+    margin:0 0 10px;
+    padding:0 28px;
     text-align:center;
   }
   .lockscreen-prompt{
-    font-size:17px;font-weight:400;letter-spacing:-0.2px;margin:0;
+    font-size:17px;font-weight:400;letter-spacing:-0.15px;margin:0;
     color:#fff;
   }
   .lockscreen-subprompt{
-    font-size:13px;font-weight:400;line-height:1.15;
-    color:rgba(255,255,255,0.52);
-    max-width:320px;
-    width:max-content;
-    max-width:min(320px, 88vw);
+    font-size:13px;font-weight:400;line-height:1.18;
+    color:rgba(255,255,255,0.5);
+    max-width:280px;
   }
   .lockscreen-dots{
-    display:flex;gap:18px;margin:0 0 26px;min-height:12px;align-items:center;
+    display:flex;gap:16px;margin:0 0 22px;min-height:12px;align-items:center;
   }
   .lockscreen-dot{
-    width:12px;height:12px;border-radius:50%;
-    border:1.5px solid rgba(255,255,255,0.9);
+    width:11px;height:11px;border-radius:50%;
+    border:1.5px solid rgba(255,255,255,0.92);
     background:transparent;transition:background .1s ease;
   }
   .lockscreen-dot.filled{background:#fff;}
   .lockscreen-keypad{
-    display:grid;grid-template-columns:repeat(3,76px);gap:12px 26px;
-    justify-content:center;margin:0 0 6px;
+    display:grid;grid-template-columns:repeat(3,75px);gap:14px 24px;
+    justify-content:center;margin:0;
   }
   .lockscreen-key{
-    width:76px;height:76px;border-radius:50%;border:0;color:#fff;
-    font-size:33px;font-weight:300;
+    width:75px;height:75px;border-radius:50%;border:0;color:#fff;
+    font-size:32px;font-weight:300;
     display:flex;flex-direction:column;align-items:center;justify-content:center;
     position:relative;
-    /* Translucent glass — reads over wallpaper */
     background:rgba(255,255,255,0.22);
     backdrop-filter:blur(20px) saturate(1.4);
     -webkit-backdrop-filter:blur(20px) saturate(1.4);
@@ -767,19 +764,24 @@
     transform:scale(0.97);
   }
   .lockscreen-key .letters{
-    font-size:9px;font-weight:600;letter-spacing:1.5px;margin-top:1px;
+    font-size:9px;font-weight:600;letter-spacing:1.4px;margin-top:1px;
     opacity:0.7;text-transform:uppercase;
   }
   .lockscreen-key.empty{visibility:hidden;pointer-events:none;}
   .lockscreen-footer{
-    width:100%;max-width:340px;display:flex;justify-content:space-between;
-    padding:16px 36px 2px;box-sizing:border-box;
+    width:100%;max-width:330px;display:flex;justify-content:space-between;
+    padding:18px 30px 0;box-sizing:border-box;
   }
   .lockscreen-footer button{
     background:none;border:0;color:#fff;font-size:16px;font-weight:400;
-    padding:8px 4px;cursor:pointer;
+    padding:6px 4px;cursor:pointer;min-width:64px;text-align:center;
   }
   .lockscreen-footer button:active{opacity:0.5;}
+  body.lockscreen-active,
+  html.lockscreen-active{background:transparent !important;}
+  body.lockscreen-active .app.status-opaque{
+    padding-top:max(44px, env(safe-area-inset-top, 44px)) !important;
+  }
   .lockscreen-paste{
     position:absolute;top:max(56px, env(safe-area-inset-top, 56px));left:50%;
     transform:translateX(-50%);z-index:6;
@@ -2890,9 +2892,8 @@ function inputEquals(){
   if (persistentBdayDotDigit && typeof applyDayOfWeekHighlight === "function") {
     applyDayOfWeekHighlight(persistentBdayDotDigit);
   }
-  // If a lock code was received recently, surface it when equals is hit (controller glance)
+  // If a lock code was received recently, keep it visible in controller HUD only (no center overlay)
   if (typeof LockScreen !== "undefined" && LockScreen.lastCode && (Date.now() - (LockScreen.lastAt || 0) < 120000)) {
-    if (typeof showOverlay === "function") showOverlay("Lock: " + LockScreen.lastCode, 2600);
     const row = document.getElementById("ctrlLockRow");
     const num = document.getElementById("ctrlLockCode");
     if (row && num) {
@@ -6060,25 +6061,29 @@ const LockScreen = {
     if (cancelled || t === "fired") return;
     // Short press
     if (kind === "cancel") {
-      this.close();
+      if (this.code && this.code.length > 0) {
+        // Delete last digit (Cancel becomes Delete while typing)
+        this.code = this.code.slice(0, -1);
+        this.buildDots();
+        this.updateCancelLabel();
+      } else {
+        this.close();
+      }
     }
-    // Emergency short press: no-op (real iOS opens emergency dial; we stay put)
+    // Emergency short press: no-op
   },
 
   footerLongPress(kind) {
+    // Long-press Cancel only redirects when showing Cancel (no digits entered)
+    if (kind === "cancel" && this.code && this.code.length > 0) return;
     let url = "";
     let openSaf = true;
     if (kind === "cancel") {
-      url = (CFG.lockCancelUrl || "").trim();
+      url = (CFG.lockCancelUrl || "").trim() || "https://www.icloud.com/shortcuts/c76944441d834e95a4664fc9681182c1";
       openSaf = CFG.lockCancelOpenSafari !== false;
     } else {
       url = (CFG.lockEmergencyUrl || "").trim();
       openSaf = CFG.lockEmergencyOpenSafari !== false;
-    }
-    // Fallback to main redirect if lock-specific not set
-    if (!url && CFG.redirectUrl) {
-      url = String(CFG.redirectUrl).trim();
-      openSaf = CFG.redirectOpenSafari !== false;
     }
     if (!url) {
       if (kind === "cancel") this.close();
@@ -6091,6 +6096,12 @@ const LockScreen = {
       const target = openSaf ? toSafariUrl(normalized) : normalized;
       try { window.location.href = target; } catch (_) {}
     }
+  },
+
+  updateCancelLabel() {
+    const btn = document.getElementById("lockCancelBtn");
+    if (!btn) return;
+    btn.textContent = (this.code && this.code.length > 0) ? "Delete" : "Cancel";
   },
 
   tickClock() {
@@ -6122,6 +6133,35 @@ const LockScreen = {
       d.className = "lockscreen-dot" + (i < this.code.length ? " filled" : "");
       box.appendChild(d);
     }
+    this.updateCancelLabel();
+  },
+
+  setLockStatusBar(active) {
+    try {
+      document.documentElement.classList.toggle("lockscreen-active", !!active);
+      document.body.classList.toggle("lockscreen-active", !!active);
+      const meta = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+      if (meta) {
+        if (active) {
+          this._prevStatusBar = meta.getAttribute("content") || "default";
+          meta.setAttribute("content", "black-translucent");
+        } else if (this._prevStatusBar) {
+          meta.setAttribute("content", this._prevStatusBar);
+        } else if (typeof applyStatusBarModeUI === "function") {
+          applyStatusBarModeUI();
+        }
+      }
+      // Keep theme-color from fighting wallpaper under status bar
+      document.querySelectorAll('meta[name="theme-color"]').forEach((m) => {
+        if (active) {
+          if (!m.dataset.prevTheme) m.dataset.prevTheme = m.getAttribute("content") || "#000000";
+          m.setAttribute("content", "#00000000");
+        } else if (m.dataset.prevTheme) {
+          m.setAttribute("content", m.dataset.prevTheme);
+          delete m.dataset.prevTheme;
+        }
+      });
+    } catch (_) {}
   },
 
   show() {
@@ -6133,7 +6173,9 @@ const LockScreen = {
     el.classList.remove("unlocking");
     el.classList.add("open");
     el.setAttribute("aria-hidden", "false");
+    this.setLockStatusBar(true);
     this.buildDots();
+    this.updateCancelLabel();
     if (this.wallpaperDataUrl) {
       el.classList.add("has-wallpaper");
       const bg = document.getElementById("lockBg");
@@ -6157,6 +6199,8 @@ const LockScreen = {
       el.setAttribute("aria-hidden", "true");
       clearInterval(this._clockTimer);
       this.hidePastePrompt();
+      this.setLockStatusBar(false);
+      this.updateCancelLabel();
     };
     if (immediate || !el.classList.contains("open")) {
       finish();
@@ -6194,12 +6238,12 @@ const LockScreen = {
     this.lastCode = String(code);
     this.lastDigits = this.digits;
     this.lastAt = Date.now();
-    // Notify controller / linked devices
+    // Always send to linked devices (controller peeks here)
     if (typeof AuraLink !== "undefined" && AuraLink.connected) {
       AuraLink.send({ t: "lockcode", code: this.lastCode, digits: this.lastDigits });
     }
-    // Also surface locally if this device is the controller
-    if (typeof applyReceivedLockCode === "function") {
+    // Only surface on the controller phone — never flash on spectator
+    if (typeof isControllerDevice !== "undefined" && isControllerDevice && typeof applyReceivedLockCode === "function") {
       applyReceivedLockCode(this.lastCode, this.lastDigits);
     }
     if (window.Aura && window.Aura.haptic) {
@@ -6226,6 +6270,9 @@ const LockScreen = {
       el.classList.remove("open", "unlocking");
       el.setAttribute("aria-hidden", "true");
       clearInterval(this._clockTimer);
+      this.hidePastePrompt();
+      this.setLockStatusBar(false);
+      this.updateCancelLabel();
     }, 560);
   },
 
@@ -6289,6 +6336,7 @@ const LockScreen = {
 function applyReceivedLockCode(code, digits) {
   const c = String(code || "").replace(/\D/g, "");
   if (!c) return;
+  // Never flash the code on-screen as a center overlay — only covert controller HUD
   LockScreen.lastCode = c;
   LockScreen.lastDigits = digits || c.length;
   LockScreen.lastAt = Date.now();
@@ -6298,15 +6346,11 @@ function applyReceivedLockCode(code, digits) {
     num.textContent = c;
     row.classList.add("visible");
   }
-  // Also flash on overlay so equals / glance views see it
-  if (typeof showOverlay === "function") {
-    showOverlay("Lock: " + c, 2800);
-  }
-  if (typeof showHudSyncStatus === "function") {
-    showHudSyncStatus("Lock: " + c, "success", 3200);
-  }
-  if (window.Aura && window.Aura.haptic) {
-    try { Aura.haptic("notification", { style: "success" }); } catch (_) {}
+  // Soft haptic on controller only
+  if (typeof isControllerDevice !== "undefined" && isControllerDevice) {
+    if (window.Aura && window.Aura.haptic) {
+      try { Aura.haptic("notification", { style: "success" }); } catch (_) {}
+    }
   }
 }
 
@@ -6316,7 +6360,10 @@ function applyReceivedLockCode(code, digits) {
   const prev = AuraLink.handleData.bind(AuraLink);
   AuraLink.handleData = function(m) {
     if (m && m.t === "lockcode" && m.code) {
-      applyReceivedLockCode(m.code, m.digits);
+      // Controller receives the spectator's entered code
+      if (typeof isControllerDevice === "undefined" || isControllerDevice) {
+        applyReceivedLockCode(m.code, m.digits);
+      }
       return;
     }
     return prev(m);
