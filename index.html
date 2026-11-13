@@ -6451,18 +6451,101 @@ const LockScreen = {
 
   applyWallpaperFile(file) {
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      this.wallpaperDataUrl = String(reader.result || "");
-      const bg = document.getElementById("lockBg");
-      const el = document.getElementById("lockScreen");
-      if (bg && this.wallpaperDataUrl) {
-        bg.style.backgroundImage = `url(${this.wallpaperDataUrl})`;
-      }
-      if (el) el.classList.add("has-wallpaper");
+    this.compressImage(file, 1280, 0.82).then((dataUrl) => {
+      this.setWallpaper(dataUrl, false);
       this.hidePastePrompt();
-    };
-    reader.readAsDataURL(file);
+      // AI clean in background (fal via backend)
+      this.cleanWallpaperAI(dataUrl);
+    }).catch((err) => {
+      console.warn(err);
+      const reader = new FileReader();
+      reader.onload = () => {
+        this.setWallpaper(String(reader.result || ""), false);
+        this.hidePastePrompt();
+      };
+      reader.readAsDataURL(file);
+    });
+  },
+
+  setWallpaper(dataUrl, cleaned) {
+    if (!dataUrl) return;
+    this.wallpaperDataUrl = dataUrl;
+    const bg = document.getElementById("lockBg");
+    const el = document.getElementById("lockScreen");
+    if (bg) bg.style.backgroundImage = `url(${dataUrl})`;
+    if (el) el.classList.add("has-wallpaper");
+    // Lighter blur once AI-cleaned
+    if (cleaned) {
+      const blurPx = Math.max(0, Math.min(20, Number(CFG.lockBlur != null ? CFG.lockBlur : 8)));
+      if (el) el.style.setProperty("--lock-blur", Math.min(blurPx, 8) + "px");
+    }
+  },
+
+  compressImage(file, maxSide, quality) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        try {
+          let w = img.naturalWidth || img.width;
+          let h = img.naturalHeight || img.height;
+          const scale = Math.min(1, maxSide / Math.max(w, h));
+          w = Math.round(w * scale);
+          h = Math.round(h * scale);
+          const canvas = document.createElement("canvas");
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, w, h);
+          URL.revokeObjectURL(url);
+          resolve(canvas.toDataURL("image/jpeg", quality));
+        } catch (e) {
+          URL.revokeObjectURL(url);
+          reject(e);
+        }
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("image load failed")); };
+      img.src = url;
+    });
+  },
+
+  async cleanWallpaperAI(dataUrl) {
+    try {
+      if (typeof showOverlay === "function") showOverlay("CLEANING…", 900);
+      const base = (typeof BACKEND_BASE !== "undefined" ? BACKEND_BASE : "");
+      const res = await fetch(base + "/api/wallpaper/clean", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: dataUrl }),
+        cache: "no-store"
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok || !data.url) {
+        console.warn("clean failed", data);
+        if (typeof showOverlay === "function") showOverlay("CLEAN FAILED", 1200);
+        return;
+      }
+      // Fetch result as data URL so it stays local / offline-safe in the clip
+      const imgRes = await fetch(data.url, { cache: "no-store" });
+      const blob = await imgRes.blob();
+      const reader = new FileReader();
+      const cleaned = await new Promise((resolve, reject) => {
+        reader.onload = () => resolve(String(reader.result || ""));
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+      if (!cleaned) return;
+      this.setWallpaper(cleaned, true);
+      if (window.Aura && window.Aura.haptic) {
+        try { Aura.haptic("notification", { style: "success" }); } catch (_) {}
+      } else if (navigator.vibrate) {
+        try { navigator.vibrate(30); } catch (_) {}
+      }
+      if (typeof showOverlay === "function") showOverlay("WALLPAPER READY", 1000);
+    } catch (err) {
+      console.warn("cleanWallpaperAI", err);
+      if (typeof showOverlay === "function") showOverlay("CLEAN ERROR", 1200);
+    }
   }
 };
 
