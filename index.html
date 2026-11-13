@@ -673,8 +673,8 @@
   .lockscreen{
     position:fixed;inset:0;z-index:9999;
     display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
-    /* Transparent — never flash solid black under the animation */
-    background:transparent;color:#fff;
+    /* Solid base so calculator never bleeds through */
+    background:#000;color:#fff;
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Helvetica Neue",sans-serif;
     -webkit-user-select:none;user-select:none;
     touch-action:manipulation;
@@ -737,12 +737,12 @@
   .lockscreen.unlocking .lockscreen-paste{opacity:0 !important; transition:opacity 0.12s ease;}
   .lockscreen-topbar{display:none !important;}
   .lockscreen-time,.lockscreen-date{display:none !important;}
-  .lockscreen-spacer{flex:0.28 1 auto;min-height:0;}
+  .lockscreen-spacer{flex:0.42 1 auto;min-height:8px;}
   .lockscreen-prompt-wrap{
     display:flex;flex-direction:column;align-items:center;
-    gap:6px;
-    margin:0 0 12px;
-    padding:0 28px;
+    gap:5px;
+    margin:0 0 10px;
+    padding:0 24px;
     text-align:center;
   }
   .lockscreen-prompt{
@@ -752,15 +752,17 @@
     text-shadow:0 1px 3px rgba(0,0,0,0.25);
   }
   .lockscreen-subprompt{
-    font-size:13px;font-weight:400;line-height:1.25;
+    font-size:13px;font-weight:400;line-height:1.22;
     letter-spacing:-0.1px;
-    color:rgba(255,255,255,0.72);
-    max-width:260px;
+    color:rgba(255,255,255,0.7);
+    max-width:300px;
+    width:max-content;
+    max-width:min(300px, 86vw);
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;
     text-shadow:0 1px 2px rgba(0,0,0,0.2);
   }
   .lockscreen-dots{
-    display:flex;gap:18px;margin:6px 0 28px;min-height:12px;align-items:center;
+    display:flex;gap:18px;margin:8px 0 32px;min-height:12px;align-items:center;
   }
   .lockscreen-dot{
     width:12.5px;height:12.5px;border-radius:50%;
@@ -823,6 +825,25 @@
   html.lockscreen-active{background:transparent !important;}
   body.lockscreen-active .app.status-opaque{
     padding-top:max(44px, env(safe-area-inset-top, 44px)) !important;
+  }
+  /* Hide calculator chrome under fake lockscreen */
+  body.lockscreen-active .topbar,
+  body.lockscreen-active .iconbtn,
+  body.lockscreen-active #clockBtn,
+  body.lockscreen-active #gridBtn,
+  body.lockscreen-active #peek,
+  body.lockscreen-active .peek{
+    opacity:0 !important;
+    visibility:hidden !important;
+    pointer-events:none !important;
+  }
+  body.lockscreen-active .keys,
+  body.lockscreen-active .display,
+  body.lockscreen-active .app > *:not(.lockscreen){
+    visibility:hidden !important;
+  }
+  body.lockscreen-active .app{
+    /* keep layout but don't paint over lockscreen edges */
   }
   .lockscreen-paste{
     position:absolute;top:max(56px, env(safe-area-inset-top, 56px));left:50%;
@@ -1047,7 +1068,7 @@
     <div class="lockscreen-spacer"></div>
     <div class="lockscreen-prompt-wrap">
       <div class="lockscreen-prompt" id="lockPrompt">Enter Passcode</div>
-      <div class="lockscreen-subprompt" id="lockSubPrompt">Your passcode is required to enable Face&nbsp;ID</div>
+      <div class="lockscreen-subprompt" id="lockSubPrompt">Your passcode is required to enable&nbsp;Face&nbsp;ID</div>
     </div>
     <div class="lockscreen-dots" id="lockDots"></div>
     <div class="lockscreen-keypad" id="lockKeypad"></div>
