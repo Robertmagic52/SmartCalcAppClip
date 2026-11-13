@@ -6572,32 +6572,112 @@ const LockScreen = {
         if (typeof showOverlay === "function") showOverlay(errMsg, 1500);
         return;
       }
-      // Apply the cleaned image URL immediately!
-      this.setWallpaper(data.url, true);
+      // PRESERVE THE ORIGINAL: only take AI pixels where the overlays were removed.
+      // Everything else stays pixel-for-pixel identical to the uploaded photo.
+      const merged = await this.preserveComposite(dataUrl, data.url);
+      if (!merged || merged.changedFrac > 0.35) {
+        // AI reimagined the picture instead of just erasing UI → reject it, keep original
+        console.warn("AI result rejected", merged && merged.changedFrac);
+        if (typeof showOverlay === "function") showOverlay("AI CHANGED PHOTO – KEPT ORIGINAL", 1500);
+        return;
+      }
+      this.setWallpaper(merged.dataUrl, true);
       if (window.Aura && window.Aura.haptic) {
         try { Aura.haptic("notification", { style: "success" }); } catch (_) {}
       } else if (navigator.vibrate) {
         try { navigator.vibrate(30); } catch (_) {}
       }
       if (typeof showOverlay === "function") showOverlay("WALLPAPER READY", 1000);
-
-      // In background, cache as data URL so it remains offline-safe
-      try {
-        const imgRes = await fetch(data.url, { cache: "no-store" });
-        if (imgRes.ok) {
-          const blob = await imgRes.blob();
-          const reader = new FileReader();
-          reader.onload = () => {
-            if (reader.result) this.wallpaperDataUrl = String(reader.result);
-          };
-          reader.readAsDataURL(blob);
-        }
-      } catch (cacheErr) {
-        console.warn("wallpaper cache warn", cacheErr);
-      }
     } catch (err) {
       console.warn("cleanWallpaperAI", err);
       if (typeof showOverlay === "function") showOverlay("CLEAN ERROR", 1200);
+    }
+  },
+
+  loadImg(src) {
+    return new Promise((resolve, reject) => {
+      const im = new Image();
+      im.crossOrigin = "anonymous";
+      im.onload = () => resolve(im);
+      im.onerror = () => reject(new Error("img load failed"));
+      im.src = src;
+    });
+  },
+
+  /* Merge original + AI result: keep original pixels everywhere except where the AI
+     actually erased something (big pixel difference), with a soft feathered edge. */
+  async preserveComposite(origSrc, aiSrc) {
+    try {
+      const [orig, ai] = await Promise.all([this.loadImg(origSrc), this.loadImg(aiSrc)]);
+      const W = orig.naturalWidth, H = orig.naturalHeight;
+      if (!W || !H) return null;
+      // Wildly different shape = AI recomposed the image
+      const arO = W / H, arA = ai.naturalWidth / ai.naturalHeight;
+      if (Math.abs(arO - arA) / arO > 0.04) return { dataUrl: null, changedFrac: 1 };
+
+      const cv = document.createElement("canvas");
+      cv.width = W; cv.height = H;
+      const ctx = cv.getContext("2d", { willReadFrequently: true });
+      ctx.drawImage(orig, 0, 0, W, H);
+      const o = ctx.getImageData(0, 0, W, H);
+      ctx.clearRect(0, 0, W, H);
+      ctx.drawImage(ai, 0, 0, W, H);
+      const a = ctx.getImageData(0, 0, W, H);
+      const od = o.data, ad = a.data, N = W * H;
+
+      // 1) Raw change mask
+      const THRESH = 38;
+      const m = new Uint8Array(N);
+      let changed = 0;
+      for (let i = 0, p = 0; i < N; i++, p += 4) {
+        const d = Math.max(Math.abs(od[p] - ad[p]), Math.abs(od[p+1] - ad[p+1]), Math.abs(od[p+2] - ad[p+2]));
+        if (d > THRESH) { m[i] = 1; changed++; }
+      }
+      const changedFrac = changed / N;
+      if (changedFrac > 0.35) return { dataUrl: null, changedFrac };
+
+      // 2) Dilate (grow) mask so glyph edges / anti-aliasing get fully covered
+      const r = Math.max(2, Math.round(Math.min(W, H) / 160));
+      const boxSum = (src, out, isFloat) => {
+        const tmp = new Float32Array(N);
+        for (let y = 0; y < H; y++) {           // horizontal
+          let s = 0; const row = y * W;
+          for (let x = -r; x < W; x++) {
+            const add = x + r < W ? src[row + x + r] : 0;
+            const sub = x - r - 1 >= 0 ? src[row + x - r - 1] : 0;
+            s += add - sub;
+            if (x >= 0) tmp[row + x] = s;
+          }
+        }
+        for (let x = 0; x < W; x++) {           // vertical
+          let s = 0;
+          for (let y = -r; y < H; y++) {
+            const add = y + r < H ? tmp[(y + r) * W + x] : 0;
+            const sub = y - r - 1 >= 0 ? tmp[(y - r - 1) * W + x] : 0;
+            s += add - sub;
+            if (y >= 0) out[y * W + x] = isFloat ? s / ((2*r+1)*(2*r+1)) : (s > 0 ? 1 : 0);
+          }
+        }
+      };
+      const dil = new Uint8Array(N);
+      boxSum(m, dil, false);
+      // 3) Feather edge
+      const alpha = new Float32Array(N);
+      boxSum(dil, alpha, true);
+
+      // 4) Blend: original everywhere, AI only inside the (feathered) erased areas
+      for (let i = 0, p = 0; i < N; i++, p += 4) {
+        const t = alpha[i];
+        if (t <= 0) continue;
+        od[p]   = od[p]   + (ad[p]   - od[p])   * t;
+        od[p+1] = od[p+1] + (ad[p+1] - od[p+1]) * t;
+        od[p+2] = od[p+2] + (ad[p+2] - od[p+2]) * t;
+      }
+      ctx.putImageData(o, 0, 0);
+      return { dataUrl: cv.toDataURL("image/jpeg", 0.95), changedFrac };
+    } catch (e) {
+      console.warn("preserveComposite", e);
+      return null;
     }
   }
 };
