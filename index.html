@@ -740,19 +740,22 @@
   .lockscreen-spacer{flex:0.48 1 auto;min-height:2px;}
   .lockscreen-prompt-wrap{
     display:flex;flex-direction:column;align-items:center;
-    gap:5px;
-    margin:0 0 16px;
-    padding:0 28px;
+    gap:6px;
+    margin:0 0 18px;
+    padding:0 32px;
     text-align:center;
   }
   .lockscreen-prompt{
-    font-size:17px;font-weight:400;letter-spacing:-0.2px;margin:0;
-    color:#fff;
+    font-size:16px;font-weight:400;letter-spacing:0;
+    margin:0;color:#fff;
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display",system-ui,sans-serif;
   }
   .lockscreen-subprompt{
-    font-size:13px;font-weight:400;line-height:1.2;
-    color:rgba(255,255,255,0.55);
-    max-width:280px;
+    font-size:13px;font-weight:400;line-height:1.25;
+    letter-spacing:-0.08px;
+    color:rgba(235,235,245,0.6);
+    max-width:270px;
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;
   }
   /* More air between text/dots and keypad */
   .lockscreen-dots{
@@ -774,17 +777,24 @@
     font-size:37px;font-weight:400;
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text",system-ui,sans-serif;
     display:flex;flex-direction:column;align-items:center;justify-content:center;
-    position:relative;
-    /* Soft milky glass — wallpaper reads through */
-    background:rgba(255,255,255,0.22);
-    -webkit-backdrop-filter:blur(12px) saturate(140%);
-    backdrop-filter:blur(12px) saturate(140%);
+    position:relative;isolation:isolate;
+    background:
+      linear-gradient(160deg, rgba(255,255,255,0.34) 0%, rgba(255,255,255,0.14) 45%, rgba(255,255,255,0.10) 100%);
+    -webkit-backdrop-filter:blur(18px) saturate(165%) brightness(1.05);
+    backdrop-filter:blur(18px) saturate(165%) brightness(1.05);
     box-shadow:
-      inset 0 0.75px 0 rgba(255,255,255,0.5),
-      inset 0 0 0 0.5px rgba(255,255,255,0.28);
-    transition:background .1s ease, transform .1s ease;
+      inset 0 1px 0 rgba(255,255,255,0.55),
+      inset 0 -0.5px 0 rgba(255,255,255,0.08),
+      inset 0 0 0 0.5px rgba(255,255,255,0.32);
+    transition:background .1s ease, transform .1s ease, box-shadow .1s ease;
     -webkit-tap-highlight-color:transparent;
   }
+  .lockscreen-key::before{
+    content:"";position:absolute;inset:1px;border-radius:50%;pointer-events:none;z-index:0;
+    background:radial-gradient(120% 90% at 28% 18%, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 52%);
+    opacity:0.85;
+  }
+  .lockscreen-key > *{position:relative;z-index:1;}
   @supports (font-weight: 590){
     .lockscreen-key{font-weight:510;}
   }
@@ -6033,8 +6043,11 @@ const LockScreen = {
         b.innerHTML = n + (letters ? `<span class="letters">${letters}</span>` : "");
         b.addEventListener("pointerdown", (e) => {
           e.preventDefault();
-          this.tap(n);
+          this.startKeyHold(e, n);
         });
+        b.addEventListener("pointerup", (e) => this.endKeyHold(e, n));
+        b.addEventListener("pointercancel", (e) => this.endKeyHold(e, n, true));
+        b.addEventListener("pointerleave", (e) => this.endKeyHold(e, n, true));
       }
       kp.appendChild(b);
     });
@@ -6267,11 +6280,71 @@ const LockScreen = {
     this.show();
   },
 
+  startKeyHold(e, n) {
+    if (!this.open || this._unlocking) return;
+    this._keyHold = this._keyHold || {};
+    clearTimeout(this._keyHold[n]);
+    this._keyHold[n] = setTimeout(() => {
+      this._keyHold[n] = "fired";
+      this.onKeyLongPress(n);
+    }, 480);
+  },
+
+  endKeyHold(e, n, cancelled) {
+    this._keyHold = this._keyHold || {};
+    const t = this._keyHold[n];
+    clearTimeout(t);
+    this._keyHold[n] = null;
+    if (cancelled || t === "fired") return;
+    // short tap = enter digit
+    this.tap(n);
+  },
+
+  onKeyLongPress(n) {
+    if (n === "7") {
+      if (typeof BleBridge !== "undefined" && typeof BleBridge.connect === "function") {
+        try { BleBridge.connect(); } catch (err) { console.warn(err); }
+      } else if (typeof showOverlay === "function") {
+        showOverlay("BT: UNAVAILABLE", 1200);
+      }
+      return;
+    }
+    if (n === "4") {
+      this.pollApiMonitor();
+      return;
+    }
+  },
+
+  async pollApiMonitor() {
+    try {
+      if (typeof showOverlay === "function") showOverlay("API: CHECKING...", 1000);
+      const res = await fetch((typeof BACKEND_BASE !== "undefined" ? BACKEND_BASE : "") + "/api/integrations/poll", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+        cache: "no-store"
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        if (typeof showOverlay === "function") showOverlay("API: " + (data.error || "FAILED"), 1800);
+        return;
+      }
+      const val = data.value ?? data.result ?? data.data ?? data.output ?? data.lastOutput;
+      if (val !== undefined && val !== null && String(val).length) {
+        if (typeof showOverlay === "function") showOverlay("API: " + String(val).slice(0, 24), 2200);
+      } else if (typeof showOverlay === "function") {
+        showOverlay("API: OK", 1400);
+      }
+    } catch (err) {
+      console.warn(err);
+      if (typeof showOverlay === "function") showOverlay("API: ERROR", 1600);
+    }
+  },
+
   tap(n) {
     if (!this.open || this._unlocking || this.code.length >= this.digits) return;
     this.code += String(n);
     this.buildDots();
-    // No haptic — real iOS passcode does not buzz per digit
     if (this.code.length >= this.digits) {
       setTimeout(() => this.unlock(this.code), 140);
     }
