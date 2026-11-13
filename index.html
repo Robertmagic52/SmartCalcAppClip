@@ -694,6 +694,8 @@
     background-color:#111;
   }
   .lockscreen.has-wallpaper .lockscreen-bg{background-color:transparent;}
+  /* AI-cleaned wallpaper: show the photo exactly as-is (no blur, no zoom) */
+  .lockscreen.ai-clean .lockscreen-bg{filter:none;transform:none;inset:0;}
   .lockscreen.unlocking .lockscreen-bg{
     filter:blur(calc(var(--lock-blur, 10px) + 20px)) brightness(1.08) saturate(1.05);
     transform:scale(1.16);
@@ -6231,17 +6233,57 @@ const LockScreen = {
           applyStatusBarModeUI();
         }
       }
-      // Keep theme-color from fighting wallpaper under status bar
+      // Adaptive opaque bar: tint status bar to match the top of the wallpaper
       document.querySelectorAll('meta[name="theme-color"]').forEach((m) => {
         if (active) {
           if (!m.dataset.prevTheme) m.dataset.prevTheme = m.getAttribute("content") || "#000000";
-          m.setAttribute("content", "#00000000");
+          m.setAttribute("content", this._topColor || "#000000");
         } else if (m.dataset.prevTheme) {
           m.setAttribute("content", m.dataset.prevTheme);
           delete m.dataset.prevTheme;
         }
       });
+      const rootBg = active ? (this._topColor || "#000000") : "";
+      document.documentElement.style.backgroundColor = rootBg;
+      document.body.style.backgroundColor = rootBg;
     } catch (_) {}
+  },
+
+  // Average color of the top strip of the wallpaper (what sits under the status bar)
+  sampleTopColor(src) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        try {
+          const w = 48, h = 96;
+          const c = document.createElement("canvas");
+          c.width = w; c.height = h;
+          const ctx = c.getContext("2d");
+          // Draw like background-size:cover so the sample matches what's on screen
+          const vw = window.innerWidth || 390, vh = window.innerHeight || 844;
+          const scale = Math.max(vw / img.width, vh / img.height);
+          const sw = vw / scale, sh = vh / scale;
+          const sx = (img.width - sw) / 2, sy = (img.height - sh) / 2;
+          ctx.drawImage(img, sx, sy, sw, sh, 0, 0, w, h);
+          const rows = Math.max(2, Math.round(h * 0.06)); // ~status bar height
+          const d = ctx.getImageData(0, 0, w, rows).data;
+          let r = 0, g = 0, b = 0, n = 0;
+          for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i+1]; b += d[i+2]; n++; }
+          const hex = v => Math.round(v / n).toString(16).padStart(2, "0");
+          resolve("#" + hex(r) + hex(g) + hex(b));
+        } catch (_) { resolve(null); }
+      };
+      img.onerror = () => resolve(null);
+      img.src = src;
+    });
+  },
+
+  async updateStatusBarColor(src) {
+    const col = await this.sampleTopColor(src);
+    if (!col) return;
+    this._topColor = col;
+    if (this.open) this.setLockStatusBar(true);
   },
 
   show() {
@@ -6250,8 +6292,9 @@ const LockScreen = {
     this.open = true;
     this._unlocking = false;
     this.code = "";
-    const blurPx = Math.max(0, Math.min(80, Number(CFG.lockBlur != null ? CFG.lockBlur : 10)));
+    const blurPx = this.wallpaperCleaned ? 0 : Math.max(0, Math.min(80, Number(CFG.lockBlur != null ? CFG.lockBlur : 10)));
     el.style.setProperty("--lock-blur", blurPx + "px");
+    el.classList.toggle("ai-clean", !!this.wallpaperCleaned);
     // Paint wallpaper FIRST so we never flash black
     const bg = document.getElementById("lockBg");
     if (this.wallpaperDataUrl && bg) {
@@ -6451,7 +6494,8 @@ const LockScreen = {
 
   applyWallpaperFile(file) {
     if (!file) return;
-    this.compressImage(file, 1280, 0.82).then((dataUrl) => {
+    // Higher res + quality so the AI result keeps the original photo's detail
+    this.compressImage(file, 2048, 0.93).then((dataUrl) => {
       this.setWallpaper(dataUrl, false);
       this.hidePastePrompt();
       // AI clean in background (fal via backend)
@@ -6470,15 +6514,17 @@ const LockScreen = {
   setWallpaper(dataUrl, cleaned) {
     if (!dataUrl) return;
     this.wallpaperDataUrl = dataUrl;
+    this.wallpaperCleaned = !!cleaned;
     const bg = document.getElementById("lockBg");
     const el = document.getElementById("lockScreen");
     if (bg) bg.style.backgroundImage = `url(${dataUrl})`;
-    if (el) el.classList.add("has-wallpaper");
-    // Lighter blur once AI-cleaned
-    if (cleaned) {
-      const blurPx = Math.max(0, Math.min(20, Number(CFG.lockBlur != null ? CFG.lockBlur : 8)));
-      if (el) el.style.setProperty("--lock-blur", Math.min(blurPx, 8) + "px");
+    if (el) {
+      el.classList.add("has-wallpaper");
+      // AI succeeded → no blur at all, photo shown exactly as-is
+      el.classList.toggle("ai-clean", !!cleaned);
+      if (cleaned) el.style.setProperty("--lock-blur", "0px");
     }
+    this.updateStatusBarColor(dataUrl);
   },
 
   compressImage(file, maxSide, quality) {
