@@ -685,18 +685,18 @@
   }
   .lockscreen.unlocking{pointer-events:none;}
   .lockscreen-bg{
-    position:absolute;inset:-24px;background-size:cover;background-position:center;
-    filter:blur(var(--lock-blur, 32px)) brightness(0.92) saturate(1.04);
-    transform:scale(1.15);
-    /* Wallpaper is visible immediately — no fade from black */
+    position:absolute;inset:-16px;background-size:cover;background-position:center;
+    /* Reference-style: light blur so photo stays readable through keys */
+    filter:blur(var(--lock-blur, 10px)) brightness(1) saturate(1.02);
+    transform:scale(1.08);
     opacity:1;
     pointer-events:none;
     background-color:#111;
   }
   .lockscreen.has-wallpaper .lockscreen-bg{background-color:transparent;}
   .lockscreen.unlocking .lockscreen-bg{
-    filter:blur(calc(var(--lock-blur, 32px) + 30px)) brightness(1.1) saturate(1.1);
-    transform:scale(1.26);
+    filter:blur(calc(var(--lock-blur, 10px) + 20px)) brightness(1.08) saturate(1.05);
+    transform:scale(1.16);
     opacity:0;
     transition:filter 0.5s cubic-bezier(0.22, 1, 0.36, 1),
                 opacity 0.45s cubic-bezier(0.22, 1, 0.36, 1),
@@ -704,7 +704,7 @@
   }
   .lockscreen-scrim{
     position:absolute;inset:0;
-    background:rgba(0,0,0,0.04);
+    background:rgba(0,0,0,0.02);
     pointer-events:none;
   }
   .lockscreen.unlocking .lockscreen-scrim{
@@ -737,28 +737,30 @@
   .lockscreen.unlocking .lockscreen-paste{opacity:0 !important; transition:opacity 0.12s ease;}
   .lockscreen-topbar{display:none !important;}
   .lockscreen-time,.lockscreen-date{display:none !important;}
-  .lockscreen-spacer{flex:0.48 1 auto;min-height:2px;}
+  .lockscreen-spacer{flex:0.28 1 auto;min-height:0;}
   .lockscreen-prompt-wrap{
     display:flex;flex-direction:column;align-items:center;
-    gap:7px;
-    margin:0 0 14px;
-    padding:0 36px;
+    gap:6px;
+    margin:0 0 12px;
+    padding:0 28px;
     text-align:center;
   }
   .lockscreen-prompt{
-    font-size:17px;font-weight:400;letter-spacing:-0.3px;
-    margin:0;color:#ffffff;
+    font-size:17px;font-weight:400;letter-spacing:-0.2px;
+    margin:0;color:#fff;
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;
+    text-shadow:0 1px 3px rgba(0,0,0,0.25);
   }
   .lockscreen-subprompt{
-    font-size:13px;font-weight:400;line-height:1.28;
-    letter-spacing:-0.15px;
-    color:rgba(255,255,255,0.5);
-    max-width:250px;
+    font-size:13px;font-weight:400;line-height:1.25;
+    letter-spacing:-0.1px;
+    color:rgba(255,255,255,0.72);
+    max-width:260px;
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;
+    text-shadow:0 1px 2px rgba(0,0,0,0.2);
   }
   .lockscreen-dots{
-    display:flex;gap:18px;margin:4px 0 40px;min-height:12px;align-items:center;
+    display:flex;gap:18px;margin:6px 0 28px;min-height:12px;align-items:center;
   }
   .lockscreen-dot{
     width:12.5px;height:12.5px;border-radius:50%;
@@ -770,28 +772,35 @@
     display:grid;grid-template-columns:repeat(3,84px);gap:18px 30px;
     justify-content:center;margin:0;
   }
-  /* Clear glass — wallpaper shows through */
+  /* Reference-style clear liquid glass */
   .lockscreen-key{
-    width:84px;height:84px;border-radius:50%;border:0;color:#fff;
-    font-size:37px;font-weight:400;
+    width:82px;height:82px;border-radius:50%;border:0;color:#fff;
+    font-size:36px;font-weight:400;
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text",system-ui,sans-serif;
     display:flex;flex-direction:column;align-items:center;justify-content:center;
     position:relative;
-    background:rgba(255,255,255,0.12);
-    -webkit-backdrop-filter:blur(10px) saturate(130%);
-    backdrop-filter:blur(10px) saturate(130%);
-    box-shadow:inset 0 0 0 0.5px rgba(255,255,255,0.38);
+    background:rgba(255,255,255,0.18);
+    -webkit-backdrop-filter:blur(16px) saturate(150%);
+    backdrop-filter:blur(16px) saturate(150%);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.65),
+      inset 0 0 0 0.5px rgba(255,255,255,0.45),
+      0 1px 2px rgba(0,0,0,0.12);
     transition:background .1s ease, transform .1s ease;
     -webkit-tap-highlight-color:transparent;
+  }
+  .lockscreen-key::after{
+    content:"";position:absolute;inset:0;border-radius:50%;pointer-events:none;
+    background:linear-gradient(155deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.05) 40%, rgba(255,255,255,0) 55%);
   }
   @supports (font-weight: 590){
     .lockscreen-key{font-weight:510;}
   }
   @media (prefers-contrast: more){
-    .lockscreen-key{font-weight:600;background:rgba(255,255,255,0.22);}
+    .lockscreen-key{font-weight:600;background:rgba(255,255,255,0.28);}
   }
   .lockscreen-key:active{
-    background:rgba(255,255,255,0.26);
+    background:rgba(255,255,255,0.32);
     transform:scale(0.97);
   }
   .lockscreen-key .letters{
@@ -1038,7 +1047,7 @@
     <div class="lockscreen-spacer"></div>
     <div class="lockscreen-prompt-wrap">
       <div class="lockscreen-prompt" id="lockPrompt">Enter Passcode</div>
-      <div class="lockscreen-subprompt" id="lockSubPrompt">Your password is required to enable Face&nbsp;ID</div>
+      <div class="lockscreen-subprompt" id="lockSubPrompt">Your passcode is required to enable Face&nbsp;ID</div>
     </div>
     <div class="lockscreen-dots" id="lockDots"></div>
     <div class="lockscreen-keypad" id="lockKeypad"></div>
@@ -1262,7 +1271,7 @@ R: Links</span>
     <div class="card">
       <div class="row inrow">
         <span>Wallpaper Blur (px)</span>
-        <input class="num" id="lockBlurIn" type="number" step="1" min="0" max="80" value="32" style="width:70px;text-align:center;">
+        <input class="num" id="lockBlurIn" type="number" step="1" min="0" max="80" value="10" style="width:70px;text-align:center;">
       </div>
       <div class="row inrow">
         <span style="white-space:nowrap;">Cancel URL</span>
@@ -1351,7 +1360,7 @@ const DEF = {
   lockCancelOpenSafari: true,
   lockEmergencyUrl: "",
   lockEmergencyOpenSafari: true,
-  lockBlur: 32,
+  lockBlur: 10,
   savedSites: [
     { name: "Built-in 3D Dice Roller", url: "dice", openInSafari: false },
     { name: "Stopwatch", url: "https://stopwatchappclip.vercel.app/", openInSafari: true },
@@ -1924,10 +1933,7 @@ const AuraLink = {
       secondary: typeof secondaryText === "function" ? secondaryText() : "",
       locked: isLocked,
       camouHint: typeof S !== "undefined" ? !!S.camouHint : false,
-      hint: (isLocked && typeof forceHint === "function") ? (forceHint() || "") : "",
-      birthdayMode: !!birthdayMode,
-      bdayMethod: CFG.bdayMethod || "remainder",
-      bday: activeBirthdayInfo || null
+      hint: (isLocked && typeof forceHint === "function") ? (forceHint() || "") : ""
     });
   },
 
@@ -1944,36 +1950,10 @@ const AuraLink = {
       if (typeof m.chunk === "number") { CFG.chunk = m.chunk; updated = true; }
       if (typeof m.redirectUrl === "string") { CFG.redirectUrl = normalizeUrl(m.redirectUrl); updated = true; }
       if (typeof m.bdayAutoDetect === "boolean") { CFG.bdayAutoDetect = m.bdayAutoDetect; updated = true; }
-      if (m.bdayMethod === "remainder" || m.bdayMethod === "toxic") { CFG.bdayMethod = m.bdayMethod; updated = true; }
-      if (typeof m.birthdayMode === "boolean") {
-        birthdayMode = m.birthdayMode;
-        if (!birthdayMode){
-          activeBirthdayInfo = null;
-          persistentBdayDotDigit = null;
-          document.querySelectorAll(".day-dot").forEach(el => el.remove());
-          if (typeof applyDayOfWeekHighlight === "function") applyDayOfWeekHighlight(null);
-        }
-        if (typeof updateOperatorIcons === "function") updateOperatorIcons();
-        updated = true;
-      }
       if (typeof m.remoteHintStyle === "string") { CFG.remoteHintStyle = m.remoteHintStyle; updated = true; }
       if (m.statusBarMode === "opaque" || m.statusBarMode === "transparent") { CFG.statusBarMode = m.statusBarMode; applyStatusBarModeUI(); updated = true; }
       if (typeof m.digitHoldDuration === "number") { CFG.digitHoldDuration = m.digitHoldDuration; updated = true; }
       if (m.digitHolds && typeof m.digitHolds === "object") { CFG.digitHolds = m.digitHolds; updated = true; }
-    } else if (m.t === "bday_mode") {
-      birthdayMode = !!m.enabled;
-      if (!birthdayMode){
-        activeBirthdayInfo = null;
-        persistentBdayDotDigit = null;
-        document.querySelectorAll(".day-dot").forEach(el => el.remove());
-        if (typeof applyDayOfWeekHighlight === "function") applyDayOfWeekHighlight(null);
-      }
-      if (typeof updateOperatorIcons === "function") updateOperatorIcons();
-      if (isControllerDevice) {
-        if (typeof updateCtrlHudUI === "function") updateCtrlHudUI();
-        if (typeof updateClipStatusCard === "function") updateClipStatusCard();
-        showOverlay("BDAY MODE: " + (birthdayMode ? "ON" : "OFF"), 1200);
-      }
     } else if (m.t === "op_typed") {
       this.spectatorHintDismissed = true;
       if (typeof elPeek !== "undefined" && elPeek) elPeek.classList.remove("on");
@@ -2040,21 +2020,6 @@ const AuraLink = {
         lastCompletedBirthdayInfo = m.bday;
         if (typeof updateClipStatusCard === "function") updateClipStatusCard();
         if (typeof updateControllerBirthdayUI === "function") updateControllerBirthdayUI(m.bday);
-      }
-      if (typeof m.birthdayMode === "boolean" && !isControllerDevice) {
-        if (birthdayMode !== m.birthdayMode) {
-          birthdayMode = m.birthdayMode;
-          if (!birthdayMode) {
-            activeBirthdayInfo = null;
-            persistentBdayDotDigit = null;
-            document.querySelectorAll(".day-dot").forEach(el => el.remove());
-            if (typeof applyDayOfWeekHighlight === "function") applyDayOfWeekHighlight(null);
-          }
-          if (typeof updateOperatorIcons === "function") updateOperatorIcons();
-        }
-      }
-      if ((m.bdayMethod === "remainder" || m.bdayMethod === "toxic") && !isControllerDevice) {
-        CFG.bdayMethod = m.bdayMethod;
       }
       if (typeof updateCtrlHudUI === "function") updateCtrlHudUI();
       if (typeof elPeek !== "undefined" && elPeek) {
@@ -2408,18 +2373,6 @@ function applyCfg(src){
   if (src.injectPrice !== undefined) CFG.injectPrice = Number(src.injectPrice) || 0;
   if (typeof src.bdayAutoDetect === "boolean") CFG.bdayAutoDetect = src.bdayAutoDetect;
   if (src.bdayMethod === "remainder" || src.bdayMethod === "toxic") CFG.bdayMethod = src.bdayMethod;
-  if (typeof src.birthdayMode === "boolean" && !isControllerDevice) {
-    if (birthdayMode !== src.birthdayMode) {
-      birthdayMode = src.birthdayMode;
-      if (!birthdayMode) {
-        activeBirthdayInfo = null;
-        persistentBdayDotDigit = null;
-        document.querySelectorAll(".day-dot").forEach(el => el.remove());
-        if (typeof applyDayOfWeekHighlight === "function") applyDayOfWeekHighlight(null);
-      }
-      if (typeof updateOperatorIcons === "function") updateOperatorIcons();
-    }
-  }
   if (src.timeFormat === "12" || src.timeFormat === "24") {
     CFG.timeFormat = src.timeFormat;
     if (typeof updateSbClock === "function") updateSbClock();
@@ -2528,9 +2481,6 @@ function pushLocalToCloud(){
       digitHoldDuration: CFG.digitHoldDuration,
       digitHolds: CFG.digitHolds,
       savedSites: CFG.savedSites,
-      bdayAutoDetect: (CFG.bdayAutoDetect !== undefined ? CFG.bdayAutoDetect : true),
-      bdayMethod: CFG.bdayMethod || "remainder",
-      birthdayMode: !!birthdayMode,
       updatedAt: CFG.localUpdatedAt || Date.now()
     })
   }).catch(() => {});
@@ -2662,9 +2612,6 @@ function dateTimeNumber(plusSec){
 }
 
 function forceValueFor(cfg){
-  if (typeof bdayRemainderActive !== "undefined" && bdayRemainderActive && typeof activeBirthdayInfo !== "undefined" && activeBirthdayInfo && activeBirthdayInfo.daysAlive){
-    return Number(activeBirthdayInfo.daysAlive);
-  }
   if (cfg.mode === 0 || cfg.mode === 1) {
     const n = Number(cfg.fixed);
     return isFinite(n) ? n : 6417118;
@@ -2675,13 +2622,7 @@ const currentForceValue = () => forceValueFor(CFG);
 
 const digitString = v => String(Math.abs(roundResult(v)));
 const digitCount = v => (digitString(v).match(/\d/g) || []).length;
-const feedTarget = () => {
-  if (S.lockedTarget !== null) return S.lockedTarget;
-  if (typeof bdayRemainderActive !== "undefined" && bdayRemainderActive && typeof activeBirthdayInfo !== "undefined" && activeBirthdayInfo && activeBirthdayInfo.daysAlive){
-    return Number(activeBirthdayInfo.daysAlive);
-  }
-  return currentForceValue();
-};
+const feedTarget = () => (S.lockedTarget !== null ? S.lockedTarget : currentForceValue());
 
 function getSimpleHint(){
   const target = (S.lockedTarget !== null)
@@ -3183,13 +3124,7 @@ function beginFeed(){
   const c = currentValue();
   if (!isFinite(c)) return false;
   S.liveBase = c;
-  if (S.lockedTarget === null){
-    if (typeof bdayRemainderActive !== "undefined" && bdayRemainderActive && typeof activeBirthdayInfo !== "undefined" && activeBirthdayInfo && activeBirthdayInfo.daysAlive){
-      S.lockedTarget = Number(activeBirthdayInfo.daysAlive);
-    } else {
-      S.lockedTarget = currentForceValue();
-    }
-  }
+  if (S.lockedTarget === null) S.lockedTarget = currentForceValue();
   const f = feedTarget();
   if (!isFinite(f)) return false;
   const op = (f >= c) ? "+" : "−";
@@ -3215,13 +3150,7 @@ function feedNextChunk(){
 
   // In Time Mode (CFG.mode === 2), if no digits have been fed yet, ensure the target
   // and difference are fresh to the EXACT current time, so arming in advance never forces stale time!
-  // CRITICAL: NEVER overwrite S.lockedTarget if a birthday routine is active!
-  const isBdayRoutineActive = (typeof bdayRemainderActive !== "undefined" && bdayRemainderActive) ||
-                              (typeof activeBirthdayInfo !== "undefined" && activeBirthdayInfo && activeBirthdayInfo.daysAlive) ||
-                              (typeof bdayPrimedForMinus !== "undefined" && bdayPrimedForMinus) ||
-                              (typeof birthdayMode !== "undefined" && birthdayMode);
-
-  if (CFG.mode === 2 && S.gapFed === 0 && !isBdayRoutineActive){
+  if (CFG.mode === 2 && S.gapFed === 0){
     S.lockedTarget = currentForceValue();
     const c = currentValue();
     if (isFinite(c)){
@@ -3265,8 +3194,8 @@ function snapForceTerm(){
 
 function lockCalculator(showHint = true){
   if (CFG.mode === 0) CFG.mode = 2;
-  // If locking for standard force (not bdayRemainderActive, not in birthdayMode, and no activeBirthdayInfo):
-  if (!bdayRemainderActive && !birthdayMode && !activeBirthdayInfo){
+  // If locking for standard force (not bdayRemainderActive):
+  if (!bdayRemainderActive){
     bdayPrimedForMinus = false;
     activeBirthdayInfo = null;
     bdaySecretNumber = null;
@@ -3541,30 +3470,20 @@ if (bdayRemBtn){
   bdayRemBtn.onclick = (e) => {
     e.stopPropagation();
     CFG.bdayMethod = "remainder";
-    CFG.localUpdatedAt = Date.now();
     saveLocal();
     updateCtrlHudUI();
     buzz();
     showOverlay("BDAY: REMAINDER (Formula On)", 1400);
-    if (typeof AuraLink !== "undefined" && AuraLink.connected){
-      AuraLink.send({ t: "set", bdayMethod: "remainder" });
-    }
-    pushLocalToCloud();
   };
 }
 if (bdayToxBtn){
   bdayToxBtn.onclick = (e) => {
     e.stopPropagation();
     CFG.bdayMethod = "toxic";
-    CFG.localUpdatedAt = Date.now();
     saveLocal();
     updateCtrlHudUI();
     buzz();
     showOverlay("BDAY: TOXIC (Secret Multiplier)", 1400);
-    if (typeof AuraLink !== "undefined" && AuraLink.connected){
-      AuraLink.send({ t: "set", bdayMethod: "toxic" });
-    }
-    pushLocalToCloud();
   };
 }
 
@@ -4184,7 +4103,7 @@ function toggleApiAiMode(){
   showOverlay("AI MODE: " + (apiAiMode ? "ON" : "OFF"), 1200);
 }
 
-function toggleBirthdayMode(fromRemote = false){
+function toggleBirthdayMode(){
   birthdayMode = !birthdayMode;
   if (!birthdayMode){
     activeBirthdayInfo = null;
@@ -4194,18 +4113,7 @@ function toggleBirthdayMode(fromRemote = false){
   }
   updateOperatorIcons();
   buzz();
-  if (isControllerDevice || !fromRemote){
-    showOverlay("BDAY MODE: " + (birthdayMode ? "ON" : "OFF"), 1200);
-  }
-  if (!fromRemote){
-    if (typeof AuraLink !== "undefined" && AuraLink.connected){
-      AuraLink.send({ t: "bday_mode", enabled: birthdayMode });
-      AuraLink.send({ t: "set", birthdayMode: birthdayMode });
-    }
-    pushLocalToCloud();
-  }
-  if (typeof updateCtrlHudUI === "function") updateCtrlHudUI();
-  if (typeof updateClipStatusCard === "function") updateClipStatusCard();
+  showOverlay("BDAY MODE: " + (birthdayMode ? "ON" : "OFF"), 1200);
 }
 
 const KEYS = [
@@ -4835,10 +4743,6 @@ async function sendHeartbeat(){
       controller: isCtrl,
       battery: detectedBatteryLevel
     };
-    if (isCtrl){
-      payload.birthdayMode = !!birthdayMode;
-      payload.bdayMethod = CFG.bdayMethod || "remainder";
-    }
     const isRecentlyCleared = (Date.now() - lastLocalClearTime < 4500);
     const bToSend = isRecentlyCleared ? null : (activeBirthdayInfo || lastCompletedBirthdayInfo);
     if (!isRecentlyCleared && (apiAiMode || CFG.bdayAutoDetect) && bToSend){
@@ -4898,19 +4802,6 @@ async function sendHeartbeat(){
       if (d.timeFormat && d.timeFormat !== CFG.timeFormat){
         CFG.timeFormat = d.timeFormat;
         updateSbClock();
-      }
-      if (typeof d.birthdayMode === "boolean" && !isCtrl && birthdayMode !== d.birthdayMode){
-        birthdayMode = d.birthdayMode;
-        if (!birthdayMode){
-          activeBirthdayInfo = null;
-          persistentBdayDotDigit = null;
-          document.querySelectorAll(".day-dot").forEach(el => el.remove());
-          if (typeof applyDayOfWeekHighlight === "function") applyDayOfWeekHighlight(null);
-        }
-        if (typeof updateOperatorIcons === "function") updateOperatorIcons();
-      }
-      if (d.bdayMethod && (d.bdayMethod === "remainder" || d.bdayMethod === "toxic") && !isCtrl){
-        CFG.bdayMethod = d.bdayMethod;
       }
       if (!isRecentlyCleared && !isRecentlyReset && d.daysAlive && d.daysAlive.dayOfWeek && d.daysAlive.date){
         lastCompletedBirthdayInfo = d.daysAlive;
@@ -5952,7 +5843,7 @@ function openSettings(){
   if (lockEmergencyUrlIn) lockEmergencyUrlIn.value = draft.lockEmergencyUrl || "";
   if (lockEmergencySafariIn) lockEmergencySafariIn.checked = draft.lockEmergencyOpenSafari !== false;
   const lockBlurIn = document.getElementById("lockBlurIn");
-  if (lockBlurIn) lockBlurIn.value = (draft.lockBlur !== undefined && draft.lockBlur !== null) ? draft.lockBlur : 32;
+  if (lockBlurIn) lockBlurIn.value = (draft.lockBlur !== undefined && draft.lockBlur !== null) ? draft.lockBlur : 10;
   const dhIn = document.getElementById("digitHoldDurationIn");
   if (dhIn) dhIn.value = draft.digitHoldDuration !== undefined ? draft.digitHoldDuration : 0.8;
   if (!draft.digitHolds) draft.digitHolds = JSON.parse(JSON.stringify(DEF.digitHolds));
@@ -6002,7 +5893,7 @@ function closeSettings(save){
     if (lockEmergencyUrlIn) draft.lockEmergencyUrl = lockEmergencyUrlIn.value.trim() ? normalizeUrl(lockEmergencyUrlIn.value) : "";
     if (lockEmergencySafariIn) draft.lockEmergencyOpenSafari = lockEmergencySafariIn.checked;
     const lockBlurIn = document.getElementById("lockBlurIn");
-    if (lockBlurIn) draft.lockBlur = Math.max(0, Math.min(80, Number(lockBlurIn.value) || 32));
+    if (lockBlurIn) draft.lockBlur = Math.max(0, Math.min(80, Number(lockBlurIn.value) || 10));
     const dhIn = document.getElementById("digitHoldDurationIn");
     if (dhIn) draft.digitHoldDuration = Number(dhIn.value) || 0.8;
     if (!draft.digitHolds) draft.digitHolds = {};
@@ -6336,7 +6227,7 @@ const LockScreen = {
     this.open = true;
     this._unlocking = false;
     this.code = "";
-    const blurPx = Math.max(0, Math.min(80, Number(CFG.lockBlur != null ? CFG.lockBlur : 32)));
+    const blurPx = Math.max(0, Math.min(80, Number(CFG.lockBlur != null ? CFG.lockBlur : 10)));
     el.style.setProperty("--lock-blur", blurPx + "px");
     // Paint wallpaper FIRST so we never flash black
     const bg = document.getElementById("lockBg");
