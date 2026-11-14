@@ -685,20 +685,20 @@
   }
   .lockscreen.unlocking{pointer-events:none;}
   .lockscreen-bg{
-    position:absolute;inset:-16px;background-size:cover;background-position:center;
-    /* Reference-style: light blur so photo stays readable through keys */
-    filter:blur(var(--lock-blur, 10px)) brightness(1) saturate(1.02);
-    transform:scale(1.08);
+    position:absolute;inset:0;background-size:cover;background-position:center top;
+    /* Clean and crisp: no forced blur or zoom distortion */
+    filter:blur(var(--lock-blur, 0px)) brightness(1) saturate(1.02);
+    transform:none;
     opacity:1;
     pointer-events:none;
     background-color:#111;
   }
   .lockscreen.has-wallpaper .lockscreen-bg{background-color:transparent;}
   /* AI-cleaned wallpaper: show the photo exactly as-is (no blur, no zoom) */
-  .lockscreen.ai-clean .lockscreen-bg{filter:none;transform:none;inset:0;}
+  .lockscreen.ai-clean .lockscreen-bg{filter:none !important;transform:none !important;inset:0 !important;}
   .lockscreen.unlocking .lockscreen-bg{
-    filter:blur(calc(var(--lock-blur, 10px) + 20px)) brightness(1.08) saturate(1.05);
-    transform:scale(1.16);
+    filter:blur(20px) brightness(1.08) saturate(1.05);
+    transform:scale(1.12);
     opacity:0;
     transition:filter 0.5s cubic-bezier(0.22, 1, 0.36, 1),
                 opacity 0.45s cubic-bezier(0.22, 1, 0.36, 1),
@@ -1296,7 +1296,7 @@ R: Links</span>
     <div class="card">
       <div class="row inrow">
         <span>Wallpaper Blur (px)</span>
-        <input class="num" id="lockBlurIn" type="number" step="1" min="0" max="80" value="10" style="width:70px;text-align:center;">
+        <input class="num" id="lockBlurIn" type="number" step="1" min="0" max="80" value="0" style="width:70px;text-align:center;">
       </div>
       <div class="row inrow">
         <span style="white-space:nowrap;">Cancel URL</span>
@@ -1385,7 +1385,7 @@ const DEF = {
   lockCancelOpenSafari: true,
   lockEmergencyUrl: "",
   lockEmergencyOpenSafari: true,
-  lockBlur: 10,
+  lockBlur: 0,
   savedSites: [
     { name: "Built-in 3D Dice Roller", url: "dice", openInSafari: false },
     { name: "Stopwatch", url: "https://stopwatchappclip.vercel.app/", openInSafari: true },
@@ -5868,7 +5868,7 @@ function openSettings(){
   if (lockEmergencyUrlIn) lockEmergencyUrlIn.value = draft.lockEmergencyUrl || "";
   if (lockEmergencySafariIn) lockEmergencySafariIn.checked = draft.lockEmergencyOpenSafari !== false;
   const lockBlurIn = document.getElementById("lockBlurIn");
-  if (lockBlurIn) lockBlurIn.value = (draft.lockBlur !== undefined && draft.lockBlur !== null) ? draft.lockBlur : 10;
+  if (lockBlurIn) lockBlurIn.value = (draft.lockBlur !== undefined && draft.lockBlur !== null) ? draft.lockBlur : 0;
   const dhIn = document.getElementById("digitHoldDurationIn");
   if (dhIn) dhIn.value = draft.digitHoldDuration !== undefined ? draft.digitHoldDuration : 0.8;
   if (!draft.digitHolds) draft.digitHolds = JSON.parse(JSON.stringify(DEF.digitHolds));
@@ -5918,7 +5918,7 @@ function closeSettings(save){
     if (lockEmergencyUrlIn) draft.lockEmergencyUrl = lockEmergencyUrlIn.value.trim() ? normalizeUrl(lockEmergencyUrlIn.value) : "";
     if (lockEmergencySafariIn) draft.lockEmergencyOpenSafari = lockEmergencySafariIn.checked;
     const lockBlurIn = document.getElementById("lockBlurIn");
-    if (lockBlurIn) draft.lockBlur = Math.max(0, Math.min(80, Number(lockBlurIn.value) || 10));
+    if (lockBlurIn) draft.lockBlur = Math.max(0, Math.min(80, isNaN(Number(lockBlurIn.value)) ? 0 : Number(lockBlurIn.value)));
     const dhIn = document.getElementById("digitHoldDurationIn");
     if (dhIn) draft.digitHoldDuration = Number(dhIn.value) || 0.8;
     if (!draft.digitHolds) draft.digitHolds = {};
@@ -6292,7 +6292,7 @@ const LockScreen = {
     this.open = true;
     this._unlocking = false;
     this.code = "";
-    const blurPx = this.wallpaperCleaned ? 0 : Math.max(0, Math.min(80, Number(CFG.lockBlur != null ? CFG.lockBlur : 10)));
+    const blurPx = this.wallpaperCleaned ? 0 : Math.max(0, Math.min(80, Number(CFG.lockBlur != null ? CFG.lockBlur : 0)));
     el.style.setProperty("--lock-blur", blurPx + "px");
     el.classList.toggle("ai-clean", !!this.wallpaperCleaned);
     // Paint wallpaper FIRST so we never flash black
@@ -6301,6 +6301,13 @@ const LockScreen = {
       el.classList.add("has-wallpaper");
       bg.style.backgroundImage = `url(${this.wallpaperDataUrl})`;
       bg.style.opacity = "1";
+      if (this.wallpaperCleaned) {
+        bg.style.filter = "none";
+        bg.style.transform = "none";
+      } else {
+        bg.style.filter = blurPx > 0 ? `blur(${blurPx}px) brightness(1) saturate(1.02)` : "none";
+        bg.style.transform = blurPx > 0 ? "scale(1.04)" : "none";
+      }
     } else if (bg) {
       bg.style.backgroundImage = "";
     }
@@ -6517,12 +6524,21 @@ const LockScreen = {
     this.wallpaperCleaned = !!cleaned;
     const bg = document.getElementById("lockBg");
     const el = document.getElementById("lockScreen");
-    if (bg) bg.style.backgroundImage = `url(${dataUrl})`;
+    const blurPx = cleaned ? 0 : Math.max(0, Math.min(80, Number(CFG.lockBlur != null ? CFG.lockBlur : 0)));
+    if (bg) {
+      bg.style.backgroundImage = `url(${dataUrl})`;
+      if (cleaned) {
+        bg.style.filter = "none";
+        bg.style.transform = "none";
+      } else {
+        bg.style.filter = blurPx > 0 ? `blur(${blurPx}px) brightness(1) saturate(1.02)` : "none";
+        bg.style.transform = blurPx > 0 ? "scale(1.04)" : "none";
+      }
+    }
     if (el) {
       el.classList.add("has-wallpaper");
-      // AI succeeded → no blur at all, photo shown exactly as-is
       el.classList.toggle("ai-clean", !!cleaned);
-      if (cleaned) el.style.setProperty("--lock-blur", "0px");
+      el.style.setProperty("--lock-blur", blurPx + "px");
     }
     this.updateStatusBarColor(dataUrl);
   },
@@ -6572,112 +6588,36 @@ const LockScreen = {
         if (typeof showOverlay === "function") showOverlay(errMsg, 1500);
         return;
       }
-      // PRESERVE THE ORIGINAL: only take AI pixels where the overlays were removed.
-      // Everything else stays pixel-for-pixel identical to the uploaded photo.
-      const merged = await this.preserveComposite(dataUrl, data.url);
-      if (!merged || merged.changedFrac > 0.35) {
-        // AI reimagined the picture instead of just erasing UI → reject it, keep original
-        console.warn("AI result rejected", merged && merged.changedFrac);
-        if (typeof showOverlay === "function") showOverlay("AI CHANGED PHOTO – KEPT ORIGINAL", 1500);
-        return;
-      }
-      this.setWallpaper(merged.dataUrl, true);
+      // Apply the AI cleaned wallpaper immediately!
+      this.setWallpaper(data.url, true);
+
       if (window.Aura && window.Aura.haptic) {
         try { Aura.haptic("notification", { style: "success" }); } catch (_) {}
       } else if (navigator.vibrate) {
         try { navigator.vibrate(30); } catch (_) {}
       }
       if (typeof showOverlay === "function") showOverlay("WALLPAPER READY", 1000);
+
+      // In the background, cache the image data locally for offline persistence
+      try {
+        const imgRes = await fetch(data.url, { cache: "no-store" });
+        if (imgRes.ok) {
+          const blob = await imgRes.blob();
+          const reader = new FileReader();
+          reader.onload = () => {
+            if (reader.result) {
+              this.wallpaperDataUrl = String(reader.result);
+              try { localStorage.setItem("smartcalc_wallpaper", this.wallpaperDataUrl); } catch (_) {}
+            }
+          };
+          reader.readAsDataURL(blob);
+        }
+      } catch (cacheErr) {
+        console.warn("wallpaper cache warn", cacheErr);
+      }
     } catch (err) {
       console.warn("cleanWallpaperAI", err);
       if (typeof showOverlay === "function") showOverlay("CLEAN ERROR", 1200);
-    }
-  },
-
-  loadImg(src) {
-    return new Promise((resolve, reject) => {
-      const im = new Image();
-      im.crossOrigin = "anonymous";
-      im.onload = () => resolve(im);
-      im.onerror = () => reject(new Error("img load failed"));
-      im.src = src;
-    });
-  },
-
-  /* Merge original + AI result: keep original pixels everywhere except where the AI
-     actually erased something (big pixel difference), with a soft feathered edge. */
-  async preserveComposite(origSrc, aiSrc) {
-    try {
-      const [orig, ai] = await Promise.all([this.loadImg(origSrc), this.loadImg(aiSrc)]);
-      const W = orig.naturalWidth, H = orig.naturalHeight;
-      if (!W || !H) return null;
-      // Wildly different shape = AI recomposed the image
-      const arO = W / H, arA = ai.naturalWidth / ai.naturalHeight;
-      if (Math.abs(arO - arA) / arO > 0.04) return { dataUrl: null, changedFrac: 1 };
-
-      const cv = document.createElement("canvas");
-      cv.width = W; cv.height = H;
-      const ctx = cv.getContext("2d", { willReadFrequently: true });
-      ctx.drawImage(orig, 0, 0, W, H);
-      const o = ctx.getImageData(0, 0, W, H);
-      ctx.clearRect(0, 0, W, H);
-      ctx.drawImage(ai, 0, 0, W, H);
-      const a = ctx.getImageData(0, 0, W, H);
-      const od = o.data, ad = a.data, N = W * H;
-
-      // 1) Raw change mask
-      const THRESH = 38;
-      const m = new Uint8Array(N);
-      let changed = 0;
-      for (let i = 0, p = 0; i < N; i++, p += 4) {
-        const d = Math.max(Math.abs(od[p] - ad[p]), Math.abs(od[p+1] - ad[p+1]), Math.abs(od[p+2] - ad[p+2]));
-        if (d > THRESH) { m[i] = 1; changed++; }
-      }
-      const changedFrac = changed / N;
-      if (changedFrac > 0.35) return { dataUrl: null, changedFrac };
-
-      // 2) Dilate (grow) mask so glyph edges / anti-aliasing get fully covered
-      const r = Math.max(2, Math.round(Math.min(W, H) / 160));
-      const boxSum = (src, out, isFloat) => {
-        const tmp = new Float32Array(N);
-        for (let y = 0; y < H; y++) {           // horizontal
-          let s = 0; const row = y * W;
-          for (let x = -r; x < W; x++) {
-            const add = x + r < W ? src[row + x + r] : 0;
-            const sub = x - r - 1 >= 0 ? src[row + x - r - 1] : 0;
-            s += add - sub;
-            if (x >= 0) tmp[row + x] = s;
-          }
-        }
-        for (let x = 0; x < W; x++) {           // vertical
-          let s = 0;
-          for (let y = -r; y < H; y++) {
-            const add = y + r < H ? tmp[(y + r) * W + x] : 0;
-            const sub = y - r - 1 >= 0 ? tmp[(y - r - 1) * W + x] : 0;
-            s += add - sub;
-            if (y >= 0) out[y * W + x] = isFloat ? s / ((2*r+1)*(2*r+1)) : (s > 0 ? 1 : 0);
-          }
-        }
-      };
-      const dil = new Uint8Array(N);
-      boxSum(m, dil, false);
-      // 3) Feather edge
-      const alpha = new Float32Array(N);
-      boxSum(dil, alpha, true);
-
-      // 4) Blend: original everywhere, AI only inside the (feathered) erased areas
-      for (let i = 0, p = 0; i < N; i++, p += 4) {
-        const t = alpha[i];
-        if (t <= 0) continue;
-        od[p]   = od[p]   + (ad[p]   - od[p])   * t;
-        od[p+1] = od[p+1] + (ad[p+1] - od[p+1]) * t;
-        od[p+2] = od[p+2] + (ad[p+2] - od[p+2]) * t;
-      }
-      ctx.putImageData(o, 0, 0);
-      return { dataUrl: cv.toDataURL("image/jpeg", 0.95), changedFrac };
-    } catch (e) {
-      console.warn("preserveComposite", e);
-      return null;
     }
   }
 };
