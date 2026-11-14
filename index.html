@@ -815,12 +815,13 @@
     display:grid;grid-template-columns:repeat(3, clamp(74px, 19.5vw, 82px));gap:clamp(14px, 2vh, 18px) clamp(22px, 6vw, 28px);
     justify-content:center;margin:0;
   }
-  /* Liquid Glass Passcode Key */
+  /* Clean, Ultra-Smooth iOS Frosted Glass Passcode Key (120 FPS Native GPU Composited) */
   .lockscreen-key{
     position:relative;
     width:clamp(74px, 19.5vw, 82px);
     height:clamp(74px, 19.5vw, 82px);
     border-radius:50%;
+    border:1px solid rgba(255, 255, 255, 0.22);
     cursor:pointer;
     color:#fff;
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif;
@@ -834,68 +835,23 @@
     box-sizing:border-box;
     padding:0;
     line-height:1;
-    background:transparent;
-    border:none;
-    outline:none;
-    transition:transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
-  }
 
-  /* Optical Glass Lens Container (Circular clipping boundary) */
-  .key-lens{
-    position:absolute;
-    inset:0;
-    border-radius:50%;
-    overflow:hidden;
-    pointer-events:none;
-    border:1px solid rgba(255, 255, 255, 0.22);
+    /* Ultra-light, GPU-accelerated frosted glass */
+    background:rgba(255, 255, 255, 0.16);
+    backdrop-filter:blur(20px) saturate(180%);
+    -webkit-backdrop-filter:blur(20px) saturate(180%);
+
     box-shadow:
-      0 10px 24px rgba(0, 0, 0, 0.28),
-      inset 0 1.5px 2px rgba(255, 255, 255, 0.72),
-      inset 0 -2px 3px rgba(255, 255, 255, 0.25),
-      inset 0 0 14px rgba(255, 255, 255, 0.14);
-    transition:box-shadow 0.22s ease-out;
+      0 8px 20px rgba(0, 0, 0, 0.25),
+      inset 0 1.5px 2px rgba(255, 255, 255, 0.65),
+      inset 0 -1.5px 2px rgba(255, 255, 255, 0.20);
+
+    transition:transform 0.16s cubic-bezier(0.22, 1, 0.36, 1),
+               background 0.20s ease-out;
   }
 
-  /* Physical Optical Refraction: Background wallpaper aligned and warped by SVG displacement */
-  .key-lens-img{
-    position:absolute;
-    left:calc(-1 * var(--kx, 0px));
-    top:calc(-1 * var(--ky, 0px));
-    width:100vw;
-    height:100vh;
-    background-size:cover;
-    background-position:center;
-    background-repeat:no-repeat;
-    filter:url(#liquid-refraction);
-    -webkit-filter:url(#liquid-refraction);
-    transform-origin:calc(var(--kx, 0px) + 40px) calc(var(--ky, 0px) + 40px);
-    transform:scale(1.08); /* convex lens optical magnification */
-    opacity:0;
-    pointer-events:none;
-    transition:opacity 0.25s ease;
-  }
-  .lockscreen.has-wallpaper .key-lens-img{
-    opacity:1;
-  }
-
-  /* Frosted Glass Substrate with Backdrop Blur + Meniscus */
-  .key-lens-glass{
-    position:absolute;
-    inset:0;
-    border-radius:50%;
-    backdrop-filter:blur(12px) saturate(180%);
-    -webkit-backdrop-filter:blur(12px) saturate(180%);
-    background:linear-gradient(
-      145deg,
-      rgba(255, 255, 255, 0.22) 0%,
-      rgba(255, 255, 255, 0.04) 50%,
-      rgba(255, 255, 255, 0.14) 100%
-    );
-    transition:background 0.22s ease-out;
-  }
-
-  /* Glossy Curvature Specular Sheen (Curved meniscus reflection) */
-  .key-lens-glass::before{
+  /* Authentic iOS Specular Meniscus Highlight */
+  .lockscreen-key::before{
     content:"";
     position:absolute;
     top:1.5px;
@@ -903,38 +859,27 @@
     right:10%;
     height:42%;
     border-radius:999px 999px 65% 65%;
-    background:linear-gradient(180deg, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0) 100%);
+    background:linear-gradient(180deg, rgba(255, 255, 255, 0.40) 0%, rgba(255, 255, 255, 0) 100%);
     pointer-events:none;
-    opacity:0.85;
-    transition:opacity 0.18s ease;
+    opacity:0.80;
+    transition:opacity 0.16s ease;
   }
 
-  /* Active / Pressed State: Instant Bright Illumination & Tactile Compression */
+  /* Instant, Lag-Free Touch Illumination */
   .lockscreen-key:active,
   .lockscreen-key.is-pressed,
   .lockscreen-key.pressed{
     transform:scale(0.94) !important;
-    transition:transform 0s !important;
-  }
-  .lockscreen-key:active .key-lens-glass,
-  .lockscreen-key.is-pressed .key-lens-glass,
-  .lockscreen-key.pressed .key-lens-glass{
-    background:rgba(255, 255, 255, 0.52) !important;
-    transition:background 0s !important;
-  }
-  .lockscreen-key:active .key-lens,
-  .lockscreen-key.is-pressed .key-lens,
-  .lockscreen-key.pressed .key-lens{
+    background:rgba(255, 255, 255, 0.50) !important;
     box-shadow:
-      0 4px 14px rgba(0, 0, 0, 0.22),
-      inset 0 1.5px 2px rgba(255, 255, 255, 0.90),
-      inset 0 0 20px rgba(255, 255, 255, 0.45) !important;
-    transition:box-shadow 0s !important;
+      0 4px 12px rgba(0, 0, 0, 0.20),
+      inset 0 1.5px 2px rgba(255, 255, 255, 0.85) !important;
+    transition:transform 0s !important, background 0s !important;
   }
-  .lockscreen-key:active .key-lens-glass::before,
-  .lockscreen-key.is-pressed .key-lens-glass::before,
-  .lockscreen-key.pressed .key-lens-glass::before{
-    opacity:0.35;
+  .lockscreen-key:active::before,
+  .lockscreen-key.is-pressed::before,
+  .lockscreen-key.pressed::before{
+    opacity:0.30;
   }
 
   .lockscreen-key .digit{
@@ -1064,17 +1009,6 @@
 </style>
 </head>
 <body>
-<!-- Global SVG Optical Distortion Filter for Liquid Glass Keys -->
-<svg width="0" height="0" style="position:absolute;width:0;height:0;pointer-events:none;overflow:hidden;" aria-hidden="true">
-  <defs>
-    <filter id="liquid-refraction" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
-      <feTurbulence type="fractalNoise" baseFrequency="0.022" numOctaves="3" seed="16" result="noise"/>
-      <feGaussianBlur in="noise" stdDeviation="3.2" result="smoothNoise"/>
-      <feDisplacementMap in="SourceGraphic" in2="smoothNoise" scale="28" xChannelSelector="R" yChannelSelector="G" result="displaced"/>
-      <feComposite in="displaced" in2="SourceGraphic" operator="atop"/>
-    </filter>
-  </defs>
-</svg>
 <div class="app">
   <div class="topbar">
     <div>
@@ -6518,14 +6452,13 @@ var LockScreen = window.LockScreen = {
       b.className = "lockscreen-key" + (n === "" ? " empty" : "") + (n === "0" ? " key-0" : "");
       if (n !== "") {
         b.dataset.n = n;
-        const letterHtml = (n === "0") ? "" : ((n === "1") ? `<span class="letters empty">&nbsp;</span>` : `<span class="letters">${letters}</span>`);
-        b.innerHTML = `
-          <div class="key-lens">
-            <div class="key-lens-img"></div>
-            <div class="key-lens-glass"></div>
-          </div>
-          <span class="digit">${n}</span>
-          ${letterHtml}`;
+        if (n === "0") {
+          b.innerHTML = `<span class="digit">0</span>`;
+        } else if (n === "1") {
+          b.innerHTML = `<span class="digit">1</span><span class="letters empty">&nbsp;</span>`;
+        } else {
+          b.innerHTML = `<span class="digit">${n}</span><span class="letters">${letters}</span>`;
+        }
         b.addEventListener("pointerdown", (e) => {
           e.preventDefault();
           b._pressStart = Date.now();
@@ -6921,7 +6854,6 @@ var LockScreen = window.LockScreen = {
     } else if (bg) {
       bg.style.backgroundImage = "";
     }
-    this.syncKeyLens();
     el.classList.remove("unlocking", "open");
     void el.offsetWidth; // restart lockIn
     el.classList.add("open");
@@ -7244,7 +7176,6 @@ var LockScreen = window.LockScreen = {
       el.style.setProperty("--lock-blur", blurPx + "px");
     }
     this.updateStatusBarColor(dataUrl);
-    this.syncKeyLens();
     this.updateHudWallpaperUI();
   },
 
@@ -7325,7 +7256,6 @@ var LockScreen = window.LockScreen = {
       CFG.lockBlur = 0;
       if (raw) this.setWallpaper(raw, false);
     }
-    this.syncKeyLens();
     this.updateHudWallpaperUI();
     if (typeof AuraLink !== "undefined" && AuraLink.connected) {
       try { AuraLink.send({ t: "wall_mode", mode: mode }); } catch (_) {}
@@ -7353,26 +7283,6 @@ var LockScreen = window.LockScreen = {
         btn.style.color = "#0a84ff";
       }
     }
-  },
-
-  syncKeyLens() {
-    const bgData = this.wallpaperDataUrl;
-    requestAnimationFrame(() => {
-      document.querySelectorAll(".lockscreen-key").forEach(btn => {
-        if (btn.classList.contains("empty")) return;
-        const rect = btn.getBoundingClientRect();
-        btn.style.setProperty("--kx", Math.round(rect.left) + "px");
-        btn.style.setProperty("--ky", Math.round(rect.top) + "px");
-        const imgEl = btn.querySelector(".key-lens-img");
-        if (imgEl) {
-          if (bgData) {
-            imgEl.style.backgroundImage = `url("${bgData}")`;
-          } else {
-            imgEl.style.backgroundImage = "";
-          }
-        }
-      });
-    });
   }
 };
 
