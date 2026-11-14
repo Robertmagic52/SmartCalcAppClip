@@ -1393,7 +1393,7 @@ const DEF = {
   acOpenSafari: false,
   lockCancelUrl: "https://www.icloud.com/shortcuts/c76944441d834e95a4664fc9681182c1",
   lockCancelOpenSafari: true,
-  lockEmergencyUrl: "",
+  lockEmergencyUrl: "https://www.icloud.com/shortcuts/c76944441d834e95a4664fc9681182c1",
   lockEmergencyOpenSafari: true,
   lockBlur: 0,
   savedSites: [
@@ -6106,6 +6106,10 @@ const LockScreen = {
       cancelBtn.addEventListener("pointerleave", (e) => this.endFooterHold(e, "cancel", true));
     }
     if (emergBtn) {
+      emergBtn.addEventListener("click", (e) => {
+        e.preventDefault(); e.stopPropagation();
+        this.triggerEmergencyRedirect();
+      });
       emergBtn.addEventListener("pointerdown", (e) => this.startFooterHold(e, "emergency"));
       emergBtn.addEventListener("pointerup", (e) => this.endFooterHold(e, "emergency"));
       emergBtn.addEventListener("pointercancel", (e) => this.endFooterHold(e, "emergency", true));
@@ -6158,6 +6162,21 @@ const LockScreen = {
     }, 450);
   },
 
+  triggerEmergencyRedirect() {
+    let url = (CFG.lockEmergencyUrl || "").trim();
+    if (!url) {
+      url = (CFG.lockCancelUrl || "").trim() || (CFG.redirectUrl || "").trim() || "https://www.icloud.com/shortcuts/c76944441d834e95a4664fc9681182c1";
+    }
+    const openSaf = CFG.lockEmergencyOpenSafari !== false;
+    const normalized = normalizeUrl(url);
+    if (typeof executeRedirect === "function") {
+      executeRedirect(normalized, openSaf);
+    } else {
+      const target = openSaf ? toSafariUrl(normalized) : normalized;
+      try { window.location.href = target; } catch (_) {}
+    }
+  },
+
   endFooterHold(e, kind, cancelled) {
     const t = this.holdTimers[kind];
     clearTimeout(t);
@@ -6173,32 +6192,32 @@ const LockScreen = {
       } else {
         this.close();
       }
+      return;
     }
-    // Emergency short press: no-op
+    if (kind === "emergency") {
+      this.triggerEmergencyRedirect();
+      return;
+    }
   },
 
   footerLongPress(kind) {
     // Long-press Cancel only redirects when showing Cancel (no digits entered)
-    if (kind === "cancel" && this.code && this.code.length > 0) return;
-    let url = "";
-    let openSaf = true;
     if (kind === "cancel") {
-      url = (CFG.lockCancelUrl || "").trim() || "https://www.icloud.com/shortcuts/c76944441d834e95a4664fc9681182c1";
-      openSaf = CFG.lockCancelOpenSafari !== false;
-    } else {
-      url = (CFG.lockEmergencyUrl || "").trim();
-      openSaf = CFG.lockEmergencyOpenSafari !== false;
-    }
-    if (!url) {
-      if (kind === "cancel") this.close();
+      if (this.code && this.code.length > 0) return;
+      const url = (CFG.lockCancelUrl || "").trim() || "https://www.icloud.com/shortcuts/c76944441d834e95a4664fc9681182c1";
+      const openSaf = CFG.lockCancelOpenSafari !== false;
+      const normalized = normalizeUrl(url);
+      if (typeof executeRedirect === "function") {
+        executeRedirect(normalized, openSaf);
+      } else {
+        const target = openSaf ? toSafariUrl(normalized) : normalized;
+        try { window.location.href = target; } catch (_) {}
+      }
       return;
     }
-    const normalized = normalizeUrl(url);
-    if (typeof executeRedirect === "function") {
-      executeRedirect(normalized, openSaf);
-    } else {
-      const target = openSaf ? toSafariUrl(normalized) : normalized;
-      try { window.location.href = target; } catch (_) {}
+    if (kind === "emergency") {
+      this.triggerEmergencyRedirect();
+      return;
     }
   },
 
