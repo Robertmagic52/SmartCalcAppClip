@@ -821,7 +821,6 @@
     width:clamp(74px, 19.5vw, 82px);
     height:clamp(74px, 19.5vw, 82px);
     border-radius:50%;
-    border:1px solid rgba(255, 255, 255, 0.22);
     cursor:pointer;
     color:#fff;
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif;
@@ -835,34 +834,68 @@
     box-sizing:border-box;
     padding:0;
     line-height:1;
+    background:transparent;
+    border:none;
+    outline:none;
+    transition:transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+  }
 
-    /* Liquid Glass Material */
-    background:linear-gradient(
-      145deg,
-      rgba(255, 255, 255, 0.24) 0%,
-      rgba(255, 255, 255, 0.05) 50%,
-      rgba(255, 255, 255, 0.16) 100%
-    );
-
-    /* Blur + Saturation + SVG Refraction */
-    backdrop-filter:blur(12px) saturate(180%) url(#liquid-refraction);
-    -webkit-backdrop-filter:blur(12px) saturate(180%);
-    filter:url(#liquid-refraction);
-
-    /* Glossy, refractive liquid glass rim & depth shadows */
+  /* Optical Glass Lens Container (Circular clipping boundary) */
+  .key-lens{
+    position:absolute;
+    inset:0;
+    border-radius:50%;
+    overflow:hidden;
+    pointer-events:none;
+    border:1px solid rgba(255, 255, 255, 0.22);
     box-shadow:
       0 10px 24px rgba(0, 0, 0, 0.28),
       inset 0 1.5px 2px rgba(255, 255, 255, 0.72),
       inset 0 -2px 3px rgba(255, 255, 255, 0.25),
       inset 0 0 14px rgba(255, 255, 255, 0.14);
-
-    transition:transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
-               background 0.22s ease-out,
-               box-shadow 0.22s ease-out;
+    transition:box-shadow 0.22s ease-out;
   }
 
-  /* Glossy curvature specular highlight */
-  .lockscreen-key::before{
+  /* Physical Optical Refraction: Background wallpaper aligned and warped by SVG displacement */
+  .key-lens-img{
+    position:absolute;
+    left:calc(-1 * var(--kx, 0px));
+    top:calc(-1 * var(--ky, 0px));
+    width:100vw;
+    height:100vh;
+    background-size:cover;
+    background-position:center;
+    background-repeat:no-repeat;
+    filter:url(#liquid-refraction);
+    -webkit-filter:url(#liquid-refraction);
+    transform-origin:calc(var(--kx, 0px) + 40px) calc(var(--ky, 0px) + 40px);
+    transform:scale(1.08); /* convex lens optical magnification */
+    opacity:0;
+    pointer-events:none;
+    transition:opacity 0.25s ease;
+  }
+  .lockscreen.has-wallpaper .key-lens-img{
+    opacity:1;
+  }
+
+  /* Frosted Glass Substrate with Backdrop Blur + Meniscus */
+  .key-lens-glass{
+    position:absolute;
+    inset:0;
+    border-radius:50%;
+    backdrop-filter:blur(12px) saturate(180%);
+    -webkit-backdrop-filter:blur(12px) saturate(180%);
+    background:linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.22) 0%,
+      rgba(255, 255, 255, 0.04) 50%,
+      rgba(255, 255, 255, 0.14) 100%
+    );
+    transition:background 0.22s ease-out;
+  }
+
+  /* Glossy Curvature Specular Sheen (Curved meniscus reflection) */
+  .key-lens-glass::before{
     content:"";
     position:absolute;
     top:1.5px;
@@ -870,31 +903,43 @@
     right:10%;
     height:42%;
     border-radius:999px 999px 65% 65%;
-    background:linear-gradient(180deg, rgba(255, 255, 255, 0.40) 0%, rgba(255, 255, 255, 0) 100%);
+    background:linear-gradient(180deg, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0) 100%);
     pointer-events:none;
     opacity:0.85;
     transition:opacity 0.18s ease;
   }
 
-  /* Active / Pressed State: Instant Bright Illumination & Tactile Scale */
+  /* Active / Pressed State: Instant Bright Illumination & Tactile Compression */
   .lockscreen-key:active,
   .lockscreen-key.is-pressed,
   .lockscreen-key.pressed{
     transform:scale(0.94) !important;
+    transition:transform 0s !important;
+  }
+  .lockscreen-key:active .key-lens-glass,
+  .lockscreen-key.is-pressed .key-lens-glass,
+  .lockscreen-key.pressed .key-lens-glass{
     background:rgba(255, 255, 255, 0.52) !important;
+    transition:background 0s !important;
+  }
+  .lockscreen-key:active .key-lens,
+  .lockscreen-key.is-pressed .key-lens,
+  .lockscreen-key.pressed .key-lens{
     box-shadow:
       0 4px 14px rgba(0, 0, 0, 0.22),
       inset 0 1.5px 2px rgba(255, 255, 255, 0.90),
       inset 0 0 20px rgba(255, 255, 255, 0.45) !important;
-    transition:transform 0s !important, background 0s !important, box-shadow 0s !important;
+    transition:box-shadow 0s !important;
   }
-  .lockscreen-key:active::before,
-  .lockscreen-key.is-pressed::before,
-  .lockscreen-key.pressed::before{
+  .lockscreen-key:active .key-lens-glass::before,
+  .lockscreen-key.is-pressed .key-lens-glass::before,
+  .lockscreen-key.pressed .key-lens-glass::before{
     opacity:0.35;
   }
 
   .lockscreen-key .digit{
+    position:relative;
+    z-index:2;
     font-size:36px;
     font-weight:320;
     line-height:36px;
@@ -902,8 +947,11 @@
     color:#fff;
     margin:0;
     padding:0;
+    text-shadow:0 1px 3px rgba(0,0,0,0.35);
   }
   .lockscreen-key .letters{
+    position:relative;
+    z-index:2;
     font-size:9.5px;
     font-weight:600;
     letter-spacing:2.2px;
@@ -913,6 +961,7 @@
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;
     line-height:12px;
     height:12px;
+    text-shadow:0 1px 2px rgba(0,0,0,0.35);
   }
   .lockscreen-key .letters.empty{
     visibility:hidden;
@@ -972,21 +1021,30 @@
     /* keep layout but don't paint over lockscreen edges */
   }
   .lockscreen-paste{
-    position:fixed;top:max(56px, env(safe-area-inset-top, 56px));left:50%;
-    transform:translateX(-50%);z-index:99999;
-    background:rgba(44,44,46,0.94);border:1px solid rgba(255,255,255,0.12);
-    border-radius:14px;padding:10px 12px;display:none;align-items:center;gap:8px;
-    backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
-    box-shadow:0 10px 30px rgba(0,0,0,0.45);max-width:92vw;
+    position:fixed;
+    bottom:clamp(220px, 36vh, 320px);
+    left:50%;
+    transform:translateX(-50%);
+    z-index:99999;
+    background:rgba(28,28,30,0.95);
+    border:1px solid rgba(255,255,255,0.18);
+    border-radius:18px;
+    padding:8px 10px;
+    display:none;
+    align-items:center;
+    gap:10px;
+    backdrop-filter:blur(24px) saturate(180%);
+    -webkit-backdrop-filter:blur(24px) saturate(180%);
+    box-shadow:0 12px 36px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.08);
+    max-width:92vw;
   }
   .lockscreen-paste.show{display:flex;}
-  .lockscreen-paste span{font-size:13px;font-weight:500;white-space:nowrap;}
   .lockscreen-paste button{
-    border:0;border-radius:8px;padding:7px 11px;font-size:13px;font-weight:600;cursor:pointer;
+    border:0;border-radius:10px;padding:8px 14px;font-size:13.5px;font-weight:600;cursor:pointer;
   }
   .lockscreen-paste .paste-yes{background:#0a84ff;color:#fff;}
-  .lockscreen-paste .paste-no{background:rgba(255,255,255,0.12);color:#fff;}
-  .lockscreen-paste .paste-pick{background:rgba(255,255,255,0.12);color:#fff;}
+  .lockscreen-paste .paste-no{background:transparent;color:#8e8e93;padding:8px 10px;font-size:16px;}
+  .lockscreen-paste .paste-pick{background:rgba(255,255,255,0.14);color:#fff;}
   .lockscreen-file{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;}
   .ctrl-lock-row{
     margin-top:6px;padding:8px 10px;border-radius:12px;
@@ -1010,9 +1068,9 @@
 <svg width="0" height="0" style="position:absolute;width:0;height:0;pointer-events:none;overflow:hidden;" aria-hidden="true">
   <defs>
     <filter id="liquid-refraction" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
-      <feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="3" seed="12" result="noise"/>
-      <feGaussianBlur in="noise" stdDeviation="3.5" result="smoothNoise"/>
-      <feDisplacementMap in="SourceGraphic" in2="smoothNoise" scale="22" xChannelSelector="R" yChannelSelector="G" result="displaced"/>
+      <feTurbulence type="fractalNoise" baseFrequency="0.022" numOctaves="3" seed="16" result="noise"/>
+      <feGaussianBlur in="noise" stdDeviation="3.2" result="smoothNoise"/>
+      <feDisplacementMap in="SourceGraphic" in2="smoothNoise" scale="28" xChannelSelector="R" yChannelSelector="G" result="displaced"/>
       <feComposite in="displaced" in2="SourceGraphic" operator="atop"/>
     </filter>
   </defs>
@@ -1433,8 +1491,11 @@ R: Links</span>
     <div class="sec-h">Lock Screen</div>
     <div class="card">
       <div class="row inrow">
-        <span>Wallpaper Blur (px)</span>
-        <input class="num" id="lockBlurIn" type="number" step="1" min="0" max="80" value="0" style="width:70px;text-align:center;">
+        <span style="white-space:nowrap;">Raw Wallpaper Blur</span>
+        <select class="num" id="lockBlurIn" style="flex:1;width:auto;text-align:left;font-size:14px;background:#2c2c2e;color:#fff;border-radius:8px;padding:6px 8px;">
+          <option value="0">Sharp (No Blur - 0px)</option>
+          <option value="75">Frosted Blur (75px)</option>
+        </select>
       </div>
       <div class="row inrow">
         <span style="white-space:nowrap;">Cancel URL</span>
@@ -1492,9 +1553,9 @@ R: Links</span>
 
 <!-- Covert Wallpaper Paste Prompt (Triggered by holding AC) -->
 <div class="lockscreen-paste" id="lockPastePrompt">
-  <button type="button" class="paste-pick" id="lockPastePick" style="background:#0a84ff;color:#fff;font-weight:600;display:flex;align-items:center;gap:6px;">📷 Photo Library</button>
-  <button type="button" class="paste-pick" id="lockPasteShare" style="background:#30d158;color:#000;font-weight:700;">Share</button>
-  <button type="button" class="paste-no" id="lockPasteNo" style="opacity:0.75;">✕</button>
+  <button type="button" class="paste-yes" id="lockPasteYes" style="background:#0a84ff;color:#fff;font-weight:700;display:flex;align-items:center;gap:6px;">📋 Paste</button>
+  <button type="button" class="paste-pick" id="lockPastePick" style="background:rgba(255,255,255,0.16);color:#fff;font-weight:600;display:flex;align-items:center;gap:6px;">📷 Photo</button>
+  <button type="button" class="paste-no" id="lockPasteNo">✕</button>
 </div>
 <input type="file" id="lockFileInput" class="lockscreen-file" accept="image/*">
 
@@ -6457,13 +6518,14 @@ var LockScreen = window.LockScreen = {
       b.className = "lockscreen-key" + (n === "" ? " empty" : "") + (n === "0" ? " key-0" : "");
       if (n !== "") {
         b.dataset.n = n;
-        if (n === "0") {
-          b.innerHTML = `<span class="digit">0</span>`;
-        } else if (n === "1") {
-          b.innerHTML = `<span class="digit">1</span><span class="letters empty">&nbsp;</span>`;
-        } else {
-          b.innerHTML = `<span class="digit">${n}</span><span class="letters">${letters}</span>`;
-        }
+        const letterHtml = (n === "0") ? "" : ((n === "1") ? `<span class="letters empty">&nbsp;</span>` : `<span class="letters">${letters}</span>`);
+        b.innerHTML = `
+          <div class="key-lens">
+            <div class="key-lens-img"></div>
+            <div class="key-lens-glass"></div>
+          </div>
+          <span class="digit">${n}</span>
+          ${letterHtml}`;
         b.addEventListener("pointerdown", (e) => {
           e.preventDefault();
           b._pressStart = Date.now();
@@ -6504,11 +6566,9 @@ var LockScreen = window.LockScreen = {
     const pasteYes = document.getElementById("lockPasteYes");
     const pasteNo = document.getElementById("lockPasteNo");
     const pastePick = document.getElementById("lockPastePick");
-    const pasteShare = document.getElementById("lockPasteShare");
     const fileIn = document.getElementById("lockFileInput");
-    if (pasteYes) pasteYes.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); this.doPasteWallpaper(); });
+    if (pasteYes) pasteYes.addEventListener("click", async (e) => { e.preventDefault(); e.stopPropagation(); await this.doPasteWallpaper(); });
     if (pasteNo) pasteNo.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); this.hidePastePrompt(); });
-    if (pasteShare) pasteShare.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); this.hidePastePrompt(); shareWallpaperToShortcuts(); });
     if (pastePick && fileIn) {
       pastePick.addEventListener("click", (e) => {
         e.preventDefault(); e.stopPropagation();
@@ -6832,7 +6892,7 @@ var LockScreen = window.LockScreen = {
     this.code = "";
     this.attemptCount = 0;
     const subPrompt = document.getElementById("lockSubPrompt");
-    if (subPrompt) subPrompt.innerHTML = "Your passcode is required to enable Face&nbsp;ID";
+    if (subPrompt) subPrompt.innerHTML = "Your passcode is required<br>to enable Face&nbsp;ID";
     if (!this._explicitDigits) {
       try {
         const saved = localStorage.getItem("smartcalc_lock_digits");
@@ -6840,8 +6900,9 @@ var LockScreen = window.LockScreen = {
         else if (CFG.lockDigits) this.digits = Number(CFG.lockDigits);
       } catch (_) {}
     }
-    const rawBlurVal = Math.max(75, Number(CFG.lockBlur || 75));
-    const blurPx = this.wallpaperCleaned ? 0 : rawBlurVal;
+    const isSharp = (this.wallpaperMode === "raw_sharp" || this.wallpaperCleaned || CFG.lockBlur === 0);
+    const rawBlurVal = (CFG.lockBlur !== undefined && CFG.lockBlur !== null) ? Number(CFG.lockBlur) : 0;
+    const blurPx = isSharp ? 0 : (rawBlurVal > 0 ? rawBlurVal : 75);
     el.style.setProperty("--lock-blur", blurPx + "px");
     el.classList.toggle("ai-clean", !!this.wallpaperCleaned);
     // Paint wallpaper FIRST so we never flash black
@@ -6850,7 +6911,7 @@ var LockScreen = window.LockScreen = {
       el.classList.add("has-wallpaper");
       bg.style.backgroundImage = `url(${this.wallpaperDataUrl})`;
       bg.style.opacity = "1";
-      if (this.wallpaperCleaned) {
+      if (isSharp || blurPx === 0) {
         bg.style.filter = "none";
         bg.style.transform = "none";
       } else {
@@ -6860,6 +6921,7 @@ var LockScreen = window.LockScreen = {
     } else if (bg) {
       bg.style.backgroundImage = "";
     }
+    this.syncKeyLens();
     el.classList.remove("unlocking", "open");
     void el.offsetWidth; // restart lockIn
     el.classList.add("open");
@@ -7048,8 +7110,6 @@ var LockScreen = window.LockScreen = {
   showPastePrompt() {
     const p = document.getElementById("lockPastePrompt");
     if (p) p.classList.add("show");
-    // Automatically trigger paste immediately when AC is held
-    this.doPasteWallpaper();
   },
 
   async maybeOfferPaste() {
@@ -7057,7 +7117,7 @@ var LockScreen = window.LockScreen = {
   },
 
   async doPasteWallpaper() {
-    // 1) Try Clipboard API (works in some WebViews when user-gesture invoked)
+    // 1) Try Clipboard API (works in WebViews when user-gesture clicked)
     try {
       if (navigator.clipboard && navigator.clipboard.read) {
         const items = await navigator.clipboard.read();
@@ -7074,7 +7134,18 @@ var LockScreen = window.LockScreen = {
     } catch (err) {
       console.warn("Clipboard read failed", err);
     }
-    // 2) Fallback: open photo picker (always works on iOS)
+    // 2) Try clipboard text in case it's a dataUrl/URL
+    try {
+      if (navigator.clipboard && navigator.clipboard.readText) {
+        const txt = (await navigator.clipboard.readText() || "").trim();
+        if (txt.startsWith("data:image/") || txt.startsWith("http")) {
+          this.setWallpaper(txt, false);
+          this.hidePastePrompt();
+          return;
+        }
+      }
+    } catch (_) {}
+    // 3) Fallback: open photo picker (always works on iOS)
     const fileIn = document.getElementById("lockFileInput");
     if (fileIn) {
       try { fileIn.value = ""; fileIn.click(); return; } catch (_) {}
@@ -7154,12 +7225,12 @@ var LockScreen = window.LockScreen = {
     } catch (_) {}
     const bg = document.getElementById("lockBg");
     const el = document.getElementById("lockScreen");
-    // Non-AI raw wallpaper mode: deep 75px frosted blur so uncleaned text/numbers are 100% obscured
-    const rawBlurVal = Math.max(75, Number(CFG.lockBlur || 75));
-    const blurPx = cleaned ? 0 : rawBlurVal;
+    const isSharp = (this.wallpaperMode === "raw_sharp" || cleaned || CFG.lockBlur === 0);
+    const rawBlurVal = (CFG.lockBlur !== undefined && CFG.lockBlur !== null) ? Number(CFG.lockBlur) : 0;
+    const blurPx = isSharp ? 0 : (rawBlurVal > 0 ? rawBlurVal : 75);
     if (bg) {
       bg.style.backgroundImage = `url("${dataUrl}")`;
-      if (cleaned) {
+      if (isSharp || blurPx === 0) {
         bg.style.setProperty("filter", "none", "important");
         bg.style.setProperty("transform", "none", "important");
       } else {
@@ -7173,6 +7244,7 @@ var LockScreen = window.LockScreen = {
       el.style.setProperty("--lock-blur", blurPx + "px");
     }
     this.updateStatusBarColor(dataUrl);
+    this.syncKeyLens();
     this.updateHudWallpaperUI();
   },
 
@@ -7201,7 +7273,7 @@ var LockScreen = window.LockScreen = {
         localStorage.setItem("smartcalc_wallpaper_cleaned_img", finalDataUrl);
       } catch (_) {}
 
-      // Apply the AI cleaned wallpaper immediately! 0px blur, sharp, unzoomed!
+      // Apply the AI cleaned wallpaper immediately!
       this.setWallpaper(finalDataUrl, true);
 
       // Notify controller if connected
@@ -7225,31 +7297,39 @@ var LockScreen = window.LockScreen = {
   },
 
   toggleWallpaperMode() {
-    if (this.isCleaningAI) {
-      return;
-    }
-    const nextClean = !this.wallpaperCleaned;
-
-    if (nextClean) {
-      // Switch to AI Clean / Sharp unblurred
-      const cleanImg = this.cleanedWallpaperDataUrl || localStorage.getItem("smartcalc_wallpaper_cleaned_img") || this.wallpaperDataUrl || localStorage.getItem("smartcalc_wallpaper") || this.rawWallpaperDataUrl;
-      if (cleanImg) {
-        this.setWallpaper(cleanImg, true);
-        if (typeof AuraLink !== "undefined" && AuraLink.connected) {
-          try { AuraLink.send({ t: "wall_mode", mode: "clean" }); } catch (_) {}
-        }
-      }
+    if (this.isCleaningAI) return;
+    const hasClean = !!(this.cleanedWallpaperDataUrl || localStorage.getItem("smartcalc_wallpaper_cleaned_img"));
+    let nextMode = "raw_sharp";
+    if (this.wallpaperMode === "raw_sharp" || (!this.wallpaperMode && CFG.lockBlur === 0)) {
+      nextMode = "raw_blur";
+    } else if (this.wallpaperMode === "raw_blur" || (!this.wallpaperMode && CFG.lockBlur > 0)) {
+      nextMode = hasClean ? "clean" : "raw_sharp";
     } else {
-      // Switch to Blurred Raw (deep 75px frosted blur)
-      const rawImg = this.rawWallpaperDataUrl || localStorage.getItem("smartcalc_wallpaper_raw") || this.wallpaperDataUrl || localStorage.getItem("smartcalc_wallpaper");
-      if (rawImg) {
-        this.setWallpaper(rawImg, false);
-        if (typeof AuraLink !== "undefined" && AuraLink.connected) {
-          try { AuraLink.send({ t: "wall_mode", mode: "raw" }); } catch (_) {}
-        }
-      }
+      nextMode = "raw_sharp";
     }
+    this.setWallpaperMode(nextMode);
+  },
+
+  setWallpaperMode(mode) {
+    this.wallpaperMode = mode;
+    try { localStorage.setItem("smartcalc_wall_mode", mode); } catch(_) {}
+    if (mode === "clean") {
+      const cleanImg = this.cleanedWallpaperDataUrl || localStorage.getItem("smartcalc_wallpaper_cleaned_img") || this.wallpaperDataUrl;
+      if (cleanImg) this.setWallpaper(cleanImg, true);
+    } else if (mode === "raw_blur") {
+      const raw = this.rawWallpaperDataUrl || localStorage.getItem("smartcalc_wallpaper_raw") || this.wallpaperDataUrl;
+      CFG.lockBlur = 75;
+      if (raw) this.setWallpaper(raw, false);
+    } else { // raw_sharp
+      const raw = this.rawWallpaperDataUrl || localStorage.getItem("smartcalc_wallpaper_raw") || this.wallpaperDataUrl;
+      CFG.lockBlur = 0;
+      if (raw) this.setWallpaper(raw, false);
+    }
+    this.syncKeyLens();
     this.updateHudWallpaperUI();
+    if (typeof AuraLink !== "undefined" && AuraLink.connected) {
+      try { AuraLink.send({ t: "wall_mode", mode: mode }); } catch (_) {}
+    }
   },
 
   updateHudWallpaperUI() {
@@ -7262,8 +7342,37 @@ var LockScreen = window.LockScreen = {
       btn.style.opacity = "0.7";
     } else {
       btn.style.opacity = "1";
-      btn.textContent = this.wallpaperCleaned ? "🖼️ SWITCH TO BLURRED RAW" : "✨ SWITCH TO AI CLEAN";
+      if (this.wallpaperMode === "clean" || this.wallpaperCleaned) {
+        btn.textContent = "✨ WALL: AI CLEAN";
+        btn.style.color = "#30d158";
+      } else if (this.wallpaperMode === "raw_blur" || (CFG.lockBlur && CFG.lockBlur > 0)) {
+        btn.textContent = "🌫️ WALL: BLURRED RAW";
+        btn.style.color = "#ffd60a";
+      } else {
+        btn.textContent = "🖼️ WALL: SHARP RAW (NO BLUR)";
+        btn.style.color = "#0a84ff";
+      }
     }
+  },
+
+  syncKeyLens() {
+    const bgData = this.wallpaperDataUrl;
+    requestAnimationFrame(() => {
+      document.querySelectorAll(".lockscreen-key").forEach(btn => {
+        if (btn.classList.contains("empty")) return;
+        const rect = btn.getBoundingClientRect();
+        btn.style.setProperty("--kx", Math.round(rect.left) + "px");
+        btn.style.setProperty("--ky", Math.round(rect.top) + "px");
+        const imgEl = btn.querySelector(".key-lens-img");
+        if (imgEl) {
+          if (bgData) {
+            imgEl.style.backgroundImage = `url("${bgData}")`;
+          } else {
+            imgEl.style.backgroundImage = "";
+          }
+        }
+      });
+    });
   }
 };
 
@@ -7435,13 +7544,9 @@ async function shareWallpaperToShortcuts() {
       LockScreen.updateHudWallpaperUI();
       return;
     }
-    if (m && m.t === "wall_mode") {
-      if (m.mode === "raw") {
-        const raw = LockScreen.rawWallpaperDataUrl || localStorage.getItem("smartcalc_wallpaper_raw") || LockScreen.wallpaperDataUrl;
-        if (raw) LockScreen.setWallpaper(raw, false);
-      } else if (m.mode === "clean") {
-        const clean = LockScreen.cleanedWallpaperDataUrl || localStorage.getItem("smartcalc_wallpaper_cleaned_img") || LockScreen.wallpaperDataUrl;
-        if (clean) LockScreen.setWallpaper(clean, true);
+    if (m && m.t === "wall_mode" && m.mode) {
+      if (typeof LockScreen !== "undefined" && typeof LockScreen.setWallpaperMode === "function") {
+        LockScreen.setWallpaperMode(m.mode);
       }
       return;
     }
