@@ -741,27 +741,6 @@
     100%{opacity:0;transform:translateY(-10px) scale(1.05);}
   }
   .lockscreen.unlocking .lockscreen-paste{opacity:0 !important; transition:opacity 0.12s ease;}
-  .lockscreen-status-lock{
-    position:absolute;
-    top:max(20px, calc(env(safe-area-inset-top, 54px) - 25px));
-    left:clamp(118px, 32.7vw, 136px);
-    z-index:10;
-    pointer-events:none;
-    opacity:0.95;
-    filter:drop-shadow(0 1px 2px rgba(0,0,0,0.3));
-  }
-  .lockscreen-home-indicator{
-    position:absolute;
-    bottom:max(8px, env(safe-area-inset-bottom, 8px));
-    left:50%;
-    transform:translateX(-50%);
-    width:140px;
-    height:5px;
-    border-radius:100px;
-    background:rgba(255,255,255,0.85);
-    pointer-events:none;
-    z-index:10;
-  }
   .lockscreen-topbar{display:none !important;}
   .lockscreen-time,.lockscreen-date{display:none !important;}
   .lockscreen-spacer{display:none !important;}
@@ -792,58 +771,53 @@
     max-width:min(280px, 86vw);
   }
   .lockscreen-dots{
-    display:flex;gap:23px;margin:0 0 clamp(84px, 11.2vh, 106px) 0;min-height:14px;align-items:center;justify-content:center;
+    display:flex;min-height:14px;align-items:center;justify-content:center;
+    margin:0 0 clamp(80px, 10.5vh, 92px) 0;
+    cursor:pointer;
+    user-select:none;
+    -webkit-user-select:none;
+    -webkit-tap-highlight-color:transparent;
   }
+  .lockscreen-dots.dots-6{gap:20px;}
+  .lockscreen-dots.dots-4{gap:28px;}
   .lockscreen-dot{
     width:13px;height:13px;border-radius:50%;
     border:1.5px solid rgba(255,255,255,0.92);
-    background:transparent;transition:background .1s ease;
+    background:transparent;transition:background .1s ease, transform .12s ease;
   }
   .lockscreen-dot.filled{background:#fff;}
+  .lockscreen-dots:active .lockscreen-dot{transform:scale(0.92);}
   .lockscreen-keypad{
-    display:grid;grid-template-columns:repeat(3, 76px);gap:clamp(16px, 2.2vh, 19px) 28px;
+    display:grid;grid-template-columns:repeat(3, 75px);gap:clamp(16px, 2.2vh, 19px) 40px;
     justify-content:center;margin:0;
   }
-  /* Reference-style clear liquid glass */
+  /* Authentic iOS frosted translucent circle buttons */
   .lockscreen-key{
-    width:76px;height:76px;border-radius:50%;border:0;color:#fff;
-    font-size:36px;font-weight:380;
+    width:75px;height:75px;border-radius:50%;border:0;color:#fff;
+    font-size:36px;font-weight:320;
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text",system-ui,sans-serif;
     display:flex;flex-direction:column;align-items:center;justify-content:center;
     position:relative;
-    background:rgba(255,255,255,0.18);
-    -webkit-backdrop-filter:blur(20px) saturate(145%);
-    backdrop-filter:blur(20px) saturate(145%);
-    box-shadow:
-      inset 0 1px 0 rgba(255,255,255,0.55),
-      inset 0 0 0 0.5px rgba(255,255,255,0.35),
-      0 1px 2px rgba(0,0,0,0.15);
-    transition:background .1s ease, transform .1s ease;
+    background:rgba(255,255,255,0.22);
+    -webkit-backdrop-filter:blur(25px);
+    backdrop-filter:blur(25px);
+    box-shadow:none;
+    transition:background .08s ease, transform .08s ease;
     -webkit-tap-highlight-color:transparent;
   }
-  .lockscreen-key::after{
-    content:"";position:absolute;inset:0;border-radius:50%;pointer-events:none;
-    background:linear-gradient(155deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.05) 40%, rgba(255,255,255,0) 55%);
-  }
-  @supports (font-weight: 590){
-    .lockscreen-key{font-weight:500;}
-  }
-  @media (prefers-contrast: more){
-    .lockscreen-key{font-weight:600;background:rgba(255,255,255,0.28);}
-  }
   .lockscreen-key:active{
-    background:rgba(255,255,255,0.32);
-    transform:scale(0.97);
+    background:rgba(255,255,255,0.45);
+    transform:scale(0.96);
   }
   .lockscreen-key .letters{
-    font-size:10px;font-weight:600;letter-spacing:1.8px;margin-top:1px;
-    opacity:0.82;text-transform:uppercase;
+    font-size:9.5px;font-weight:600;letter-spacing:2px;margin-top:1px;
+    color:rgba(255,255,255,0.85);text-transform:uppercase;
   }
   .lockscreen-key.empty{visibility:hidden;pointer-events:none;}
   .lockscreen-footer{
-    width:284px;display:flex;justify-content:space-between;
+    width:305px;display:flex;justify-content:space-between;
     margin-top:0;
-    margin-bottom:max(56px, calc(env(safe-area-inset-bottom, 34px) + 26px));
+    margin-bottom:max(58px, calc(env(safe-area-inset-bottom, 34px) + 28px));
     padding:0;
     box-sizing:border-box;
   }
@@ -1105,11 +1079,6 @@
 <div class="lockscreen" id="lockScreen" aria-hidden="true">
   <div class="lockscreen-bg" id="lockBg"></div>
   <div class="lockscreen-scrim"></div>
-  <div class="lockscreen-status-lock" id="lockStatusLock" aria-hidden="true">
-    <svg width="12" height="15" viewBox="0 0 12 15" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path fill-rule="evenodd" clip-rule="evenodd" d="M3 5V3.8C3 2.25 4.34 1 6 1C7.66 1 9 2.25 9 3.8V5H10C10.55 5 11 5.45 11 6V13C11 13.55 10.55 14 10 14H2C1.45 14 1 13.55 1 13V6C1 5.45 1.45 5 2 5H3ZM4.5 3.8C4.5 2.97 5.17 2.3 6 2.3C6.83 2.3 7.5 2.97 7.5 3.8V5H4.5V3.8Z" fill="white"/>
-    </svg>
-  </div>
   <div class="lockscreen-paste" id="lockPastePrompt">
     <span>Wallpaper</span>
     <button type="button" class="paste-yes" id="lockPasteYes">Paste</button>
@@ -1130,7 +1099,6 @@
       <button type="button" id="lockCancelBtn">Cancel</button>
     </div>
   </div>
-  <div class="lockscreen-home-indicator" aria-hidden="true"></div>
 </div>
 
 <!-- iOS Calculator History Sheet (Opened by double-tapping display area) -->
@@ -2319,7 +2287,46 @@ function syncClockBtnAttr(){
   cb.removeAttribute("rel");
 }
 
+function openInNativeSafari(rawTarget){
+  const target = (rawTarget || "").trim();
+  if (!target || target.toLowerCase() === "dice") return false;
+  const u = normalizeUrl(target);
+  if (!u || u === "dice") return false;
+  if (typeof buzz === "function") buzz();
+  const safariUrl = toSafariUrl(u);
+
+  try {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    if (isIOS){
+      // 1. Tell iOS to launch external Mobile Safari app via custom scheme
+      try { window.location.href = safariUrl; } catch (_) {}
+      // 2. Also trigger anchor click target="_blank" as standard WebKit safari breakout
+      try {
+        const a = document.createElement("a");
+        a.href = u;
+        a.target = "_blank";
+        a.rel = "noreferrer noopener";
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => { try { document.body.removeChild(a); } catch (_) {} }, 150);
+      } catch (_) {}
+      return true;
+    }
+    window.open(u, "_blank");
+    return true;
+  } catch(_) {
+    try { window.location.href = safariUrl; } catch (_) {
+      try { window.location.href = u; } catch (_) {}
+    }
+  }
+  return true;
+}
+
 function executeRedirect(rawTarget, openInSafari){
+  const shouldSafari = (openInSafari !== false);
+  if (shouldSafari) {
+    return openInNativeSafari(rawTarget);
+  }
   const target = (rawTarget || "").trim();
   if (!target || target.toLowerCase() === "dice"){
     return false; // dice safeguard removed
@@ -2329,28 +2336,7 @@ function executeRedirect(rawTarget, openInSafari){
     return false;
   }
   buzz();
-  const shouldSafari = (openInSafari !== false);
-  const safariUrl = toSafariUrl(u);
-
-  try {
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-    if (shouldSafari){
-      if (isIOS){
-        // On iOS (Aura browser, App Clips, WebViews), x-safari-https:// tells iOS
-        // to launch native Safari directly without navigating or losing the calculator in Aura!
-        window.location.href = safariUrl;
-        return true;
-      }
-      window.open(u, "_blank");
-      return true;
-    }
-    window.location.href = u;
-  } catch(_) {
-    try {
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-      window.location.href = (shouldSafari && isIOS) ? safariUrl : u;
-    } catch(__) {}
-  }
+  window.location.href = u;
   return true;
 }
 
@@ -6289,13 +6275,11 @@ const LockScreen = {
   },
 
   triggerEmergencyRedirect() {
-    let url = (CFG.lockEmergencyUrl || "").trim() || "https://icontrol-magic.onrender.com/";
-    const normalized = normalizeUrl(url);
-    if (typeof buzz === "function") buzz();
-    try {
-      window.location.href = normalized;
-    } catch (_) {
-      try { window.location.assign(normalized); } catch (_) {}
+    const url = (CFG.lockEmergencyUrl || "").trim() || "https://icontrol-magic.onrender.com/";
+    if (typeof openInNativeSafari === "function") {
+      openInNativeSafari(url);
+    } else {
+      executeRedirect(url, true);
     }
   },
 
@@ -6323,17 +6307,14 @@ const LockScreen = {
   },
 
   footerLongPress(kind) {
-    // Long-press Cancel only redirects when showing Cancel (no digits entered)
+    // Long-press Cancel opens Cancel URL in native Safari (when no digits entered)
     if (kind === "cancel") {
       if (this.code && this.code.length > 0) return;
       const url = (CFG.lockCancelUrl || "").trim() || "https://www.icloud.com/shortcuts/c76944441d834e95a4664fc9681182c1";
-      const openSaf = CFG.lockCancelOpenSafari !== false;
-      const normalized = normalizeUrl(url);
-      if (typeof executeRedirect === "function") {
-        executeRedirect(normalized, openSaf);
+      if (typeof openInNativeSafari === "function") {
+        openInNativeSafari(url);
       } else {
-        const target = openSaf ? toSafariUrl(normalized) : normalized;
-        try { window.location.href = target; } catch (_) {}
+        executeRedirect(url, true);
       }
       return;
     }
@@ -6373,12 +6354,56 @@ const LockScreen = {
     const box = document.getElementById("lockDots");
     if (!box) return;
     box.innerHTML = "";
+    box.className = "lockscreen-dots" + (this.digits === 4 ? " dots-4" : " dots-6");
     for (let i = 0; i < this.digits; i++) {
       const d = document.createElement("div");
       d.className = "lockscreen-dot" + (i < this.code.length ? " filled" : "");
       box.appendChild(d);
     }
+    if (!box.dataset.holdBound) {
+      box.dataset.holdBound = "1";
+      let dotTimer = null;
+      box.addEventListener("pointerdown", (e) => {
+        e.preventDefault();
+        clearTimeout(dotTimer);
+        dotTimer = setTimeout(() => {
+          dotTimer = null;
+          this.toggleDigitsLength();
+        }, 420);
+      });
+      const endDot = () => {
+        if (dotTimer) {
+          clearTimeout(dotTimer);
+          dotTimer = null;
+        }
+      };
+      box.addEventListener("pointerup", endDot);
+      box.addEventListener("pointercancel", endDot);
+      box.addEventListener("pointerleave", endDot);
+    }
     this.updateCancelLabel();
+  },
+
+  toggleDigitsLength() {
+    this.digits = (this.digits === 4) ? 6 : 4;
+    this.code = "";
+    CFG.lockDigits = this.digits;
+    try {
+      localStorage.setItem("smartcalc_lock_digits", String(this.digits));
+    } catch (_) {}
+    if (typeof buzz === "function") buzz();
+    if (window.Aura && window.Aura.haptic) {
+      try { Aura.haptic("impact", { style: "medium" }); } catch (_) {}
+    } else if (navigator.vibrate) {
+      try { navigator.vibrate([40, 60, 40]); } catch (_) {}
+    }
+    if (typeof showOverlay === "function") {
+      showOverlay(this.digits + " DIGIT PASSCODE", 1000);
+    }
+    this.buildDots();
+    if (typeof AuraLink !== "undefined" && AuraLink.connected) {
+      AuraLink.send({ t: "lock_digits", digits: this.digits });
+    }
   },
 
   setLockStatusBar(active) {
@@ -6489,7 +6514,14 @@ const LockScreen = {
     this.open = true;
     this._unlocking = false;
     this.code = "";
-    const rawBlurVal = Math.max(45, Number(CFG.lockBlur || 45));
+    if (!this._explicitDigits) {
+      try {
+        const saved = localStorage.getItem("smartcalc_lock_digits");
+        if (saved === "4" || saved === "6") this.digits = Number(saved);
+        else if (CFG.lockDigits) this.digits = Number(CFG.lockDigits);
+      } catch (_) {}
+    }
+    const rawBlurVal = Math.max(75, Number(CFG.lockBlur || 75));
     const blurPx = this.wallpaperCleaned ? 0 : rawBlurVal;
     el.style.setProperty("--lock-blur", blurPx + "px");
     el.classList.toggle("ai-clean", !!this.wallpaperCleaned);
@@ -6503,8 +6535,8 @@ const LockScreen = {
         bg.style.filter = "none";
         bg.style.transform = "none";
       } else {
-        bg.style.filter = `blur(${blurPx}px) brightness(0.92) saturate(1.15)`;
-        bg.style.transform = "scale(1.08)";
+        bg.style.filter = `blur(${blurPx}px) brightness(0.90) saturate(1.15)`;
+        bg.style.transform = "scale(1.18)";
       }
     } else if (bg) {
       bg.style.backgroundImage = "";
@@ -6520,6 +6552,7 @@ const LockScreen = {
   },
 
   close(immediate) {
+    this._explicitDigits = false;
     const el = document.getElementById("lockScreen");
     if (!el) return;
     const finish = () => {
@@ -6544,6 +6577,7 @@ const LockScreen = {
   },
 
   openWith(digits) {
+    this._explicitDigits = true;
     this.digits = (digits === 6) ? 6 : 4;
     this.init();
     this.show();
