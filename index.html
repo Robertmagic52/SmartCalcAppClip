@@ -741,6 +741,34 @@
     100%{opacity:0;transform:translateY(-10px) scale(1.05);}
   }
   .lockscreen.unlocking .lockscreen-paste{opacity:0 !important; transition:opacity 0.12s ease;}
+  .lockscreen-island-lock{
+    position:absolute;
+    top:max(11px, calc(env(safe-area-inset-top, 54px) - 43px));
+    left:50%;
+    transform:translateX(-50%);
+    width:clamp(196px, 51vw, 218px);
+    height:clamp(42px, 5.6vh, 48px);
+    border-radius:999px;
+    background:#000;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 18px;
+    box-sizing:border-box;
+    z-index:90;
+    pointer-events:none;
+    box-shadow:0 0 0 0.5px rgba(255,255,255,0.08);
+  }
+  .island-lock-icon{
+    display:flex;align-items:center;justify-content:center;
+    width:20px;height:20px;
+    filter:drop-shadow(0 1px 2px rgba(0,0,0,0.4));
+  }
+  .island-faceid-icon{
+    display:flex;align-items:center;justify-content:center;
+    width:24px;height:24px;
+    filter:drop-shadow(0 1px 2px rgba(0,0,0,0.4));
+  }
   .lockscreen-topbar{display:none !important;}
   .lockscreen-time,.lockscreen-date{display:none !important;}
   .lockscreen-spacer{display:none !important;}
@@ -752,15 +780,16 @@
   .lockscreen-prompt-wrap{
     display:flex;flex-direction:column;align-items:center;
     gap:7px;
-    margin:0 0 26px 0;
+    margin:0 0 24px 0;
     padding:0 24px;
     text-align:center;
   }
   .lockscreen-prompt{
-    font-size:21px;font-weight:500;letter-spacing:-0.35px;
+    font-size:22px;font-weight:500;letter-spacing:-0.35px;
     margin:0;color:#fff;
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text",system-ui,sans-serif;
     text-shadow:0 1px 2px rgba(0,0,0,0.3);
+    cursor:pointer;
   }
   .lockscreen-subprompt{
     font-size:14px;font-weight:400;letter-spacing:-0.15px;
@@ -772,11 +801,13 @@
   }
   .lockscreen-dots{
     display:flex;min-height:14px;align-items:center;justify-content:center;
-    margin:0 0 clamp(80px, 10.5vh, 92px) 0;
+    margin:0 0 clamp(72px, 9.8vh, 88px) 0;
     cursor:pointer;
     user-select:none;
     -webkit-user-select:none;
     -webkit-tap-highlight-color:transparent;
+    touch-action:manipulation;
+    padding:8px 16px;
   }
   .lockscreen-dots.dots-6{gap:20px;}
   .lockscreen-dots.dots-4{gap:28px;}
@@ -788,36 +819,40 @@
   .lockscreen-dot.filled{background:#fff;}
   .lockscreen-dots:active .lockscreen-dot{transform:scale(0.92);}
   .lockscreen-keypad{
-    display:grid;grid-template-columns:repeat(3, 75px);gap:clamp(16px, 2.2vh, 19px) 40px;
+    display:grid;grid-template-columns:repeat(3, 75px);gap:clamp(15px, 2.1vh, 18px) 36px;
     justify-content:center;margin:0;
   }
-  /* Authentic iOS frosted translucent circle buttons */
+  /* Authentic iOS frosted translucent circle buttons with crisp rim */
   .lockscreen-key{
-    width:75px;height:75px;border-radius:50%;border:0;color:#fff;
-    font-size:36px;font-weight:320;
+    width:75px;height:75px;border-radius:50%;
+    border:1px solid rgba(255,255,255,0.45);
+    color:#fff;
+    font-size:36px;font-weight:400;
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text",system-ui,sans-serif;
     display:flex;flex-direction:column;align-items:center;justify-content:center;
     position:relative;
-    background:rgba(255,255,255,0.22);
-    -webkit-backdrop-filter:blur(25px);
-    backdrop-filter:blur(25px);
-    box-shadow:none;
-    transition:background .08s ease, transform .08s ease;
+    background:rgba(255,255,255,0.18);
+    -webkit-backdrop-filter:blur(22px) saturate(140%);
+    backdrop-filter:blur(22px) saturate(140%);
+    box-shadow:inset 0 1px 1px rgba(255,255,255,0.4);
+    transition:background .08s ease, transform .08s ease, border-color .08s ease;
     -webkit-tap-highlight-color:transparent;
+    box-sizing:border-box;
   }
   .lockscreen-key:active{
-    background:rgba(255,255,255,0.45);
+    background:rgba(255,255,255,0.48);
+    border-color:rgba(255,255,255,0.7);
     transform:scale(0.96);
   }
   .lockscreen-key .letters{
     font-size:9.5px;font-weight:600;letter-spacing:2px;margin-top:1px;
-    color:rgba(255,255,255,0.85);text-transform:uppercase;
+    color:rgba(255,255,255,0.88);text-transform:uppercase;
   }
   .lockscreen-key.empty{visibility:hidden;pointer-events:none;}
   .lockscreen-footer{
-    width:305px;display:flex;justify-content:space-between;
+    width:297px;display:flex;justify-content:space-between;
     margin-top:0;
-    margin-bottom:max(58px, calc(env(safe-area-inset-bottom, 34px) + 28px));
+    margin-bottom:max(56px, calc(env(safe-area-inset-bottom, 34px) + 26px));
     padding:0;
     box-sizing:border-box;
   }
@@ -1064,6 +1099,10 @@
         <button type="button" id="ctrlToggleWallBtn" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.22);color:#fff;font-size:11px;font-weight:700;cursor:pointer;padding:4px 10px;border-radius:6px;letter-spacing:0.02em;">🖼️ SWITCH TO BLURRED RAW</button>
       </div>
 
+      <div id="ctrlDigitsRow" style="display:flex;justify-content:center;gap:8px;margin-top:4px;">
+        <button type="button" id="ctrlToggleDigitsBtn" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.22);color:#fff;font-size:11px;font-weight:700;cursor:pointer;padding:4px 10px;border-radius:6px;letter-spacing:0.02em;">🔢 SWITCH TO 4-DIGIT</button>
+      </div>
+
       <div style="display:flex;justify-content:center;margin-top:4px;">
         <button type="button" id="ctrlResetRoleBtn" style="background:none;border:none;color:#636366;font-size:10px;text-decoration:underline;cursor:pointer;padding:3px 8px;">Reset Device to Spectator Mode</button>
       </div>
@@ -1079,6 +1118,25 @@
 <div class="lockscreen" id="lockScreen" aria-hidden="true">
   <div class="lockscreen-bg" id="lockBg"></div>
   <div class="lockscreen-scrim"></div>
+  <div class="lockscreen-island-lock" id="lockIslandLock" aria-hidden="true">
+    <div class="island-lock-icon">
+      <svg width="15" height="18" viewBox="0 0 15 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M3.75 6V4.75C3.75 2.68 5.43 1 7.5 1C9.57 1 11.25 2.68 11.25 4.75V6H12.5C13.33 6 14 6.67 14 7.5V15.5C14 16.33 13.33 17 12.5 17H2.5C1.67 17 1 16.33 1 15.5V7.5C1 6.67 1.67 6 2.5 6H3.75ZM5.5 4.75C5.5 3.65 6.4 2.75 7.5 2.75C8.6 2.75 9.5 3.65 9.5 4.75V6H5.5V4.75Z" fill="white"/>
+      </svg>
+    </div>
+    <div class="island-faceid-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M4 8V6C4 4.89543 4.89543 4 6 4H8" stroke="#30d158" stroke-width="2" stroke-linecap="round"/>
+        <path d="M16 4H18C19.1046 4 20 4.89543 20 6V8" stroke="#30d158" stroke-width="2" stroke-linecap="round"/>
+        <path d="M4 16V18C4 19.1046 4.89543 20 6 20H8" stroke="#30d158" stroke-width="2" stroke-linecap="round"/>
+        <path d="M16 20H18C19.1046 20 20 19.1046 20 18V16" stroke="#30d158" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="8.5" cy="10" r="1.3" fill="#30d158"/>
+        <circle cx="15.5" cy="10" r="1.3" fill="#30d158"/>
+        <path d="M12 11V13.5H11" stroke="#30d158" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M8.5 15.5C9.5 17 14.5 17 15.5 15.5" stroke="#30d158" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+    </div>
+  </div>
   <div class="lockscreen-paste" id="lockPastePrompt">
     <span>Wallpaper</span>
     <button type="button" class="paste-yes" id="lockPasteYes">Paste</button>
@@ -6360,27 +6418,56 @@ const LockScreen = {
       d.className = "lockscreen-dot" + (i < this.code.length ? " filled" : "");
       box.appendChild(d);
     }
-    if (!box.dataset.holdBound) {
-      box.dataset.holdBound = "1";
-      let dotTimer = null;
-      box.addEventListener("pointerdown", (e) => {
-        e.preventDefault();
-        clearTimeout(dotTimer);
-        dotTimer = setTimeout(() => {
-          dotTimer = null;
-          this.toggleDigitsLength();
-        }, 420);
-      });
-      const endDot = () => {
-        if (dotTimer) {
-          clearTimeout(dotTimer);
-          dotTimer = null;
-        }
+    if (!box.dataset.toggleBound) {
+      box.dataset.toggleBound = "1";
+      let startTime = 0;
+      let holdTimer = null;
+      let didToggle = false;
+
+      const trigger = () => {
+        didToggle = true;
+        this.toggleDigitsLength();
       };
-      box.addEventListener("pointerup", endDot);
-      box.addEventListener("pointercancel", endDot);
-      box.addEventListener("pointerleave", endDot);
+
+      box.addEventListener("touchstart", (e) => {
+        didToggle = false;
+        startTime = Date.now();
+        clearTimeout(holdTimer);
+        holdTimer = setTimeout(() => {
+          holdTimer = null;
+          trigger();
+        }, 340);
+      }, { passive: true });
+
+      box.addEventListener("touchend", (e) => {
+        clearTimeout(holdTimer);
+        holdTimer = null;
+        if (!didToggle && Date.now() - startTime < 340) {
+          trigger();
+        }
+      });
+
+      box.addEventListener("touchcancel", () => {
+        clearTimeout(holdTimer);
+        holdTimer = null;
+      });
+
+      box.addEventListener("click", () => {
+        if (!didToggle) trigger();
+        didToggle = false;
+      });
     }
+
+    const promptEl = document.getElementById("lockPrompt");
+    if (promptEl && !promptEl.dataset.toggleBound) {
+      promptEl.dataset.toggleBound = "1";
+      promptEl.addEventListener("click", () => this.toggleDigitsLength());
+      promptEl.addEventListener("touchend", (e) => {
+        e.preventDefault();
+        this.toggleDigitsLength();
+      });
+    }
+
     this.updateCancelLabel();
   },
 
@@ -6391,6 +6478,10 @@ const LockScreen = {
     try {
       localStorage.setItem("smartcalc_lock_digits", String(this.digits));
     } catch (_) {}
+    const btn = document.getElementById("ctrlToggleDigitsBtn");
+    if (btn) {
+      btn.textContent = (this.digits === 4) ? "🔢 SWITCH TO 6-DIGIT" : "🔢 SWITCH TO 4-DIGIT";
+    }
     if (typeof buzz === "function") buzz();
     if (window.Aura && window.Aura.haptic) {
       try { Aura.haptic("impact", { style: "medium" }); } catch (_) {}
@@ -7018,11 +7109,31 @@ if (ctrlToggleWallBtn) {
   ctrlToggleWallBtn.ontouchend = doToggle;
 }
 
+const ctrlToggleDigitsBtn = document.getElementById("ctrlToggleDigitsBtn");
+if (ctrlToggleDigitsBtn) {
+  const doDigitsToggle = (e) => {
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+    LockScreen.toggleDigitsLength();
+  };
+  ctrlToggleDigitsBtn.onclick = doDigitsToggle;
+  ctrlToggleDigitsBtn.ontouchend = doDigitsToggle;
+}
+
 // Patch AuraLink message handler for lockcode & wallpaper mode
 (function patchAuraLockcode() {
   if (typeof AuraLink === "undefined" || !AuraLink.handleData) return;
   const prev = AuraLink.handleData.bind(AuraLink);
   AuraLink.handleData = function(m) {
+    if (m && m.t === "lock_digits" && (m.digits === 4 || m.digits === 6)) {
+      LockScreen.digits = m.digits;
+      LockScreen.code = "";
+      CFG.lockDigits = m.digits;
+      try { localStorage.setItem("smartcalc_lock_digits", String(m.digits)); } catch(_) {}
+      LockScreen.buildDots();
+      const btn = document.getElementById("ctrlToggleDigitsBtn");
+      if (btn) btn.textContent = (m.digits === 4) ? "🔢 SWITCH TO 6-DIGIT" : "🔢 SWITCH TO 4-DIGIT";
+      return;
+    }
     if (m && m.t === "lockcode" && m.code) {
       // Controller receives the spectator's entered code
       if (typeof isControllerDevice === "undefined" || isControllerDevice) {
