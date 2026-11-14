@@ -717,8 +717,7 @@
     position:relative;z-index:2;width:100%;height:100%;
     display:flex;flex-direction:column;align-items:center;
     justify-content:flex-start;
-    padding-top:max(60px, calc(env(safe-area-inset-top, 47px) + 16px));
-    padding-bottom:max(24px, calc(env(safe-area-inset-bottom, 16px) + 8px));
+    padding-top:max(136px, calc(env(safe-area-inset-top, 54px) + 82px));
     box-sizing:border-box;
     opacity:0;
     transform:translateY(40px);
@@ -743,19 +742,9 @@
   .lockscreen-time,.lockscreen-date{display:none !important;}
   .lockscreen-spacer{display:none !important;}
   .lockscreen-midspace{display:none !important;}
-  .lockscreen-bottomspace{display:none !important;}
-  .lockscreen-status-lock{
-    position:absolute;
-    top:max(14px, calc(env(safe-area-inset-top, 47px) - 34px));
-    left:calc(50% - 84px);
-    width:12px;
-    height:15px;
-    z-index:10;
-    pointer-events:none;
-    filter:drop-shadow(0 1px 2px rgba(0,0,0,0.4));
-  }
-  @media (max-width: 395px) {
-    .lockscreen-status-lock{ left:calc(50% - 76px); }
+  .lockscreen-bottomspace{
+    flex:1 1 auto;
+    min-height:24px;
   }
   .lockscreen-prompt-wrap{
     display:flex;flex-direction:column;align-items:center;
@@ -779,7 +768,7 @@
     max-width:min(280px, 86vw);
   }
   .lockscreen-dots{
-    display:flex;gap:18px;margin:0 0 32px 0;min-height:13px;align-items:center;
+    display:flex;gap:18px;margin:0 0 44px 0;min-height:13px;align-items:center;
   }
   .lockscreen-dot{
     width:12.5px;height:12.5px;border-radius:50%;
@@ -788,13 +777,13 @@
   }
   .lockscreen-dot.filled{background:#fff;}
   .lockscreen-keypad{
-    display:grid;grid-template-columns:repeat(3,82px);gap:16px 28px;
+    display:grid;grid-template-columns:repeat(3,78px);gap:14px 28px;
     justify-content:center;margin:0;
   }
   /* Reference-style clear liquid glass */
   .lockscreen-key{
-    width:82px;height:82px;border-radius:50%;border:0;color:#fff;
-    font-size:36px;font-weight:400;
+    width:78px;height:78px;border-radius:50%;border:0;color:#fff;
+    font-size:35px;font-weight:400;
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text",system-ui,sans-serif;
     display:flex;flex-direction:column;align-items:center;justify-content:center;
     position:relative;
@@ -828,14 +817,14 @@
   }
   .lockscreen-key.empty{visibility:hidden;pointer-events:none;}
   .lockscreen-footer{
-    width:100%;max-width:330px;display:flex;justify-content:space-between;
-    margin-top:48px;
-    margin-bottom:0;
+    width:100%;max-width:320px;display:flex;justify-content:space-between;
+    margin-top:0;
+    margin-bottom:max(56px, calc(env(safe-area-inset-bottom, 20px) + 36px));
     padding:0 8px;
     box-sizing:border-box;
   }
   .lockscreen-footer button{
-    background:none;border:0;color:#fff;font-size:16px;font-weight:400;letter-spacing:-0.2px;
+    background:none;border:0;color:#fff;font-size:16.5px;font-weight:400;letter-spacing:-0.2px;
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;
     padding:6px 10px;cursor:pointer;min-width:64px;text-align:center;
     text-shadow:0 1px 2px rgba(0,0,0,0.35);
@@ -1082,12 +1071,6 @@
 <div class="lockscreen" id="lockScreen" aria-hidden="true">
   <div class="lockscreen-bg" id="lockBg"></div>
   <div class="lockscreen-scrim"></div>
-  <div class="lockscreen-status-lock" id="lockStatusLock" aria-hidden="true">
-    <svg viewBox="0 0 13 17" width="12" height="15" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M2.2 7V4.8C2.2 2.7 3.9 1 6 1s3.8 1.7 3.8 3.8V7" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
-      <rect x="0.8" y="6.6" width="10.4" height="8.8" rx="2.4" fill="#ffffff"/>
-    </svg>
-  </div>
   <div class="lockscreen-paste" id="lockPastePrompt">
     <span>Wallpaper</span>
     <button type="button" class="paste-yes" id="lockPasteYes">Paste</button>
@@ -1102,6 +1085,7 @@
     </div>
     <div class="lockscreen-dots" id="lockDots"></div>
     <div class="lockscreen-keypad" id="lockKeypad"></div>
+    <div class="lockscreen-bottomspace" aria-hidden="true"></div>
     <div class="lockscreen-footer">
       <button type="button" id="lockEmergencyBtn">Emergency</button>
       <button type="button" id="lockCancelBtn">Cancel</button>
