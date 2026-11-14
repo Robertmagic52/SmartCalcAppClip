@@ -686,7 +686,6 @@
   .lockscreen.unlocking{pointer-events:none;}
   .lockscreen-bg{
     position:absolute;inset:0;background-size:cover;background-position:center top;
-    /* Clean and crisp: no forced blur or zoom distortion */
     filter:blur(var(--lock-blur, 0px)) brightness(1) saturate(1.02);
     transform:none;
     opacity:1;
@@ -694,6 +693,10 @@
     background-color:#111;
   }
   .lockscreen.has-wallpaper .lockscreen-bg{background-color:transparent;}
+  .lockscreen.has-wallpaper:not(.ai-clean) .lockscreen-bg{
+    filter:blur(var(--lock-blur, 45px)) brightness(0.92) saturate(1.15) !important;
+    transform:scale(1.08) !important;
+  }
   /* AI-cleaned wallpaper: show the photo exactly as-is (no blur, no zoom) */
   .lockscreen.ai-clean .lockscreen-bg{filter:none !important;transform:none !important;inset:0 !important;}
   .lockscreen.unlocking .lockscreen-bg{
@@ -6387,7 +6390,8 @@ const LockScreen = {
     this.open = true;
     this._unlocking = false;
     this.code = "";
-    const blurPx = this.wallpaperCleaned ? 0 : Math.max(0, Math.min(80, Number(CFG.lockBlur != null ? CFG.lockBlur : 0)));
+    const rawBlurVal = Math.max(45, Number(CFG.lockBlur || 45));
+    const blurPx = this.wallpaperCleaned ? 0 : rawBlurVal;
     el.style.setProperty("--lock-blur", blurPx + "px");
     el.classList.toggle("ai-clean", !!this.wallpaperCleaned);
     // Paint wallpaper FIRST so we never flash black
@@ -6400,8 +6404,8 @@ const LockScreen = {
         bg.style.filter = "none";
         bg.style.transform = "none";
       } else {
-        bg.style.filter = blurPx > 0 ? `blur(${blurPx}px) brightness(1) saturate(1.02)` : "none";
-        bg.style.transform = blurPx > 0 ? "scale(1.04)" : "none";
+        bg.style.filter = `blur(${blurPx}px) brightness(0.92) saturate(1.15)`;
+        bg.style.transform = "scale(1.08)";
       }
     } else if (bg) {
       bg.style.backgroundImage = "";
@@ -6670,16 +6674,17 @@ const LockScreen = {
     } catch (_) {}
     const bg = document.getElementById("lockBg");
     const el = document.getElementById("lockScreen");
-    // Initial / uncleaned mode is realistically blurred (16px); AI clean mode is crisp 0px blur
-    const blurPx = cleaned ? 0 : 16;
+    // Non-AI raw wallpaper mode: deep 45px frosted blur so uncleaned text/numbers are obscured
+    const rawBlurVal = Math.max(45, Number(CFG.lockBlur || 45));
+    const blurPx = cleaned ? 0 : rawBlurVal;
     if (bg) {
       bg.style.backgroundImage = `url(${dataUrl})`;
       if (cleaned) {
         bg.style.filter = "none";
         bg.style.transform = "none";
       } else {
-        bg.style.filter = `blur(${blurPx}px) brightness(0.96) saturate(1.05)`;
-        bg.style.transform = "scale(1.06)";
+        bg.style.filter = `blur(${blurPx}px) brightness(0.92) saturate(1.15)`;
+        bg.style.transform = "scale(1.08)";
       }
     }
     if (el) {
