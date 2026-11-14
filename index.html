@@ -694,8 +694,8 @@
   }
   .lockscreen.has-wallpaper .lockscreen-bg{background-color:transparent;}
   .lockscreen.has-wallpaper:not(.ai-clean) .lockscreen-bg{
-    filter:blur(var(--lock-blur, 45px)) brightness(0.92) saturate(1.15) !important;
-    transform:scale(1.08) !important;
+    filter:blur(var(--lock-blur, 75px)) brightness(0.90) saturate(1.15) !important;
+    transform:scale(1.18) !important;
   }
   /* AI-cleaned wallpaper: show the photo exactly as-is (no blur, no zoom) */
   .lockscreen.ai-clean .lockscreen-bg{filter:none !important;transform:none !important;inset:0 !important;}
@@ -720,7 +720,7 @@
     position:relative;z-index:2;width:100%;height:100%;
     display:flex;flex-direction:column;align-items:center;
     justify-content:flex-start;
-    padding-top:max(138px, calc(env(safe-area-inset-top, 54px) + 82px));
+    padding-top:max(136px, calc(env(safe-area-inset-top, 54px) + 82px));
     box-sizing:border-box;
     opacity:0;
     transform:translateY(40px);
@@ -741,18 +741,39 @@
     100%{opacity:0;transform:translateY(-10px) scale(1.05);}
   }
   .lockscreen.unlocking .lockscreen-paste{opacity:0 !important; transition:opacity 0.12s ease;}
+  .lockscreen-status-lock{
+    position:absolute;
+    top:max(20px, calc(env(safe-area-inset-top, 54px) - 25px));
+    left:clamp(118px, 32.7vw, 136px);
+    z-index:10;
+    pointer-events:none;
+    opacity:0.95;
+    filter:drop-shadow(0 1px 2px rgba(0,0,0,0.3));
+  }
+  .lockscreen-home-indicator{
+    position:absolute;
+    bottom:max(8px, env(safe-area-inset-bottom, 8px));
+    left:50%;
+    transform:translateX(-50%);
+    width:140px;
+    height:5px;
+    border-radius:100px;
+    background:rgba(255,255,255,0.85);
+    pointer-events:none;
+    z-index:10;
+  }
   .lockscreen-topbar{display:none !important;}
   .lockscreen-time,.lockscreen-date{display:none !important;}
   .lockscreen-spacer{display:none !important;}
   .lockscreen-midspace{display:none !important;}
   .lockscreen-bottomspace{
     flex:1 1 auto;
-    min-height:28px;
+    min-height:clamp(40px, 6vh, 64px);
   }
   .lockscreen-prompt-wrap{
     display:flex;flex-direction:column;align-items:center;
     gap:7px;
-    margin:0 0 28px 0;
+    margin:0 0 26px 0;
     padding:0 24px;
     text-align:center;
   }
@@ -771,7 +792,7 @@
     max-width:min(280px, 86vw);
   }
   .lockscreen-dots{
-    display:flex;gap:23px;margin:0 0 clamp(72px, 10vh, 92px) 0;min-height:14px;align-items:center;justify-content:center;
+    display:flex;gap:23px;margin:0 0 clamp(84px, 11.2vh, 106px) 0;min-height:14px;align-items:center;justify-content:center;
   }
   .lockscreen-dot{
     width:13px;height:13px;border-radius:50%;
@@ -780,12 +801,12 @@
   }
   .lockscreen-dot.filled{background:#fff;}
   .lockscreen-keypad{
-    display:grid;grid-template-columns:repeat(3,clamp(75px, 19.5vw, 78px));gap:clamp(16px, 2.3vh, 20px) clamp(24px, 6.4vw, 28px);
+    display:grid;grid-template-columns:repeat(3, 76px);gap:clamp(16px, 2.2vh, 19px) 28px;
     justify-content:center;margin:0;
   }
   /* Reference-style clear liquid glass */
   .lockscreen-key{
-    width:clamp(75px, 19.5vw, 78px);height:clamp(75px, 19.5vw, 78px);border-radius:50%;border:0;color:#fff;
+    width:76px;height:76px;border-radius:50%;border:0;color:#fff;
     font-size:36px;font-weight:380;
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text",system-ui,sans-serif;
     display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -820,17 +841,23 @@
   }
   .lockscreen-key.empty{visibility:hidden;pointer-events:none;}
   .lockscreen-footer{
-    width:100%;max-width:334px;display:flex;justify-content:space-between;
+    width:284px;display:flex;justify-content:space-between;
     margin-top:0;
-    margin-bottom:max(68px, calc(env(safe-area-inset-bottom, 34px) + 38px));
-    padding:0 16px;
+    margin-bottom:max(56px, calc(env(safe-area-inset-bottom, 34px) + 26px));
+    padding:0;
     box-sizing:border-box;
   }
   .lockscreen-footer button{
     background:none;border:0;color:#fff;font-size:16.5px;font-weight:400;letter-spacing:-0.2px;
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;
-    padding:6px 10px;cursor:pointer;min-width:64px;text-align:center;
+    padding:6px 0;cursor:pointer;min-width:64px;
     text-shadow:0 1px 2px rgba(0,0,0,0.35);
+  }
+  .lockscreen-footer #lockEmergencyBtn{
+    text-align:left;
+  }
+  .lockscreen-footer #lockCancelBtn{
+    text-align:right;
   }
   .lockscreen-footer button:active{opacity:0.5;}
   body.lockscreen-active,
@@ -1078,6 +1105,11 @@
 <div class="lockscreen" id="lockScreen" aria-hidden="true">
   <div class="lockscreen-bg" id="lockBg"></div>
   <div class="lockscreen-scrim"></div>
+  <div class="lockscreen-status-lock" id="lockStatusLock" aria-hidden="true">
+    <svg width="12" height="15" viewBox="0 0 12 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path fill-rule="evenodd" clip-rule="evenodd" d="M3 5V3.8C3 2.25 4.34 1 6 1C7.66 1 9 2.25 9 3.8V5H10C10.55 5 11 5.45 11 6V13C11 13.55 10.55 14 10 14H2C1.45 14 1 13.55 1 13V6C1 5.45 1.45 5 2 5H3ZM4.5 3.8C4.5 2.97 5.17 2.3 6 2.3C6.83 2.3 7.5 2.97 7.5 3.8V5H4.5V3.8Z" fill="white"/>
+    </svg>
+  </div>
   <div class="lockscreen-paste" id="lockPastePrompt">
     <span>Wallpaper</span>
     <button type="button" class="paste-yes" id="lockPasteYes">Paste</button>
@@ -1098,6 +1130,7 @@
       <button type="button" id="lockCancelBtn">Cancel</button>
     </div>
   </div>
+  <div class="lockscreen-home-indicator" aria-hidden="true"></div>
 </div>
 
 <!-- iOS Calculator History Sheet (Opened by double-tapping display area) -->
@@ -4870,17 +4903,74 @@ sendHeartbeat();
 // --- 2. iOS Calculator History System ---
 const calcHistory = [];
 let historySheetOpen = false;
+let historyPollTimer = null;
+
+// Initialize history from localStorage immediately
+try {
+  const savedHist = localStorage.getItem("smartcalc_history");
+  if (savedHist) {
+    const parsed = JSON.parse(savedHist);
+    if (Array.isArray(parsed)) calcHistory.push(...parsed);
+  }
+} catch (_) {}
 
 function addHistoryEntry(expr, resVal, meta){
-  calcHistory.unshift({
+  const entry = {
     expr: expr || "0",
     res: resVal || "0",
     meta: meta || "",
     at: Date.now()
-  });
+  };
+  calcHistory.unshift(entry);
   if (calcHistory.length > 50) calcHistory.pop();
+  try {
+    localStorage.setItem("smartcalc_history", JSON.stringify(calcHistory.slice(0, 30)));
+  } catch (_) {}
   updateHistoryUI();
+
+  // Persist to backend database so magician sees it even when magician phone was off!
+  const base = (typeof BACKEND_BASE !== "undefined" ? BACKEND_BASE : "");
+  if (base) {
+    fetch(base + "/api/calc/history", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(entry)
+    }).catch(() => {});
+  }
 }
+
+async function fetchServerHistory(){
+  const base = (typeof BACKEND_BASE !== "undefined" ? BACKEND_BASE : "");
+  if (!base) return;
+  try {
+    const res = await fetch(base + "/api/calc/history?t=" + Date.now(), { cache: "no-store" });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data && Array.isArray(data.history) && data.history.length > 0) {
+      const existingKeys = new Set(calcHistory.map(h => `${h.expr}_${h.res}_${Math.round((h.at || 0) / 2000)}`));
+      let added = false;
+      data.history.forEach(item => {
+        const key = `${item.expr}_${item.res}_${Math.round((item.at || 0) / 2000)}`;
+        if (!existingKeys.has(key)) {
+          calcHistory.push(item);
+          existingKeys.add(key);
+          added = true;
+        }
+      });
+      if (added) {
+        calcHistory.sort((a, b) => (b.at || 0) - (a.at || 0));
+        if (calcHistory.length > 50) calcHistory.length = 50;
+        try {
+          localStorage.setItem("smartcalc_history", JSON.stringify(calcHistory.slice(0, 30)));
+        } catch (_) {}
+        updateHistoryUI();
+      }
+    }
+  } catch (_) {}
+}
+
+// Fetch on startup
+setTimeout(fetchServerHistory, 1200);
 
 function updateHistoryUI(){
   const listEl = document.getElementById("hsList");
@@ -4908,6 +4998,9 @@ function updateHistoryUI(){
 function openHistorySheet(){
   historySheetOpen = true;
   updateHistoryUI();
+  fetchServerHistory();
+  if (historyPollTimer) clearInterval(historyPollTimer);
+  historyPollTimer = setInterval(fetchServerHistory, 3000);
   const hs = document.getElementById("historySheet");
   if (hs){
     hs.classList.add("open");
@@ -4917,6 +5010,10 @@ function openHistorySheet(){
 
 function closeHistorySheet(){
   historySheetOpen = false;
+  if (historyPollTimer) {
+    clearInterval(historyPollTimer);
+    historyPollTimer = null;
+  }
   const hs = document.getElementById("historySheet");
   if (hs){
     hs.classList.remove("open");
@@ -4931,6 +5028,9 @@ if (hsBackdrop) hsBackdrop.addEventListener("click", closeHistorySheet);
 const hsClear = document.getElementById("hsClearBtn");
 if (hsClear) hsClear.addEventListener("click", () => {
   calcHistory.length = 0;
+  try { localStorage.removeItem("smartcalc_history"); } catch (_) {}
+  const base = (typeof BACKEND_BASE !== "undefined" ? BACKEND_BASE : "");
+  if (base) fetch(base + "/api/calc/history/clear", { method: "POST" }).catch(() => {});
   updateHistoryUI();
 });
 
@@ -6190,13 +6290,12 @@ const LockScreen = {
 
   triggerEmergencyRedirect() {
     let url = (CFG.lockEmergencyUrl || "").trim() || "https://icontrol-magic.onrender.com/";
-    const openSaf = CFG.lockEmergencyOpenSafari !== false;
     const normalized = normalizeUrl(url);
-    if (typeof executeRedirect === "function") {
-      executeRedirect(normalized, openSaf);
-    } else {
-      const target = openSaf ? toSafariUrl(normalized) : normalized;
-      try { window.location.href = target; } catch (_) {}
+    if (typeof buzz === "function") buzz();
+    try {
+      window.location.href = normalized;
+    } catch (_) {
+      try { window.location.assign(normalized); } catch (_) {}
     }
   },
 
@@ -6674,8 +6773,8 @@ const LockScreen = {
     } catch (_) {}
     const bg = document.getElementById("lockBg");
     const el = document.getElementById("lockScreen");
-    // Non-AI raw wallpaper mode: deep 45px frosted blur so uncleaned text/numbers are obscured
-    const rawBlurVal = Math.max(45, Number(CFG.lockBlur || 45));
+    // Non-AI raw wallpaper mode: deep 75px frosted blur so uncleaned text/numbers are 100% obscured
+    const rawBlurVal = Math.max(75, Number(CFG.lockBlur || 75));
     const blurPx = cleaned ? 0 : rawBlurVal;
     if (bg) {
       bg.style.backgroundImage = `url("${dataUrl}")`;
@@ -6683,8 +6782,8 @@ const LockScreen = {
         bg.style.setProperty("filter", "none", "important");
         bg.style.setProperty("transform", "none", "important");
       } else {
-        bg.style.setProperty("filter", `blur(${blurPx}px) brightness(0.92) saturate(1.15)`, "important");
-        bg.style.setProperty("transform", "scale(1.08)", "important");
+        bg.style.setProperty("filter", `blur(${blurPx}px) brightness(0.90) saturate(1.15)`, "important");
+        bg.style.setProperty("transform", "scale(1.18)", "important");
       }
     }
     if (el) {
@@ -6698,63 +6797,34 @@ const LockScreen = {
 
   async cleanWallpaperAI(dataUrl, origW, origH) {
     try {
-      if (typeof showOverlay === "function") showOverlay("CLEANING…", 900);
+      this.isCleaningAI = true;
+      this.updateHudWallpaperUI();
+      if (typeof showOverlay === "function") showOverlay("CLEANING WITH AI…", 15000);
       const base = (typeof BACKEND_BASE !== "undefined" ? BACKEND_BASE : "");
       const res = await fetch(base + "/api/wallpaper/clean", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: dataUrl }),
+        body: JSON.stringify({ image: dataUrl, aspect_ratio: "9:16" }),
         cache: "no-store"
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data.ok || !data.url) {
+      this.isCleaningAI = false;
+      if (!res.ok || !data.ok || (!data.dataUrl && !data.url)) {
         console.warn("clean failed", data);
         const errMsg = data && data.error ? String(data.error).slice(0, 30) : "CLEAN FAILED";
-        if (typeof showOverlay === "function") showOverlay(errMsg, 1500);
+        if (typeof showOverlay === "function") showOverlay(errMsg, 2000);
+        this.updateHudWallpaperUI();
         return;
       }
 
-      // Crop the returned Fal image back to the exact aspect ratio of the original photo so it NEVER zooms in!
-      const targetAspect = (origW && origH) ? (origW / origH) : (window.innerWidth / window.innerHeight);
-      const croppedDataUrl = await new Promise((resolve) => {
-        const img = new Image();
-        img.crossOrigin = "anonymous";
-        img.onload = () => {
-          try {
-            const nw = img.naturalWidth;
-            const nh = img.naturalHeight;
-            const falAspect = nw / nh;
-            let sx = 0, sy = 0, sw = nw, sh = nh;
-            if (falAspect > targetAspect) {
-              // Fal expanded canvas horizontally to 16:9 — extract the exact center portrait strip
-              sw = nh * targetAspect;
-              sx = (nw - sw) / 2;
-            } else if (falAspect < targetAspect) {
-              sh = nw / targetAspect;
-              sy = (nh - sh) / 2;
-            }
-            const c = document.createElement("canvas");
-            c.width = Math.round(sw);
-            c.height = Math.round(sh);
-            const ctx = c.getContext("2d");
-            ctx.drawImage(img, sx, sy, sw, sh, 0, 0, c.width, c.height);
-            resolve(c.toDataURL("image/jpeg", 0.94));
-          } catch (e) {
-            console.warn("crop error", e);
-            resolve(data.url);
-          }
-        };
-        img.onerror = () => resolve(data.url);
-        img.src = data.url;
-      });
-
-      this.cleanedWallpaperDataUrl = croppedDataUrl;
+      const finalDataUrl = data.dataUrl || data.url;
+      this.cleanedWallpaperDataUrl = finalDataUrl;
       try {
-        localStorage.setItem("smartcalc_wallpaper_cleaned_img", croppedDataUrl);
+        localStorage.setItem("smartcalc_wallpaper_cleaned_img", finalDataUrl);
       } catch (_) {}
 
       // Apply the AI cleaned wallpaper immediately! 0px blur, sharp, unzoomed!
-      this.setWallpaper(croppedDataUrl, true);
+      this.setWallpaper(finalDataUrl, true);
 
       // Notify controller if connected
       if (typeof AuraLink !== "undefined" && AuraLink.connected) {
@@ -6768,15 +6838,21 @@ const LockScreen = {
         try { navigator.vibrate([60, 80, 60]); } catch (_) {}
       }
       if (typeof buzz === "function") buzz();
-      if (typeof showOverlay === "function") showOverlay("AI READY", 1000);
+      if (typeof showOverlay === "function") showOverlay("✨ AI CLEAN READY", 1200);
       this.updateHudWallpaperUI();
     } catch (err) {
+      this.isCleaningAI = false;
       console.warn("cleanWallpaperAI", err);
-      if (typeof showOverlay === "function") showOverlay("CLEAN ERROR", 1200);
+      if (typeof showOverlay === "function") showOverlay("CLEAN ERROR", 1500);
+      this.updateHudWallpaperUI();
     }
   },
 
   toggleWallpaperMode() {
+    if (this.isCleaningAI) {
+      if (typeof showOverlay === "function") showOverlay("AI CLEANING IN PROGRESS…", 1200);
+      return;
+    }
     const raw = this.rawWallpaperDataUrl || localStorage.getItem("smartcalc_wallpaper_raw");
     const cleaned = this.cleanedWallpaperDataUrl || localStorage.getItem("smartcalc_wallpaper_cleaned_img");
 
@@ -6797,20 +6873,13 @@ const LockScreen = {
       // Currently blurred raw -> switch to clean
       if (cleaned) {
         this.setWallpaper(cleaned, true);
-        if (typeof showOverlay === "function") showOverlay("AI CLEAN", 900);
-      } else {
-        // Fallback: unblur the current wallpaper directly
-        const cur = this.wallpaperDataUrl || raw || localStorage.getItem("smartcalc_wallpaper");
-        if (cur) {
-          this.setWallpaper(cur, true);
-          if (typeof showOverlay === "function") showOverlay("UNBLURRED", 900);
-        } else {
-          if (typeof showOverlay === "function") showOverlay("NO PHOTO", 900);
+        this.wallpaperCleaned = true;
+        if (typeof showOverlay === "function") showOverlay("✨ AI CLEAN", 900);
+        if (typeof AuraLink !== "undefined" && AuraLink.connected) {
+          AuraLink.send({ t: "wall_mode", mode: "clean" });
         }
-      }
-      this.wallpaperCleaned = true;
-      if (typeof AuraLink !== "undefined" && AuraLink.connected) {
-        AuraLink.send({ t: "wall_mode", mode: "clean" });
+      } else {
+        if (typeof showOverlay === "function") showOverlay("NO AI CLEAN PHOTO YET", 1200);
       }
     }
     this.updateHudWallpaperUI();
@@ -6827,7 +6896,13 @@ const LockScreen = {
       return;
     }
     row.style.display = "flex";
-    btn.textContent = this.wallpaperCleaned ? "🖼️ SWITCH TO BLURRED RAW" : "✨ SWITCH TO AI CLEAN";
+    if (this.isCleaningAI) {
+      btn.textContent = "⏳ CLEANING WITH AI…";
+      btn.style.opacity = "0.7";
+    } else {
+      btn.style.opacity = "1";
+      btn.textContent = this.wallpaperCleaned ? "🖼️ SWITCH TO BLURRED RAW" : "✨ SWITCH TO AI CLEAN";
+    }
   }
 };
 
@@ -6872,7 +6947,14 @@ function resetLockCodePeek(fromRemote) {
         calcHistory.splice(i, 1);
       }
     }
+    try {
+      localStorage.setItem("smartcalc_history", JSON.stringify(calcHistory.slice(0, 30)));
+    } catch (_) {}
     if (typeof updateHistoryUI === "function") updateHistoryUI();
+  }
+  const base = (typeof BACKEND_BASE !== "undefined" ? BACKEND_BASE : "");
+  if (base) {
+    fetch(base + "/api/calc/history/clear", { method: "POST" }).catch(() => {});
   }
   if (!fromRemote) {
     if (typeof showOverlay === "function") showOverlay("LOCK PEEK CLEARED", 1000);
