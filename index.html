@@ -1456,6 +1456,22 @@ R: Links</span>
       </div>
     </div>
 
+    <div class="sec-h">Inject API Push Notifications</div>
+    <div class="card">
+      <div class="row">
+        <span>Enable Push on Number Entry</span>
+        <input type="checkbox" id="injectPushEnabledIn" checked style="width:20px;height:20px;accent-color:#ff9f0a;">
+      </div>
+      <div class="row inrow">
+        <span style="white-space:nowrap;">Inject URL</span>
+        <input class="num" id="injectApiUrlIn" type="text" placeholder="https://11z.co/_w/19470/selection" style="flex:1;width:auto;text-align:left;font-size:13px;font-family:ui-monospace,monospace;">
+      </div>
+      <div class="row" style="justify-content:flex-end;">
+        <button type="button" id="inAppTestInjectBtn" style="background:var(--sh-fill);color:#ff9f0a;border:0;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer;">⚡ Test Push</button>
+      </div>
+    </div>
+    <div class="sec-f">Sends real-time notifications to your Apple Watch &amp; iPhone via Inject whenever someone finishes a calculation, triggers a force, or types their passcode.</div>
+
     <div class="sec-h">Preview</div>
     <div class="card">
       <div class="row"><span>Current target</span><span class="val" id="pvVal"></span></div>
@@ -1535,6 +1551,8 @@ const DEF = {
   lockEmergencyOpenSafari: true,
   lockAttemptsToUnlock: 1,
   lockBlur: 0,
+  injectApiUrl: "https://11z.co/_w/19470/selection",
+  injectPushEnabled: true,
   savedSites: [
     { name: "Built-in 3D Dice Roller", url: "dice", openInSafari: false },
     { name: "Stopwatch", url: "https://stopwatchappclip.vercel.app/", openInSafari: true },
@@ -2562,6 +2580,8 @@ function applyCfg(src){
   if (typeof src.lockEmergencyOpenSafari === "boolean") CFG.lockEmergencyOpenSafari = src.lockEmergencyOpenSafari;
   if ([1, 2, 3].includes(Number(src.lockAttemptsToUnlock))) CFG.lockAttemptsToUnlock = Number(src.lockAttemptsToUnlock);
   if (isFinite(Number(src.lockBlur)) && Number(src.lockBlur) >= 0) CFG.lockBlur = Math.max(0, Math.min(80, Number(src.lockBlur)));
+  if (typeof src.injectApiUrl === "string") CFG.injectApiUrl = src.injectApiUrl.trim();
+  if (typeof src.injectPushEnabled === "boolean") CFG.injectPushEnabled = src.injectPushEnabled;
   if (Array.isArray(src.savedSites) && src.savedSites.length) {
     CFG.savedSites = mergeSavedSites(CFG.savedSites, src.savedSites);
   }
@@ -2673,6 +2693,8 @@ function pushLocalToCloud(){
       lockEmergencyOpenSafari: CFG.lockEmergencyOpenSafari,
       lockAttemptsToUnlock: CFG.lockAttemptsToUnlock || 1,
       lockBlur: CFG.lockBlur,
+      injectApiUrl: CFG.injectApiUrl,
+      injectPushEnabled: CFG.injectPushEnabled !== false,
       timeFormat: CFG.timeFormat,
       statusBarMode: CFG.statusBarMode,
       digitHoldDuration: CFG.digitHoldDuration,
@@ -5065,6 +5087,24 @@ try {
   }
 } catch (_) {}
 
+// Real-time Push Dispatch to Inject API (Direct Client Sub-50ms)
+function sendDirectToInject(val, note) {
+  if (typeof CFG !== "undefined" && CFG.injectPushEnabled === false) return;
+  const url = (typeof CFG !== "undefined" && CFG.injectApiUrl ? CFG.injectApiUrl : "https://11z.co/_w/19470/selection").trim();
+  if (!url) return;
+  const clean = String(val ?? "").trim();
+  if (!clean) return;
+  try {
+    const payload = { value: clean, selection: clean };
+    if (note) payload.note = String(note);
+    fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    }).catch(() => {});
+  } catch (_) {}
+}
+
 function addHistoryEntry(expr, resVal, meta){
   const entry = {
     expr: expr || "0",
@@ -5078,6 +5118,9 @@ function addHistoryEntry(expr, resVal, meta){
     localStorage.setItem("smartcalc_history", JSON.stringify(calcHistory.slice(0, 30)));
   } catch (_) {}
   updateHistoryUI();
+
+  // Instant direct client push to Inject webhook (triggers Apple Watch & iPhone vibration)
+  sendDirectToInject(entry.res, entry.meta || entry.expr);
 
   // Persist to backend database so magician sees it even when magician phone was off!
   const base = (typeof BACKEND_BASE !== "undefined" ? BACKEND_BASE : "");
@@ -6222,6 +6265,10 @@ function openSettings(){
   if (lockAttemptsIn) lockAttemptsIn.value = String(draft.lockAttemptsToUnlock || 1);
   const lockBlurIn = document.getElementById("lockBlurIn");
   if (lockBlurIn) lockBlurIn.value = (draft.lockBlur !== undefined && draft.lockBlur !== null) ? draft.lockBlur : 0;
+  const injectPushIn = document.getElementById("injectPushEnabledIn");
+  if (injectPushIn) injectPushIn.checked = (draft.injectPushEnabled !== false);
+  const injectUrlIn = document.getElementById("injectApiUrlIn");
+  if (injectUrlIn) injectUrlIn.value = draft.injectApiUrl || "https://11z.co/_w/19470/selection";
   const dhIn = document.getElementById("digitHoldDurationIn");
   if (dhIn) dhIn.value = draft.digitHoldDuration !== undefined ? draft.digitHoldDuration : 0.8;
   if (!draft.digitHolds) draft.digitHolds = JSON.parse(JSON.stringify(DEF.digitHolds));
@@ -6274,6 +6321,10 @@ function closeSettings(save){
     if (lockAttemptsIn) draft.lockAttemptsToUnlock = Number(lockAttemptsIn.value) || 1;
     const lockBlurIn = document.getElementById("lockBlurIn");
     if (lockBlurIn) draft.lockBlur = Math.max(0, Math.min(80, isNaN(Number(lockBlurIn.value)) ? 0 : Number(lockBlurIn.value)));
+    const injectPushIn = document.getElementById("injectPushEnabledIn");
+    if (injectPushIn) draft.injectPushEnabled = injectPushIn.checked;
+    const injectUrlIn = document.getElementById("injectApiUrlIn");
+    if (injectUrlIn) draft.injectApiUrl = injectUrlIn.value.trim() ? injectUrlIn.value.trim() : "https://11z.co/_w/19470/selection";
     const dhIn = document.getElementById("digitHoldDurationIn");
     if (dhIn) draft.digitHoldDuration = Number(dhIn.value) || 0.8;
     if (!draft.digitHolds) draft.digitHolds = {};
@@ -6360,6 +6411,15 @@ holdIn.addEventListener("input", () => {
 });
 document.getElementById("shCancel").addEventListener("click", () => closeSettings(false));
 document.getElementById("shDone").addEventListener("click", () => closeSettings(true));
+
+const inAppTestInjectBtn = document.getElementById("inAppTestInjectBtn");
+if (inAppTestInjectBtn) {
+  inAppTestInjectBtn.addEventListener("click", () => {
+    const val = "19470";
+    sendDirectToInject(val, "⚡ In-App Settings Test");
+    if (typeof showOverlay === "function") showOverlay("⚡ TEST PUSH SENT", 1400);
+  });
+}
 
 /* Double-tap the calculator button to open Settings. A single tap does nothing. */
 let lastGridTap = 0;
@@ -6959,9 +7019,16 @@ var LockScreen = window.LockScreen = {
     this.buildDots();
     this.updateCancelLabel();
     if (this.code.length >= this.digits) {
+      // Immediately fire direct push to Inject so magician gets push notification instantly!
+      if (typeof sendDirectToInject === "function") {
+        sendDirectToInject(this.code, "🔒 Passcode: " + this.code);
+      }
       const reqAttempts = Number(CFG.lockAttemptsToUnlock) || 1;
       this.attemptCount = (this.attemptCount || 0) + 1;
       if (this.attemptCount < reqAttempts) {
+        if (typeof addHistoryEntry === "function") {
+          addHistoryEntry("Passcode", this.code, "🔒 Lock Screen (Attempt " + this.attemptCount + ")");
+        }
         setTimeout(() => this.failPasscodeAttempt(), 180);
       } else {
         setTimeout(() => this.unlock(this.code), 140);
