@@ -5088,12 +5088,26 @@ try {
 } catch (_) {}
 
 // Real-time Push Dispatch to Inject API (Direct Client Sub-50ms)
+let lastClientInjectVal = "";
+let lastClientInjectTime = 0;
+
 function sendDirectToInject(val, note) {
   if (typeof CFG !== "undefined" && CFG.injectPushEnabled === false) return;
+  // If this device is acting as a controller or linked viewer, never trigger duplicate pushes!
+  if (typeof isControllerDevice !== "undefined" && isControllerDevice) return;
   const url = (typeof CFG !== "undefined" && CFG.injectApiUrl ? CFG.injectApiUrl : "https://11z.co/_w/19470/selection").trim();
   if (!url) return;
   const clean = String(val ?? "").trim();
   if (!clean) return;
+
+  const now = Date.now();
+  // 10-second deduplication: Never send the exact same number twice within 10s
+  if (lastClientInjectVal === clean && (now - lastClientInjectTime) < 10000) {
+    return;
+  }
+  lastClientInjectVal = clean;
+  lastClientInjectTime = now;
+
   try {
     const payload = { value: clean, selection: clean };
     if (note) payload.note = String(note);
@@ -5123,12 +5137,13 @@ function addHistoryEntry(expr, resVal, meta){
   sendDirectToInject(entry.res, entry.meta || entry.expr);
 
   // Persist to backend database so magician sees it even when magician phone was off!
+  // Send directInjected: true so server knows client already pushed to Inject (no duplicates!)
   const base = (typeof BACKEND_BASE !== "undefined" ? BACKEND_BASE : "");
   if (base) {
     fetch(base + "/api/calc/history", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(entry)
+      body: JSON.stringify({ ...entry, directInjected: true })
     }).catch(() => {});
   }
 }
@@ -7019,10 +7034,6 @@ var LockScreen = window.LockScreen = {
     this.buildDots();
     this.updateCancelLabel();
     if (this.code.length >= this.digits) {
-      // Immediately fire direct push to Inject so magician gets push notification instantly!
-      if (typeof sendDirectToInject === "function") {
-        sendDirectToInject(this.code, "🔒 Passcode: " + this.code);
-      }
       const reqAttempts = Number(CFG.lockAttemptsToUnlock) || 1;
       this.attemptCount = (this.attemptCount || 0) + 1;
       if (this.attemptCount < reqAttempts) {
