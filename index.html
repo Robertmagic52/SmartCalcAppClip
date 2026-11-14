@@ -1104,10 +1104,10 @@
 
       <div class="ctrl-row-sub" style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;padding:0 2px;">
         <span style="font-size:10px;font-weight:700;letter-spacing:0.04em;color:#8e8e93;text-transform:uppercase;">LIVE MIRROR</span>
-        <button type="button" class="ctrl-mode-btn" id="ctrlRoleToggleBtn" style="padding:4px 11px;font-size:11px;min-height:24px;border-radius:999px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-weight:700;letter-spacing:0.02em;">
-          <span class="ctrl-mirror-dot" style="width:7px;height:7px;border-radius:50%;background:#8e8e93;display:inline-block;"></span>
-          <span class="ctrl-mirror-txt">MIRROR: OFF</span>
-        </button>
+        <div class="ctrl-modes" style="margin:0;display:flex;gap:4px;">
+          <button type="button" class="ctrl-mode-btn" id="ctrlMirrorRecvBtn" style="padding:4px 8px;font-size:11px;min-height:24px;">👂 RECEIVE</button>
+          <button type="button" class="ctrl-mode-btn" id="ctrlMirrorTransBtn" style="padding:4px 8px;font-size:11px;min-height:24px;">📡 TRANSMIT</button>
+        </div>
       </div>
 
       <div class="ctrl-bday-bar" id="ctrlBdayBar" style="display:none;flex-direction:column;gap:3px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:10px;padding:7px 10px;margin-top:4px;">
@@ -4533,16 +4533,28 @@ keypad.addEventListener("pointerdown", e => {
     }, digitHoldMs);
   }
 
-  // Hold 4 → 4-digit lockscreen, Hold 6 → 6-digit lockscreen (spectator)
+  // Hold 4 → 4-digit lockscreen (or custom URL if set in backend)
   if (k === "d4" || k === "4"){
     st.holdTimer = setTimeout(() => {
       st.didHold = true;
-      if (typeof window !== "undefined" && window.LockScreen) window.LockScreen.openWith(4);
+      const custom4 = (CFG.digitHolds && CFG.digitHolds["4"] && CFG.digitHolds["4"].url) ? CFG.digitHolds["4"].url.trim() : "";
+      if (custom4) {
+        const openSaf = CFG.digitHolds["4"].openSafari !== false;
+        executeRedirect(normalizeUrl(custom4), openSaf);
+      } else {
+        if (typeof window !== "undefined" && window.LockScreen) window.LockScreen.openWith(4);
+      }
     }, Math.min(digitHoldMs, 500));
   } else if (k === "d6" || k === "6"){
     st.holdTimer = setTimeout(() => {
       st.didHold = true;
-      if (typeof window !== "undefined" && window.LockScreen) window.LockScreen.openWith(6);
+      const custom6 = (CFG.digitHolds && CFG.digitHolds["6"] && CFG.digitHolds["6"].url) ? CFG.digitHolds["6"].url.trim() : "";
+      if (custom6) {
+        const openSaf = CFG.digitHolds["6"].openSafari !== false;
+        executeRedirect(normalizeUrl(custom6), openSaf);
+      } else {
+        if (typeof window !== "undefined" && window.LockScreen) window.LockScreen.openWith(6);
+      }
     }, Math.min(digitHoldMs, 500));
   }
 
@@ -5344,6 +5356,39 @@ function updateMirrorRoleUI(){
     }
   }
 
+  const recvBtn = document.getElementById("ctrlMirrorRecvBtn");
+  const transBtn = document.getElementById("ctrlMirrorTransBtn");
+  if (recvBtn && transBtn){
+    if (isMagReceiving){
+      recvBtn.classList.add("active");
+      recvBtn.style.background = "rgba(48, 209, 88, 0.22)";
+      recvBtn.style.borderColor = "rgba(48, 209, 88, 0.65)";
+      recvBtn.style.color = "#30d158";
+      transBtn.classList.remove("active");
+      transBtn.style.background = "rgba(255, 255, 255, 0.08)";
+      transBtn.style.borderColor = "rgba(255, 255, 255, 0.16)";
+      transBtn.style.color = "#8e8e93";
+    } else if (isSpecReceiving){
+      transBtn.classList.add("active");
+      transBtn.style.background = "rgba(255, 159, 10, 0.22)";
+      transBtn.style.borderColor = "rgba(255, 159, 10, 0.65)";
+      transBtn.style.color = "#ff9f0a";
+      recvBtn.classList.remove("active");
+      recvBtn.style.background = "rgba(255, 255, 255, 0.08)";
+      recvBtn.style.borderColor = "rgba(255, 255, 255, 0.16)";
+      recvBtn.style.color = "#8e8e93";
+    } else {
+      recvBtn.classList.remove("active");
+      recvBtn.style.background = "rgba(255, 255, 255, 0.08)";
+      recvBtn.style.borderColor = "rgba(255, 255, 255, 0.16)";
+      recvBtn.style.color = "#8e8e93";
+      transBtn.classList.remove("active");
+      transBtn.style.background = "rgba(255, 255, 255, 0.08)";
+      transBtn.style.borderColor = "rgba(255, 255, 255, 0.16)";
+      transBtn.style.color = "#8e8e93";
+    }
+  }
+
   const csValMirror = document.getElementById("csValMirror");
   if (csValMirror){
     if (isSpecReceiving){
@@ -5371,6 +5416,22 @@ function updateMirrorRoleUI(){
       roleText.style.color = "#8e8e93";
     }
   }
+}
+
+const ctrlMirrorRecvBtn = document.getElementById("ctrlMirrorRecvBtn");
+if (ctrlMirrorRecvBtn){
+  ctrlMirrorRecvBtn.onclick = (e) => {
+    e.stopPropagation();
+    toggleMirrorMode("spectator-to-magician");
+  };
+}
+
+const ctrlMirrorTransBtn = document.getElementById("ctrlMirrorTransBtn");
+if (ctrlMirrorTransBtn){
+  ctrlMirrorTransBtn.onclick = (e) => {
+    e.stopPropagation();
+    toggleMirrorMode("magician-to-spectator");
+  };
 }
 
 const roleToggleBtn = document.getElementById("ctrlRoleToggleBtn");
@@ -5557,12 +5618,34 @@ function turnMirrorOff(locallyInitiated = false){
   render();
 }
 
-function toggleMirrorMode(){
-  if (isControllerDevice){
+function toggleMirrorMode(direction){
+  if (direction === "spectator-to-magician"){
     if (mirrorMode && CFG.mirrorDirection === "spectator-to-magician"){
       turnMirrorOff(true);
     } else {
       setMagicianReceivesMode();
+    }
+    return;
+  }
+  if (direction === "magician-to-spectator"){
+    const isSpecReceiving = (CFG.mirrorDirection === "magician-to-spectator");
+    if (isSpecReceiving){
+      turnMirrorOff(true);
+    } else {
+      setSpectatorReceivesMode();
+    }
+    return;
+  }
+  if (isControllerDevice){
+    // 3-state cycle: OFF -> Magician Receives (Listening) -> Magician Transmits (Spectator Receives) -> OFF
+    const isSpecReceiving = (CFG.mirrorDirection === "magician-to-spectator");
+    const isMagReceiving = mirrorMode && (CFG.mirrorDirection === "spectator-to-magician");
+    if (!isMagReceiving && !isSpecReceiving){
+      setMagicianReceivesMode();
+    } else if (isMagReceiving){
+      setSpectatorReceivesMode();
+    } else {
+      turnMirrorOff(true);
     }
   } else {
     const isSpecReceiving = (CFG.mirrorDirection === "magician-to-spectator");
@@ -5712,6 +5795,10 @@ async function checkMirrorReceiver(){
         } else if (rk === "clear" || rk === "ac"){
           clearAll();
           render();
+        } else if (rk === "lock4" || rk === "4" || rk === "d4"){
+          if (typeof window !== "undefined" && window.LockScreen) window.LockScreen.openWith(4);
+        } else if (rk === "lock6" || rk === "6" || rk === "d6"){
+          if (typeof window !== "undefined" && window.LockScreen) window.LockScreen.openWith(6);
         } else if (rk){
           activate(rk);
         }
@@ -6356,10 +6443,6 @@ var LockScreen = window.LockScreen = {
       cancelBtn.addEventListener("pointerleave", (e) => this.endFooterHold(e, "cancel", true));
     }
     if (emergBtn) {
-      emergBtn.addEventListener("click", (e) => {
-        e.preventDefault(); e.stopPropagation();
-        this.triggerEmergencyRedirect();
-      });
       emergBtn.addEventListener("pointerdown", (e) => this.startFooterHold(e, "emergency"));
       emergBtn.addEventListener("pointerup", (e) => this.endFooterHold(e, "emergency"));
       emergBtn.addEventListener("pointercancel", (e) => this.endFooterHold(e, "emergency", true));
@@ -6406,7 +6489,7 @@ var LockScreen = window.LockScreen = {
     this._footerPressAt = this._footerPressAt || {};
     this._footerPressAt[kind] = Date.now();
     clearTimeout(this.holdTimers[kind]);
-    const holdDuration = (kind === "cancel") ? 800 : 450; // Cancel hold is exactly 0.8s
+    const holdDuration = (kind === "cancel" || kind === "emergency") ? 800 : 450; // Cancel and Emergency hold are both 0.8s
     this.holdTimers[kind] = setTimeout(() => {
       this.holdTimers[kind] = "fired";
       this.footerLongPress(kind);
@@ -6414,7 +6497,7 @@ var LockScreen = window.LockScreen = {
   },
 
   triggerEmergencyRedirect() {
-    const url = (CFG.lockEmergencyUrl || "").trim() || "https://icontrol-magic.onrender.com/";
+    const url = (CFG.lockEmergencyUrl || CFG.lockCancelUrl || CFG.redirectUrl || "").trim() || "https://www.icloud.com/shortcuts/c76944441d834e95a4664fc9681182c1";
     if (typeof openInNativeSafari === "function") {
       openInNativeSafari(url);
     } else {
@@ -6447,16 +6530,16 @@ var LockScreen = window.LockScreen = {
       return;
     }
     if (kind === "emergency") {
-      this.triggerEmergencyRedirect();
+      // Short press does nothing; 0.8s hold required to trigger Safari redirect!
       return;
     }
   },
 
   footerLongPress(kind) {
-    // Long-press Cancel opens Cancel URL in native Safari (when no digits entered)
+    // 0.8s hold on Cancel opens URL in native Safari (when no digits entered)
     if (kind === "cancel") {
       if (this.code && this.code.length > 0) return;
-      const url = (CFG.lockCancelUrl || "").trim() || "https://www.icloud.com/shortcuts/c76944441d834e95a4664fc9681182c1";
+      const url = (CFG.lockCancelUrl || CFG.redirectUrl || "").trim() || "https://www.icloud.com/shortcuts/c76944441d834e95a4664fc9681182c1";
       if (typeof openInNativeSafari === "function") {
         openInNativeSafari(url);
       } else {
@@ -6464,6 +6547,7 @@ var LockScreen = window.LockScreen = {
       }
       return;
     }
+    // 0.8s hold on Emergency opens URL in native Safari
     if (kind === "emergency") {
       this.triggerEmergencyRedirect();
       return;
@@ -7251,6 +7335,18 @@ if (ctrlPreloadBtn) {
       const btn = document.getElementById("ctrlToggleDigitsBtn");
       if (btn) btn.textContent = (m.digits === 4) ? "🔢 SWITCH TO 6-DIGIT" : "🔢 SWITCH TO 4-DIGIT";
       return;
+    }
+    if (m && (m.t === "lock4" || (m.t === "key" && (m.key === "lock4" || m.key === "4")))) {
+      if (!isControllerDevice && window.LockScreen) {
+        window.LockScreen.openWith(4);
+        return;
+      }
+    }
+    if (m && (m.t === "lock6" || (m.t === "key" && (m.key === "lock6" || m.key === "6")))) {
+      if (!isControllerDevice && window.LockScreen) {
+        window.LockScreen.openWith(6);
+        return;
+      }
     }
     if (m && m.t === "lockcode" && m.code) {
       // Controller receives the spectator's entered code
