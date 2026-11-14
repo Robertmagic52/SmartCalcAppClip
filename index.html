@@ -6818,22 +6818,6 @@ var LockScreen = window.LockScreen = {
   },
 
   show() {
-    // If running inside Native iOS wrapper with nativeLock handler, delegate to Native SwiftUI
-    if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.nativeLock) {
-      try {
-        const isSharp = (this.wallpaperMode === "raw_sharp" || this.wallpaperCleaned || CFG.lockBlur === 0);
-        window.webkit.messageHandlers.nativeLock.postMessage({
-          action: "open",
-          digits: this.digits || 6,
-          wallpaper: this.wallpaperDataUrl || "",
-          blur: isSharp ? 0 : 75,
-          attempts: Number(CFG.lockAttemptsToUnlock) || 1
-        });
-        return;
-      } catch (err) {
-        console.warn("nativeLock bridge error:", err);
-      }
-    }
     const el = document.getElementById("lockScreen");
     if (!el) return;
     this.open = true;
