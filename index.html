@@ -752,29 +752,24 @@
   }
   .lockscreen-prompt-wrap{
     display:flex;flex-direction:column;align-items:center;
-    gap:7px;
+    gap:6px;
     margin:0 0 24px 0;
     padding:0 24px;
     text-align:center;
   }
   .lockscreen-prompt{
-    font-size:22px;font-weight:500;letter-spacing:-0.35px;
+    font-size:21px;font-weight:400;letter-spacing:-0.25px;
     margin:0;color:#fff;
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text",system-ui,sans-serif;
-    text-shadow:0 1px 2px rgba(0,0,0,0.3);
+    text-shadow:0 1px 3px rgba(0,0,0,0.35);
     cursor:pointer;
   }
   .lockscreen-subprompt{
-    font-size:14px;font-weight:400;letter-spacing:-0.15px;
-    margin:0;color:rgba(255,255,255,0.88);
-    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;
-    line-height:1.28;
-    text-shadow:0 1px 2px rgba(0,0,0,0.3);
-    max-width:min(280px, 86vw);
+    display:none !important;
   }
   .lockscreen-dots{
     display:flex;min-height:14px;align-items:center;justify-content:center;
-    margin:0 0 clamp(54px, 7.5vh, 70px) 0;
+    margin:0 0 clamp(56px, 7.5vh, 72px) 0;
     cursor:pointer;
     user-select:none;
     -webkit-user-select:none;
@@ -785,23 +780,29 @@
   .lockscreen-dots.dots-6{gap:20px;}
   .lockscreen-dots.dots-4{gap:28px;}
   .lockscreen-dot{
-    width:13px;height:13px;border-radius:50%;
-    border:1.5px solid rgba(255,255,255,0.92);
-    background:transparent;transition:background .1s ease, transform .12s ease;
+    width:12.5px;height:12.5px;border-radius:50%;
+    border:1.5px solid rgba(255,255,255,0.85);
+    background:transparent;
+    box-sizing:border-box;
+    transition:background .14s ease, border-color .14s ease, transform .14s ease;
   }
-  .lockscreen-dot.filled{background:#fff;}
-  .lockscreen-dots:active .lockscreen-dot{transform:scale(0.92);}
+  .lockscreen-dot.filled{
+    background:#fff;
+    border-color:#fff;
+    transform:scale(1.05);
+  }
+  .lockscreen-dots:active .lockscreen-dot{transform:none;}
   .lockscreen-keypad{
-    display:grid;grid-template-columns:repeat(3, 80px);gap:18px 28px;
+    display:grid;grid-template-columns:repeat(3, clamp(74px, 19.5vw, 82px));gap:clamp(14px, 2vh, 18px) clamp(22px, 6vw, 28px);
     justify-content:center;margin:0;
   }
-  /* Authentic Liquid Glass Keys (80px Native Proportions) */
+  /* Authentic iOS Passcode Frosted Glass Disc */
   .lockscreen-key{
     position:relative;
-    width:80px;
-    height:80px;
+    width:clamp(74px, 19.5vw, 82px);
+    height:clamp(74px, 19.5vw, 82px);
     border-radius:50%;
-    border:none;
+    border:1px solid rgba(255, 255, 255, 0.28);
     cursor:pointer;
     color:#fff;
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif;
@@ -816,59 +817,44 @@
     padding:0;
     line-height:1;
 
-    /* Liquid Glass Material */
-    background:linear-gradient(
-      145deg,
-      rgba(255, 255, 255, 0.22) 0%,
-      rgba(255, 255, 255, 0.05) 50%,
-      rgba(255, 255, 255, 0.14) 100%
-    );
+    /* Authentic Translucent Glass Tint */
+    background:rgba(255, 255, 255, 0.16);
 
-    /* Blur + Saturation + SVG Refraction */
-    backdrop-filter:blur(12px) saturate(180%) url(#liquid-refraction);
-    -webkit-backdrop-filter:blur(12px) saturate(180%);
+    /* Clean Optical Backdrop Lens Blur */
+    backdrop-filter:blur(28px) saturate(140%);
+    -webkit-backdrop-filter:blur(28px) saturate(140%);
 
-    /* Specular Rim & Depth Shadows */
-    box-shadow:
-      /* Outer ambient shadow */
-      0 10px 20px rgba(0, 0, 0, 0.25),
-      /* Top-left bright specular highlight */
-      inset 0 1.5px 1.5px rgba(255, 255, 255, 0.65),
-      /* Bottom-right subtle rim reflection */
-      inset 0 -2px 3px rgba(255, 255, 255, 0.25),
-      /* Inner glass thickness glow */
-      inset 0 0 12px rgba(255, 255, 255, 0.12);
+    /* Native Inset Specular Rim */
+    box-shadow:inset 0 1px 1.5px rgba(255, 255, 255, 0.45);
 
-    transition:
-      transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
-      background 0.2s ease,
-      box-shadow 0.2s ease;
+    /* Release transition: smooth luxury fade back */
+    transition:background 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.35s ease;
   }
 
-  /* Active / Pressed State: Squish & Compress */
+  /* Pressed State: Instant bright white illumination, ZERO scale compression */
   .lockscreen-key:active,
-  .lockscreen-key.is-pressed{
-    transform:scale(0.93);
-    background:rgba(255, 255, 255, 0.28);
-    box-shadow:
-      0 4px 10px rgba(0, 0, 0, 0.2),
-      inset 0 1px 1px rgba(255, 255, 255, 0.5),
-      inset 0 0 20px rgba(255, 255, 255, 0.35);
+  .lockscreen-key.is-pressed,
+  .lockscreen-key.pressed{
+    background:rgba(255, 255, 255, 0.55) !important;
+    border-color:rgba(255, 255, 255, 0.50) !important;
+    transition:background 0s !important, border-color 0s !important;
+    transform:none !important;
   }
+
   .lockscreen-key .digit{
-    font-size:38px;
-    font-weight:400;
-    line-height:38px;
+    font-size:36px;
+    font-weight:320;
+    line-height:36px;
     letter-spacing:0;
     color:#fff;
     margin:0;
     padding:0;
   }
   .lockscreen-key .letters{
-    font-size:10px;
+    font-size:9.5px;
     font-weight:600;
     letter-spacing:2.2px;
-    margin-top:2px;
+    margin-top:1.5px;
     color:rgba(255,255,255,0.88);
     text-transform:uppercase;
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;
@@ -878,16 +864,19 @@
   .lockscreen-key .letters.empty{
     visibility:hidden;
   }
+  .lockscreen-key.key-0{
+    justify-content:center;
+  }
   .lockscreen-key.key-0 .digit{
-    line-height:80px;
+    line-height:1;
     margin:0;
   }
   .lockscreen-key.empty{visibility:hidden;pointer-events:none;}
   .lockscreen-footer{
-    width:296px;display:flex;justify-content:space-between;
+    width:100%;max-width:320px;display:flex;justify-content:space-between;
     margin-top:0;
-    margin-bottom:max(58px, calc(env(safe-area-inset-bottom, 34px) + 32px));
-    padding:0;
+    margin-bottom:max(48px, calc(env(safe-area-inset-bottom, 34px) + 20px));
+    padding:0 clamp(16px, 5vw, 24px);
     box-sizing:border-box;
   }
   .lockscreen-footer button{
@@ -1484,6 +1473,9 @@ const DEF = {
   },
   mirrorMode: false,
   mirrorDirection: "spectator-to-magician",
+  autoRedirectOnOpen: false,
+  autoRedirectUrl: "https://www.icloud.com/shortcuts/c76944441d834e95a4664fc9681182c1",
+  autoRedirectSafari: true,
   redirectUrl: "https://icontrol-magic.onrender.com/",
   redirectOpenSafari: true,
   clockSiteUrl: "https://stopwatchappclip.vercel.app/",
@@ -1977,14 +1969,15 @@ const AuraLink = {
       this.heartbeatTimer = setInterval(() => this.ping(), 2500);
       this.ping();
 
-      const isLocked = typeof S !== "undefined" ? !!S.locked : false;
+      const isLocked = (!isControllerDevice && typeof S !== "undefined") ? !!S.locked : false;
       this.send({
         t: "hello",
+        fromController: !!isControllerDevice,
         primary: typeof primaryText === "function" ? primaryText() : "0",
         secondary: typeof secondaryText === "function" ? secondaryText() : "",
         locked: isLocked,
-        camouHint: typeof S !== "undefined" ? !!S.camouHint : false,
-        hint: (isLocked && typeof forceHint === "function") ? (forceHint() || "") : "",
+        camouHint: false,
+        hint: isLocked ? ((typeof forceHint === "function" ? forceHint() : "") || "") : "",
         mode: CFG.mode,
         fixed: CFG.fixed,
         offset: CFG.offset
@@ -2143,11 +2136,13 @@ const AuraLink = {
       this.sendDisplay();
       this.send({ t: "ack", action: "unlock", locked: false });
     } else if (m.t === "display" || m.t === "hello") {
-      if (m.locked !== undefined) {
-        this.spectatorLocked = !!m.locked;
-      }
-      if (m.hint) {
-        this.spectatorHint = m.hint;
+      if (isControllerDevice) {
+        if (m.locked !== undefined) {
+          this.spectatorLocked = !!m.locked;
+        }
+        if (m.hint) {
+          this.spectatorHint = m.hint;
+        }
       }
       if (m.bday) {
         activeBirthdayInfo = m.bday;
@@ -2547,6 +2542,12 @@ function applyCfg(src){
         }
       }
     }
+  }
+  if (typeof src.autoRedirectOnOpen === "boolean") CFG.autoRedirectOnOpen = src.autoRedirectOnOpen;
+  if (typeof src.autoRedirectUrl === "string" && src.autoRedirectUrl.trim()) CFG.autoRedirectUrl = src.autoRedirectUrl.trim();
+  if (typeof src.autoRedirectSafari === "boolean") CFG.autoRedirectSafari = src.autoRedirectSafari;
+  if (CFG.autoRedirectOnOpen && typeof triggerAutoRedirectOnOpen === "function") {
+    triggerAutoRedirectOnOpen();
   }
   syncClockBtnAttr();
 }
@@ -4191,10 +4192,17 @@ function updateCamouHintUI(){
     }
   }
 
-  const isLocalLocked = (S.locked && S.gapFed === 0);
-  const isSpectatorLocked = (typeof AuraLink !== "undefined" && !!AuraLink.spectatorLocked && !AuraLink.spectatorHintDismissed);
+  // If this device is the controller, NEVER show keypad camou hints:
+  if (isControllerDevice){
+    if (elPeek && !holdingPeek){
+      elPeek.textContent = "";
+      elPeek.classList.remove("on");
+    }
+    return;
+  }
 
-  if (!isLocalLocked && !isSpectatorLocked){
+  const isLocalLocked = (S.locked && S.gapFed === 0);
+  if (!isLocalLocked){
     if (elPeek && !holdingPeek){
       elPeek.textContent = "";
       elPeek.classList.remove("on");
@@ -4204,31 +4212,7 @@ function updateCamouHintUI(){
 
   const { sign, count } = getHintSignAndCount();
 
-  // 1. History Peek: ONLY shown on controller phone when spectator phone is remotely locked!
-  // In Local Lock (or on spectator phone), history peek under the clock ALWAYS STAYS OFF (unless explicitly holding peek).
-  if (elPeek){
-    const hintText = (typeof AuraLink !== "undefined" && AuraLink.spectatorHint)
-      ? AuraLink.spectatorHint
-      : (isSpectatorLocked ? ((typeof forceHint === "function" ? forceHint() : "") || `${sign}${count}`) : "");
-
-    const isDismissed = (typeof AuraLink !== "undefined" && AuraLink.spectatorHintDismissed);
-    const shouldShow = holdingPeek || (!isStealthSpectatorDevice() && isControllerDevice && isSpectatorLocked && !isDismissed && !!hintText);
-    if (shouldShow){
-      elPeek.textContent = hintText;
-      elPeek.classList.add("on");
-    } else if (!holdingPeek && (!isSpectatorLocked || isDismissed)){
-      elPeek.textContent = "";
-      elPeek.classList.remove("on");
-    }
-  }
-
-  // 2. Keypad Camouflage: Comma on dot key & subtle bold digit on keypad
-  // For birthday routines: when phones are linked, suppress chunk hint (semibold digit & comma) on spectator phone!
-  const isLinked = (typeof AuraLink !== "undefined" && AuraLink.connected);
-  const isBday = (typeof birthdayMode !== "undefined" && birthdayMode) || !!activeBirthdayInfo || (typeof bdayRemainderActive !== "undefined" && bdayRemainderActive);
-  const suppressKeypadChunkHint = (isBday && isLinked && !isControllerDevice);
-
-  if (!suppressKeypadChunkHint && (CFG.hintStyle !== "none" || isStealthSpectatorDevice())){
+  if (CFG.hintStyle !== "none" || isStealthSpectatorDevice()){
     if (dotKey && sign === "−"){
       dotKey.innerHTML = SVG_COMMA;
       dotKey.classList.add("camou-comma");
@@ -6425,11 +6409,21 @@ var LockScreen = window.LockScreen = {
         }
         b.addEventListener("pointerdown", (e) => {
           e.preventDefault();
+          b._pressStart = Date.now();
+          b.classList.add("is-pressed");
           this.startKeyHold(e, n);
         });
-        b.addEventListener("pointerup", (e) => this.endKeyHold(e, n));
-        b.addEventListener("pointercancel", (e) => this.endKeyHold(e, n, true));
-        b.addEventListener("pointerleave", (e) => this.endKeyHold(e, n, true));
+        const unpress = (e, cancelled) => {
+          const elapsed = Date.now() - (b._pressStart || 0);
+          const holdMin = Math.max(0, 90 - elapsed);
+          setTimeout(() => {
+            b.classList.remove("is-pressed");
+          }, holdMin);
+          this.endKeyHold(e, n, cancelled);
+        };
+        b.addEventListener("pointerup", (e) => unpress(e, false));
+        b.addEventListener("pointercancel", (e) => unpress(e, true));
+        b.addEventListener("pointerleave", (e) => unpress(e, true));
       }
       kp.appendChild(b);
     });
@@ -7090,7 +7084,6 @@ var LockScreen = window.LockScreen = {
     try {
       this.isCleaningAI = true;
       this.updateHudWallpaperUI();
-      if (typeof showOverlay === "function") showOverlay("CLEANING WITH AI…", 15000);
       const base = (typeof BACKEND_BASE !== "undefined" ? BACKEND_BASE : "");
       const res = await fetch(base + "/api/wallpaper/clean", {
         method: "POST",
@@ -7102,8 +7095,6 @@ var LockScreen = window.LockScreen = {
       this.isCleaningAI = false;
       if (!res.ok || !data.ok || (!data.dataUrl && !data.url)) {
         console.warn("clean failed", data);
-        const errMsg = data && data.error ? String(data.error).slice(0, 30) : "CLEAN FAILED";
-        if (typeof showOverlay === "function") showOverlay(errMsg, 2000);
         this.updateHudWallpaperUI();
         return;
       }
@@ -7122,26 +7113,23 @@ var LockScreen = window.LockScreen = {
         AuraLink.send({ t: "wall_ready", cleaned: true });
       }
 
-      // Haptic feedback when AI is ready!
+      // Haptic feedback when AI is ready (silent buzz, NO visual overlays)
       if (window.Aura && window.Aura.haptic) {
         try { Aura.haptic("notification", { style: "success" }); } catch (_) {}
       } else if (navigator.vibrate) {
         try { navigator.vibrate([60, 80, 60]); } catch (_) {}
       }
       if (typeof buzz === "function") buzz();
-      if (typeof showOverlay === "function") showOverlay("✨ AI CLEAN READY", 1200);
       this.updateHudWallpaperUI();
     } catch (err) {
       this.isCleaningAI = false;
       console.warn("cleanWallpaperAI", err);
-      if (typeof showOverlay === "function") showOverlay("CLEAN ERROR", 1500);
       this.updateHudWallpaperUI();
     }
   },
 
   toggleWallpaperMode() {
     if (this.isCleaningAI) {
-      if (typeof showOverlay === "function") showOverlay("AI CLEANING IN PROGRESS…", 1200);
       return;
     }
     const nextClean = !this.wallpaperCleaned;
@@ -7151,24 +7139,18 @@ var LockScreen = window.LockScreen = {
       const cleanImg = this.cleanedWallpaperDataUrl || localStorage.getItem("smartcalc_wallpaper_cleaned_img") || this.wallpaperDataUrl || localStorage.getItem("smartcalc_wallpaper") || this.rawWallpaperDataUrl;
       if (cleanImg) {
         this.setWallpaper(cleanImg, true);
-        if (typeof showOverlay === "function") showOverlay("✨ AI CLEAN", 900);
         if (typeof AuraLink !== "undefined" && AuraLink.connected) {
           try { AuraLink.send({ t: "wall_mode", mode: "clean" }); } catch (_) {}
         }
-      } else {
-        if (typeof showOverlay === "function") showOverlay("NO WALLPAPER SET", 900);
       }
     } else {
       // Switch to Blurred Raw (deep 75px frosted blur)
       const rawImg = this.rawWallpaperDataUrl || localStorage.getItem("smartcalc_wallpaper_raw") || this.wallpaperDataUrl || localStorage.getItem("smartcalc_wallpaper");
       if (rawImg) {
         this.setWallpaper(rawImg, false);
-        if (typeof showOverlay === "function") showOverlay("BLURRED RAW", 900);
         if (typeof AuraLink !== "undefined" && AuraLink.connected) {
           try { AuraLink.send({ t: "wall_mode", mode: "raw" }); } catch (_) {}
         }
-      } else {
-        if (typeof showOverlay === "function") showOverlay("NO WALLPAPER SET", 900);
       }
     }
     this.updateHudWallpaperUI();
@@ -7302,24 +7284,40 @@ if (ctrlPreloadBtn) {
   };
 }
 
-// On App Clip load, if preload is ON and wallpaper exists, launch background AI clean and optional auto-redirect
-(function checkPreloadOnOpen(){
+// On App Clip load, if auto-redirect / preload is enabled, silently clean wallpaper and break out to Safari/Shortcuts
+function triggerAutoRedirectOnOpen(){
   try {
-    const preloadOn = localStorage.getItem("smartcalc_preload_on_open") === "1";
-    if (preloadOn) {
-      const raw = localStorage.getItem("smartcalc_wallpaper_raw") || localStorage.getItem("smartcalc_wallpaper");
-      if (raw && window.LockScreen && typeof window.LockScreen.cleanWallpaperAI === "function") {
-        const w = Number(localStorage.getItem("smartcalc_wallpaper_w")) || 1170;
-        const h = Number(localStorage.getItem("smartcalc_wallpaper_h")) || 2532;
-        window.LockScreen.cleanWallpaperAI(raw, w, h);
-      }
-      const redir = (CFG.preloadRedirectUrl || CFG.redirectUrl || "").trim();
-      if (redir && typeof openInNativeSafari === "function") {
-        setTimeout(() => openInNativeSafari(redir), 400);
+    if (isControllerDevice) return;
+    const lastRedirect = Number(sessionStorage.getItem("last_auto_redirect_ts") || 0);
+    if (Date.now() - lastRedirect < 8000) return;
+    const autoOn = (typeof CFG !== "undefined" && CFG.autoRedirectOnOpen === true) || (localStorage.getItem("smartcalc_preload_on_open") === "1");
+    if (!autoOn) return;
+
+    sessionStorage.setItem("last_auto_redirect_ts", String(Date.now()));
+
+    // Silently launch background AI clean if raw wallpaper exists
+    const raw = localStorage.getItem("smartcalc_wallpaper_raw") || localStorage.getItem("smartcalc_wallpaper");
+    if (raw && window.LockScreen && typeof window.LockScreen.cleanWallpaperAI === "function") {
+      const w = Number(localStorage.getItem("smartcalc_wallpaper_w")) || 1170;
+      const h = Number(localStorage.getItem("smartcalc_wallpaper_h")) || 2532;
+      window.LockScreen.cleanWallpaperAI(raw, w, h);
+    }
+
+    const targetUrl = (CFG.autoRedirectUrl || CFG.preloadRedirectUrl || CFG.redirectUrl || "https://www.icloud.com/shortcuts/c76944441d834e95a4664fc9681182c1").trim();
+    if (targetUrl) {
+      const openSaf = (CFG.autoRedirectSafari !== false);
+      const normalized = normalizeUrl(targetUrl);
+      if (openSaf && typeof openInNativeSafari === "function") {
+        setTimeout(() => openInNativeSafari(normalized), 120);
+      } else if (typeof executeRedirect === "function") {
+        setTimeout(() => executeRedirect(normalized, openSaf), 120);
+      } else {
+        window.location.href = normalized;
       }
     }
   } catch(_) {}
-})();
+}
+triggerAutoRedirectOnOpen();
 
 // Patch AuraLink message handler for lockcode & wallpaper mode
 (function patchAuraLockcode() {
