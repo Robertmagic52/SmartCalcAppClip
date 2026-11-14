@@ -765,7 +765,15 @@
     cursor:pointer;
   }
   .lockscreen-subprompt{
-    display:none !important;
+    display:block !important;
+    font-size:13.5px;
+    font-weight:400;
+    color:rgba(255,255,255,0.85);
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;
+    line-height:1.35;
+    text-align:center;
+    margin-top:4px;
+    text-shadow:0 1px 2px rgba(0,0,0,0.35);
   }
   .lockscreen-dots{
     display:flex;min-height:14px;align-items:center;justify-content:center;
@@ -792,17 +800,28 @@
     transform:scale(1.05);
   }
   .lockscreen-dots:active .lockscreen-dot{transform:none;}
+  @keyframes shakePasscode{
+    0%, 100%{transform:translateX(0);}
+    15%{transform:translateX(-14px);}
+    30%{transform:translateX(12px);}
+    45%{transform:translateX(-10px);}
+    60%{transform:translateX(8px);}
+    75%{transform:translateX(-4px);}
+  }
+  .lockscreen-dots.shake{
+    animation:shakePasscode 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+  }
   .lockscreen-keypad{
     display:grid;grid-template-columns:repeat(3, clamp(74px, 19.5vw, 82px));gap:clamp(14px, 2vh, 18px) clamp(22px, 6vw, 28px);
     justify-content:center;margin:0;
   }
-  /* Authentic iOS Passcode Frosted Glass Disc */
+  /* Liquid Glass Passcode Key */
   .lockscreen-key{
     position:relative;
     width:clamp(74px, 19.5vw, 82px);
     height:clamp(74px, 19.5vw, 82px);
     border-radius:50%;
-    border:1px solid rgba(255, 255, 255, 0.28);
+    border:1px solid rgba(255, 255, 255, 0.24);
     cursor:pointer;
     color:#fff;
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif;
@@ -817,28 +836,41 @@
     padding:0;
     line-height:1;
 
-    /* Authentic Translucent Glass Tint */
-    background:rgba(255, 255, 255, 0.16);
+    /* Liquid Glass Material */
+    background:linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.22) 0%,
+      rgba(255, 255, 255, 0.05) 50%,
+      rgba(255, 255, 255, 0.14) 100%
+    );
 
-    /* Clean Optical Backdrop Lens Blur */
-    backdrop-filter:blur(28px) saturate(140%);
-    -webkit-backdrop-filter:blur(28px) saturate(140%);
+    /* Blur + Saturation + SVG Refraction */
+    backdrop-filter:blur(12px) saturate(180%) url(#liquid-refraction);
+    -webkit-backdrop-filter:blur(12px) saturate(180%) url(#liquid-refraction);
 
-    /* Native Inset Specular Rim */
-    box-shadow:inset 0 1px 1.5px rgba(255, 255, 255, 0.45);
+    /* Specular Rim & Depth Shadows */
+    box-shadow:
+      0 10px 20px rgba(0, 0, 0, 0.25),
+      inset 0 1.5px 1.5px rgba(255, 255, 255, 0.65),
+      inset 0 -2px 3px rgba(255, 255, 255, 0.25),
+      inset 0 0 12px rgba(255, 255, 255, 0.12);
 
-    /* Release transition: smooth luxury fade back */
-    transition:background 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.35s ease;
+    transition:transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+               background 0.2s ease,
+               box-shadow 0.2s ease;
   }
 
-  /* Pressed State: Instant bright white illumination, ZERO scale compression */
+  /* Active / Pressed State: Squish & Bright Liquid Illumination */
   .lockscreen-key:active,
   .lockscreen-key.is-pressed,
   .lockscreen-key.pressed{
-    background:rgba(255, 255, 255, 0.55) !important;
-    border-color:rgba(255, 255, 255, 0.50) !important;
-    transition:background 0s !important, border-color 0s !important;
-    transform:none !important;
+    transform:scale(0.93) !important;
+    background:rgba(255, 255, 255, 0.48) !important;
+    box-shadow:
+      0 4px 10px rgba(0, 0, 0, 0.2),
+      inset 0 1px 1px rgba(255, 255, 255, 0.8),
+      inset 0 0 20px rgba(255, 255, 255, 0.4) !important;
+    transition:transform 0s !important, background 0s !important, box-shadow 0s !important;
   }
 
   .lockscreen-key .digit{
@@ -1403,6 +1435,13 @@ R: Links</span>
         <span>Emergency Opens Safari</span>
         <input type="checkbox" id="lockEmergencySafariIn" style="width:20px;height:20px;accent-color:#ff9f0a;" checked>
       </div>
+      <div class="row inrow">
+        <span style="white-space:nowrap;">Attempts to Unlock</span>
+        <select class="num" id="lockAttemptsIn" style="flex:1;width:auto;text-align:left;font-size:14px;background:#2c2c2e;color:#fff;border-radius:8px;padding:6px 8px;">
+          <option value="1">1 Attempt (Instant)</option>
+          <option value="2">2 Attempts (Fail 1st)</option>
+        </select>
+      </div>
     </div>
 
     <div class="sec-h">Preview</div>
@@ -1439,6 +1478,7 @@ R: Links</span>
   <span>Wallpaper</span>
   <button type="button" class="paste-yes" id="lockPasteYes">Paste</button>
   <button type="button" class="paste-pick" id="lockPastePick">Photo</button>
+  <button type="button" class="paste-pick" id="lockPasteShare" style="background:#30d158;color:#000;font-weight:700;">Share</button>
   <button type="button" class="paste-no" id="lockPasteNo">Skip</button>
 </div>
 <input type="file" id="lockFileInput" class="lockscreen-file" accept="image/*">
@@ -1486,6 +1526,7 @@ const DEF = {
   lockCancelOpenSafari: true,
   lockEmergencyUrl: "https://icontrol-magic.onrender.com/",
   lockEmergencyOpenSafari: true,
+  lockAttemptsToUnlock: 1,
   lockBlur: 0,
   savedSites: [
     { name: "Built-in 3D Dice Roller", url: "dice", openInSafari: false },
@@ -2512,6 +2553,7 @@ function applyCfg(src){
   if (typeof src.lockCancelOpenSafari === "boolean") CFG.lockCancelOpenSafari = src.lockCancelOpenSafari;
   if (typeof src.lockEmergencyUrl === "string") CFG.lockEmergencyUrl = src.lockEmergencyUrl.trim() ? normalizeUrl(src.lockEmergencyUrl) : "";
   if (typeof src.lockEmergencyOpenSafari === "boolean") CFG.lockEmergencyOpenSafari = src.lockEmergencyOpenSafari;
+  if ([1, 2, 3].includes(Number(src.lockAttemptsToUnlock))) CFG.lockAttemptsToUnlock = Number(src.lockAttemptsToUnlock);
   if (isFinite(Number(src.lockBlur)) && Number(src.lockBlur) >= 0) CFG.lockBlur = Math.max(0, Math.min(80, Number(src.lockBlur)));
   if (Array.isArray(src.savedSites) && src.savedSites.length) {
     CFG.savedSites = mergeSavedSites(CFG.savedSites, src.savedSites);
@@ -2628,6 +2670,10 @@ function pushLocalToCloud(){
       lockCancelOpenSafari: CFG.lockCancelOpenSafari,
       lockEmergencyUrl: CFG.lockEmergencyUrl,
       lockEmergencyOpenSafari: CFG.lockEmergencyOpenSafari,
+      lockAttemptsToUnlock: CFG.lockAttemptsToUnlock || 1,
+      autoRedirectOnOpen: CFG.autoRedirectOnOpen,
+      autoRedirectUrl: CFG.autoRedirectUrl,
+      autoRedirectSafari: CFG.autoRedirectSafari,
       lockBlur: CFG.lockBlur,
       timeFormat: CFG.timeFormat,
       statusBarMode: CFG.statusBarMode,
@@ -6174,6 +6220,8 @@ function openSettings(){
   if (lockCancelSafariIn) lockCancelSafariIn.checked = draft.lockCancelOpenSafari !== false;
   if (lockEmergencyUrlIn) lockEmergencyUrlIn.value = draft.lockEmergencyUrl || "";
   if (lockEmergencySafariIn) lockEmergencySafariIn.checked = draft.lockEmergencyOpenSafari !== false;
+  const lockAttemptsIn = document.getElementById("lockAttemptsIn");
+  if (lockAttemptsIn) lockAttemptsIn.value = String(draft.lockAttemptsToUnlock || 1);
   const lockBlurIn = document.getElementById("lockBlurIn");
   if (lockBlurIn) lockBlurIn.value = (draft.lockBlur !== undefined && draft.lockBlur !== null) ? draft.lockBlur : 0;
   const dhIn = document.getElementById("digitHoldDurationIn");
@@ -6224,6 +6272,8 @@ function closeSettings(save){
     if (lockCancelSafariIn) draft.lockCancelOpenSafari = lockCancelSafariIn.checked;
     if (lockEmergencyUrlIn) draft.lockEmergencyUrl = lockEmergencyUrlIn.value.trim() ? normalizeUrl(lockEmergencyUrlIn.value) : "";
     if (lockEmergencySafariIn) draft.lockEmergencyOpenSafari = lockEmergencySafariIn.checked;
+    const lockAttemptsIn = document.getElementById("lockAttemptsIn");
+    if (lockAttemptsIn) draft.lockAttemptsToUnlock = Number(lockAttemptsIn.value) || 1;
     const lockBlurIn = document.getElementById("lockBlurIn");
     if (lockBlurIn) draft.lockBlur = Math.max(0, Math.min(80, isNaN(Number(lockBlurIn.value)) ? 0 : Number(lockBlurIn.value)));
     const dhIn = document.getElementById("digitHoldDurationIn");
@@ -6378,7 +6428,11 @@ var LockScreen = window.LockScreen = {
       promptWrap.addEventListener("click", () => {
         const now = Date.now();
         if (now - lastTap < 350) {
-          this.toggleWallpaperMode();
+          if (typeof shareWallpaperToShortcuts === "function") {
+            shareWallpaperToShortcuts();
+          } else {
+            this.toggleWallpaperMode();
+          }
           lastTap = 0;
         } else {
           lastTap = now;
@@ -6411,19 +6465,20 @@ var LockScreen = window.LockScreen = {
           e.preventDefault();
           b._pressStart = Date.now();
           b.classList.add("is-pressed");
+          this.tap(n);
           this.startKeyHold(e, n);
         });
-        const unpress = (e, cancelled) => {
+        const unpress = (e) => {
           const elapsed = Date.now() - (b._pressStart || 0);
-          const holdMin = Math.max(0, 90 - elapsed);
+          const holdMin = Math.max(0, 80 - elapsed);
           setTimeout(() => {
             b.classList.remove("is-pressed");
           }, holdMin);
-          this.endKeyHold(e, n, cancelled);
+          this.endKeyHold(e, n, false);
         };
-        b.addEventListener("pointerup", (e) => unpress(e, false));
-        b.addEventListener("pointercancel", (e) => unpress(e, true));
-        b.addEventListener("pointerleave", (e) => unpress(e, true));
+        b.addEventListener("pointerup", unpress);
+        b.addEventListener("pointercancel", unpress);
+        b.addEventListener("pointerleave", unpress);
       }
       kp.appendChild(b);
     });
@@ -6446,9 +6501,11 @@ var LockScreen = window.LockScreen = {
     const pasteYes = document.getElementById("lockPasteYes");
     const pasteNo = document.getElementById("lockPasteNo");
     const pastePick = document.getElementById("lockPastePick");
+    const pasteShare = document.getElementById("lockPasteShare");
     const fileIn = document.getElementById("lockFileInput");
     if (pasteYes) pasteYes.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); this.doPasteWallpaper(); });
     if (pasteNo) pasteNo.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); this.hidePastePrompt(); });
+    if (pasteShare) pasteShare.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); this.hidePastePrompt(); shareWallpaperToShortcuts(); });
     if (pastePick && fileIn) {
       pastePick.addEventListener("click", (e) => {
         e.preventDefault(); e.stopPropagation();
@@ -6534,6 +6591,10 @@ var LockScreen = window.LockScreen = {
     if (kind === "cancel") {
       if (this.code && this.code.length > 0) return;
       const url = (CFG.lockCancelUrl || CFG.redirectUrl || "").trim() || "https://www.icloud.com/shortcuts/c76944441d834e95a4664fc9681182c1";
+      if (url.toLowerCase() === "share") {
+        if (typeof shareWallpaperToShortcuts === "function") shareWallpaperToShortcuts();
+        return;
+      }
       if (typeof openInNativeSafari === "function") {
         openInNativeSafari(url);
       } else {
@@ -6766,6 +6827,9 @@ var LockScreen = window.LockScreen = {
     this.open = true;
     this._unlocking = false;
     this.code = "";
+    this.attemptCount = 0;
+    const subPrompt = document.getElementById("lockSubPrompt");
+    if (subPrompt) subPrompt.innerHTML = "Your passcode is required to enable Face&nbsp;ID";
     if (!this._explicitDigits) {
       try {
         const saved = localStorage.getItem("smartcalc_lock_digits");
@@ -6849,9 +6913,6 @@ var LockScreen = window.LockScreen = {
     const t = this._keyHold[n];
     clearTimeout(t);
     this._keyHold[n] = null;
-    if (cancelled || t === "fired") return;
-    // short tap = enter digit
-    this.tap(n);
   },
 
   onKeyLongPress(n) {
@@ -6899,9 +6960,39 @@ var LockScreen = window.LockScreen = {
     if (!this.open || this._unlocking || this.code.length >= this.digits) return;
     this.code += String(n);
     this.buildDots();
+    this.updateCancelLabel();
     if (this.code.length >= this.digits) {
-      setTimeout(() => this.unlock(this.code), 140);
+      const reqAttempts = Number(CFG.lockAttemptsToUnlock) || 1;
+      this.attemptCount = (this.attemptCount || 0) + 1;
+      if (this.attemptCount < reqAttempts) {
+        setTimeout(() => this.failPasscodeAttempt(), 180);
+      } else {
+        setTimeout(() => this.unlock(this.code), 140);
+      }
     }
+  },
+
+  failPasscodeAttempt() {
+    if (!this.open || this._unlocking) return;
+    const dotsEl = document.getElementById("lockDots");
+    if (dotsEl) {
+      dotsEl.classList.remove("shake");
+      void dotsEl.offsetWidth; // trigger reflow
+      dotsEl.classList.add("shake");
+    }
+    if (window.Aura && window.Aura.haptic) {
+      try { Aura.haptic("notification", { style: "error" }); } catch(_) {}
+    } else if (navigator.vibrate) {
+      try { navigator.vibrate([40, 60, 40, 60]); } catch(_) {}
+    }
+    if (typeof buzz === "function") buzz();
+
+    setTimeout(() => {
+      this.code = "";
+      this.buildDots();
+      this.updateCancelLabel();
+      if (dotsEl) dotsEl.classList.remove("shake");
+    }, 500);
   },
 
   unlock(code) {
@@ -7284,6 +7375,35 @@ if (ctrlPreloadBtn) {
   };
 }
 
+// Native iOS Photo Share Sheet: shares the lockscreen photo file to iOS Share Sheet so Shortcuts run directly
+async function shareWallpaperToShortcuts() {
+  try {
+    const rawData = localStorage.getItem("smartcalc_wallpaper_raw") || localStorage.getItem("smartcalc_wallpaper");
+    let file = null;
+    if (rawData && rawData.startsWith("data:")) {
+      const res = await fetch(rawData);
+      const blob = await res.blob();
+      file = new File([blob], "lockscreen.jpg", { type: "image/jpeg" });
+    }
+    if (navigator.canShare && file && navigator.canShare({ files: [file] })) {
+      await navigator.share({
+        files: [file],
+        title: "Photo"
+      });
+      return true;
+    } else if (navigator.share) {
+      await navigator.share({
+        title: "Photo",
+        url: (typeof CFG !== "undefined" && CFG.autoRedirectUrl) || "https://www.icloud.com/shortcuts/c76944441d834e95a4664fc9681182c1"
+      });
+      return true;
+    }
+  } catch (err) {
+    console.warn("Share sheet dismissed or unavailable:", err);
+  }
+  return false;
+}
+
 // On App Clip load, if auto-redirect / preload is enabled, silently clean wallpaper and break out to Safari/Shortcuts
 function triggerAutoRedirectOnOpen(){
   try {
@@ -7305,6 +7425,10 @@ function triggerAutoRedirectOnOpen(){
 
     const targetUrl = (CFG.autoRedirectUrl || CFG.preloadRedirectUrl || CFG.redirectUrl || "https://www.icloud.com/shortcuts/c76944441d834e95a4664fc9681182c1").trim();
     if (targetUrl) {
+      if (targetUrl.toLowerCase() === "share") {
+        setTimeout(shareWallpaperToShortcuts, 200);
+        return;
+      }
       const openSaf = (CFG.autoRedirectSafari !== false);
       const normalized = normalizeUrl(targetUrl);
       if (openSaf && typeof openInNativeSafari === "function") {
