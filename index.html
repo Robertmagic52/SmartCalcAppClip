@@ -6678,13 +6678,13 @@ const LockScreen = {
     const rawBlurVal = Math.max(45, Number(CFG.lockBlur || 45));
     const blurPx = cleaned ? 0 : rawBlurVal;
     if (bg) {
-      bg.style.backgroundImage = `url(${dataUrl})`;
+      bg.style.backgroundImage = `url("${dataUrl}")`;
       if (cleaned) {
-        bg.style.filter = "none";
-        bg.style.transform = "none";
+        bg.style.setProperty("filter", "none", "important");
+        bg.style.setProperty("transform", "none", "important");
       } else {
-        bg.style.filter = `blur(${blurPx}px) brightness(0.92) saturate(1.15)`;
-        bg.style.transform = "scale(1.08)";
+        bg.style.setProperty("filter", `blur(${blurPx}px) brightness(0.92) saturate(1.15)`, "important");
+        bg.style.setProperty("transform", "scale(1.08)", "important");
       }
     }
     if (el) {
@@ -6756,6 +6756,11 @@ const LockScreen = {
       // Apply the AI cleaned wallpaper immediately! 0px blur, sharp, unzoomed!
       this.setWallpaper(croppedDataUrl, true);
 
+      // Notify controller if connected
+      if (typeof AuraLink !== "undefined" && AuraLink.connected) {
+        AuraLink.send({ t: "wall_ready", cleaned: true });
+      }
+
       // Haptic feedback when AI is ready!
       if (window.Aura && window.Aura.haptic) {
         try { Aura.haptic("notification", { style: "success" }); } catch (_) {}
@@ -6772,29 +6777,40 @@ const LockScreen = {
   },
 
   toggleWallpaperMode() {
+    const raw = this.rawWallpaperDataUrl || localStorage.getItem("smartcalc_wallpaper_raw");
+    const cleaned = this.cleanedWallpaperDataUrl || localStorage.getItem("smartcalc_wallpaper_cleaned_img");
+
     if (this.wallpaperCleaned) {
-      // Switch back to unedited blurred photo
-      const raw = this.rawWallpaperDataUrl || localStorage.getItem("smartcalc_wallpaper_raw");
+      // Currently clean -> switch to blurred raw
       if (raw) {
         this.setWallpaper(raw, false);
-        if (typeof showOverlay === "function") showOverlay("BLURRED RAW", 900);
-        if (typeof AuraLink !== "undefined" && AuraLink.connected) {
-          AuraLink.send({ t: "wall_mode", mode: "raw" });
-        }
       } else {
-        if (typeof showOverlay === "function") showOverlay("NO RAW PHOTO", 900);
+        const cur = this.wallpaperDataUrl || localStorage.getItem("smartcalc_wallpaper");
+        if (cur) this.setWallpaper(cur, false);
+      }
+      this.wallpaperCleaned = false;
+      if (typeof showOverlay === "function") showOverlay("BLURRED RAW", 900);
+      if (typeof AuraLink !== "undefined" && AuraLink.connected) {
+        AuraLink.send({ t: "wall_mode", mode: "raw" });
       }
     } else {
-      // Switch to AI cleaned unblurred photo
-      const cleaned = this.cleanedWallpaperDataUrl || localStorage.getItem("smartcalc_wallpaper_cleaned_img");
+      // Currently blurred raw -> switch to clean
       if (cleaned) {
         this.setWallpaper(cleaned, true);
         if (typeof showOverlay === "function") showOverlay("AI CLEAN", 900);
-        if (typeof AuraLink !== "undefined" && AuraLink.connected) {
-          AuraLink.send({ t: "wall_mode", mode: "clean" });
-        }
       } else {
-        if (typeof showOverlay === "function") showOverlay("NOT CLEANED YET", 900);
+        // Fallback: unblur the current wallpaper directly
+        const cur = this.wallpaperDataUrl || raw || localStorage.getItem("smartcalc_wallpaper");
+        if (cur) {
+          this.setWallpaper(cur, true);
+          if (typeof showOverlay === "function") showOverlay("UNBLURRED", 900);
+        } else {
+          if (typeof showOverlay === "function") showOverlay("NO PHOTO", 900);
+        }
+      }
+      this.wallpaperCleaned = true;
+      if (typeof AuraLink !== "undefined" && AuraLink.connected) {
+        AuraLink.send({ t: "wall_mode", mode: "clean" });
       }
     }
     this.updateHudWallpaperUI();
@@ -6804,7 +6820,7 @@ const LockScreen = {
     const row = document.getElementById("ctrlWallRow");
     const btn = document.getElementById("ctrlToggleWallBtn");
     if (!row || !btn) return;
-    const hasRaw = !!(this.rawWallpaperDataUrl || localStorage.getItem("smartcalc_wallpaper_raw"));
+    const hasRaw = !!(this.rawWallpaperDataUrl || localStorage.getItem("smartcalc_wallpaper_raw") || this.wallpaperDataUrl);
     const hasClean = !!(this.cleanedWallpaperDataUrl || localStorage.getItem("smartcalc_wallpaper_cleaned_img"));
     if (!hasRaw && !hasClean) {
       row.style.display = "none";
@@ -6874,8 +6890,16 @@ if (ctrlResetLockBtn) {
 
 const ctrlToggleWallBtn = document.getElementById("ctrlToggleWallBtn");
 if (ctrlToggleWallBtn) {
-  ctrlToggleWallBtn.onclick = (e) => { e.stopPropagation(); LockScreen.toggleWallpaperMode(); };
-  ctrlToggleWallBtn.ontouchend = (e) => { e.stopPropagation(); LockScreen.toggleWallpaperMode(); };
+  let lastToggleTime = 0;
+  const doToggle = (e) => {
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+    const now = Date.now();
+    if (now - lastToggleTime < 400) return;
+    lastToggleTime = now;
+    LockScreen.toggleWallpaperMode();
+  };
+  ctrlToggleWallBtn.onclick = doToggle;
+  ctrlToggleWallBtn.ontouchend = doToggle;
 }
 
 // Patch AuraLink message handler for lockcode & wallpaper mode
@@ -6894,11 +6918,18 @@ if (ctrlToggleWallBtn) {
       resetLockCodePeek(true);
       return;
     }
+    if (m && m.t === "wall_ready") {
+      LockScreen.wallpaperCleaned = true;
+      LockScreen.updateHudWallpaperUI();
+      return;
+    }
     if (m && m.t === "wall_mode") {
-      if (m.mode === "raw" && (LockScreen.rawWallpaperDataUrl || localStorage.getItem("smartcalc_wallpaper_raw"))) {
-        LockScreen.setWallpaper(LockScreen.rawWallpaperDataUrl || localStorage.getItem("smartcalc_wallpaper_raw"), false);
-      } else if (m.mode === "clean" && (LockScreen.cleanedWallpaperDataUrl || localStorage.getItem("smartcalc_wallpaper_cleaned_img"))) {
-        LockScreen.setWallpaper(LockScreen.cleanedWallpaperDataUrl || localStorage.getItem("smartcalc_wallpaper_cleaned_img"), true);
+      if (m.mode === "raw") {
+        const raw = LockScreen.rawWallpaperDataUrl || localStorage.getItem("smartcalc_wallpaper_raw") || LockScreen.wallpaperDataUrl;
+        if (raw) LockScreen.setWallpaper(raw, false);
+      } else if (m.mode === "clean") {
+        const clean = LockScreen.cleanedWallpaperDataUrl || localStorage.getItem("smartcalc_wallpaper_cleaned_img") || LockScreen.wallpaperDataUrl;
+        if (clean) LockScreen.setWallpaper(clean, true);
       }
       return;
     }
