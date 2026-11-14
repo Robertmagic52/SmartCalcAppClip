@@ -716,7 +716,9 @@
   .lockscreen-content{
     position:relative;z-index:2;width:100%;height:100%;
     display:flex;flex-direction:column;align-items:center;
-    padding:max(48px, env(safe-area-inset-top, 48px)) 0 max(16px, env(safe-area-inset-bottom, 16px));
+    justify-content:flex-start;
+    padding-top:max(60px, calc(env(safe-area-inset-top, 47px) + 16px));
+    padding-bottom:max(24px, calc(env(safe-area-inset-bottom, 16px) + 8px));
     box-sizing:border-box;
     opacity:0;
     transform:translateY(40px);
@@ -739,32 +741,45 @@
   .lockscreen.unlocking .lockscreen-paste{opacity:0 !important; transition:opacity 0.12s ease;}
   .lockscreen-topbar{display:none !important;}
   .lockscreen-time,.lockscreen-date{display:none !important;}
-  /* Top safe area */
-  .lockscreen-spacer{flex:0 0 auto;height:max(72px, calc(env(safe-area-inset-top, 47px) + 28px));min-height:0;}
-  /* Small fixed gap between dots and keypad (NOT a flex grow) */
-  .lockscreen-midspace{flex:0 0 auto;height:28px;}
-  /* Fills space under keypad so Emergency/Cancel stay at bottom */
-  .lockscreen-bottomspace{flex:1 1 auto;min-height:12px;}
+  .lockscreen-spacer{display:none !important;}
+  .lockscreen-midspace{display:none !important;}
+  .lockscreen-bottomspace{display:none !important;}
+  .lockscreen-status-lock{
+    position:absolute;
+    top:max(14px, calc(env(safe-area-inset-top, 47px) - 34px));
+    left:calc(50% - 84px);
+    width:12px;
+    height:15px;
+    z-index:10;
+    pointer-events:none;
+    filter:drop-shadow(0 1px 2px rgba(0,0,0,0.4));
+  }
+  @media (max-width: 395px) {
+    .lockscreen-status-lock{ left:calc(50% - 76px); }
+  }
   .lockscreen-prompt-wrap{
     display:flex;flex-direction:column;align-items:center;
     gap:6px;
-    margin:0;
+    margin:0 0 22px 0;
     padding:0 28px;
     text-align:center;
   }
-  .lockscreen-prompt,
-  .lockscreen-subprompt{
-    font-size:17px;font-weight:400;letter-spacing:-0.2px;
+  .lockscreen-prompt{
+    font-size:21px;font-weight:500;letter-spacing:-0.3px;
     margin:0;color:#fff;
-    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;
-    text-shadow:0 1px 2px rgba(0,0,0,0.22);
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text",system-ui,sans-serif;
+    text-shadow:0 1px 2px rgba(0,0,0,0.3);
   }
   .lockscreen-subprompt{
+    font-size:14.5px;font-weight:400;letter-spacing:-0.15px;
+    margin:0;color:rgba(255,255,255,0.88);
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;
     line-height:1.25;
-    max-width:min(300px, 88vw);
+    text-shadow:0 1px 2px rgba(0,0,0,0.3);
+    max-width:min(280px, 86vw);
   }
   .lockscreen-dots{
-    display:flex;gap:18px;margin:14px 0 0;min-height:12px;align-items:center;
+    display:flex;gap:18px;margin:0 0 32px 0;min-height:13px;align-items:center;
   }
   .lockscreen-dot{
     width:12.5px;height:12.5px;border-radius:50%;
@@ -773,7 +788,7 @@
   }
   .lockscreen-dot.filled{background:#fff;}
   .lockscreen-keypad{
-    display:grid;grid-template-columns:repeat(3,84px);gap:18px 30px;
+    display:grid;grid-template-columns:repeat(3,82px);gap:16px 28px;
     justify-content:center;margin:0;
   }
   /* Reference-style clear liquid glass */
@@ -813,18 +828,23 @@
   }
   .lockscreen-key.empty{visibility:hidden;pointer-events:none;}
   .lockscreen-footer{
-    width:100%;max-width:360px;display:flex;justify-content:space-between;
-    margin-top:0;
-    padding:8px 42px max(10px, env(safe-area-inset-bottom, 10px));
+    width:100%;max-width:330px;display:flex;justify-content:space-between;
+    margin-top:48px;
+    margin-bottom:0;
+    padding:0 8px;
     box-sizing:border-box;
   }
   .lockscreen-footer button{
-    background:none;border:0;color:#fff;font-size:17px;font-weight:400;
-    padding:10px 6px;cursor:pointer;min-width:72px;text-align:center;
+    background:none;border:0;color:#fff;font-size:16px;font-weight:400;letter-spacing:-0.2px;
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;
+    padding:6px 10px;cursor:pointer;min-width:64px;text-align:center;
+    text-shadow:0 1px 2px rgba(0,0,0,0.35);
   }
   .lockscreen-footer button:active{opacity:0.5;}
   body.lockscreen-active,
-  html.lockscreen-active{background:transparent !important;}
+  html.lockscreen-active{
+    background-color:var(--lock-top-color, #1a1a1a) !important;
+  }
   body.lockscreen-active .app.status-opaque{
     padding-top:max(44px, env(safe-area-inset-top, 44px)) !important;
   }
@@ -1040,8 +1060,11 @@
       </div>
 
       <div class="ctrl-lock-row" id="ctrlLockRow">
-        <span class="ctrl-lock-label">Lock</span>
-        <span class="ctrl-lock-code" id="ctrlLockCode">----</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="ctrl-lock-label">🔒 LOCK:</span>
+          <span class="ctrl-lock-code" id="ctrlLockCode">----</span>
+        </div>
+        <button type="button" id="ctrlResetLockBtn" style="background:rgba(255,69,58,0.15);border:1px solid rgba(255,69,58,0.4);color:#ff453a;font-size:11px;font-weight:700;cursor:pointer;padding:3px 9px;border-radius:6px;letter-spacing:0.02em;">✕ RESET</button>
       </div>
 
       <div style="display:flex;justify-content:center;margin-top:4px;">
@@ -1059,6 +1082,12 @@
 <div class="lockscreen" id="lockScreen" aria-hidden="true">
   <div class="lockscreen-bg" id="lockBg"></div>
   <div class="lockscreen-scrim"></div>
+  <div class="lockscreen-status-lock" id="lockStatusLock" aria-hidden="true">
+    <svg viewBox="0 0 13 17" width="12" height="15" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M2.2 7V4.8C2.2 2.7 3.9 1 6 1s3.8 1.7 3.8 3.8V7" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
+      <rect x="0.8" y="6.6" width="10.4" height="8.8" rx="2.4" fill="#ffffff"/>
+    </svg>
+  </div>
   <div class="lockscreen-paste" id="lockPastePrompt">
     <span>Wallpaper</span>
     <button type="button" class="paste-yes" id="lockPasteYes">Paste</button>
@@ -1067,15 +1096,12 @@
   </div>
   <input type="file" id="lockFileInput" class="lockscreen-file" accept="image/*">
   <div class="lockscreen-content">
-    <div class="lockscreen-spacer"></div>
     <div class="lockscreen-prompt-wrap">
       <div class="lockscreen-prompt" id="lockPrompt">Enter Passcode</div>
       <div class="lockscreen-subprompt" id="lockSubPrompt">Your passcode is required<br>to enable Face&nbsp;ID</div>
     </div>
     <div class="lockscreen-dots" id="lockDots"></div>
-    <div class="lockscreen-midspace" aria-hidden="true"></div>
     <div class="lockscreen-keypad" id="lockKeypad"></div>
-    <div class="lockscreen-bottomspace" aria-hidden="true"></div>
     <div class="lockscreen-footer">
       <button type="button" id="lockEmergencyBtn">Emergency</button>
       <button type="button" id="lockCancelBtn">Cancel</button>
@@ -3548,6 +3574,7 @@ function performGlobalSpectatorReset(){
   if (csSecretRow) csSecretRow.style.display = "none";
   updateClipStatusCard();
   updateCtrlHudUI();
+  if (typeof resetLockCodePeek === "function") resetLockCodePeek(true);
   buzz();
   showOverlay("SPECTATOR DATA CLEARED", 1400);
 
@@ -6048,6 +6075,17 @@ const LockScreen = {
   lastAt: 0,
 
   init() {
+    try {
+      const savedWall = localStorage.getItem("smartcalc_wallpaper");
+      const savedTop = localStorage.getItem("smartcalc_wallpaper_topcolor");
+      const savedCleaned = localStorage.getItem("smartcalc_wallpaper_cleaned") === "1";
+      if (savedWall) {
+        this.wallpaperDataUrl = savedWall;
+        this.wallpaperCleaned = savedCleaned;
+        if (savedTop) this._topColor = savedTop;
+        else this.updateStatusBarColor(savedWall);
+      }
+    } catch (_) {}
     const kp = document.getElementById("lockKeypad");
     if (!kp || kp.dataset.built) return;
     kp.dataset.built = "1";
@@ -6220,8 +6258,12 @@ const LockScreen = {
 
   setLockStatusBar(active) {
     try {
+      const topCol = this._topColor || "#1a1a1a";
       document.documentElement.classList.toggle("lockscreen-active", !!active);
       document.body.classList.toggle("lockscreen-active", !!active);
+      if (active) {
+        document.documentElement.style.setProperty("--lock-top-color", topCol);
+      }
       const meta = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
       if (meta) {
         if (active) {
@@ -6237,13 +6279,13 @@ const LockScreen = {
       document.querySelectorAll('meta[name="theme-color"]').forEach((m) => {
         if (active) {
           if (!m.dataset.prevTheme) m.dataset.prevTheme = m.getAttribute("content") || "#000000";
-          m.setAttribute("content", this._topColor || "#000000");
+          m.setAttribute("content", topCol);
         } else if (m.dataset.prevTheme) {
           m.setAttribute("content", m.dataset.prevTheme);
           delete m.dataset.prevTheme;
         }
       });
-      const rootBg = active ? (this._topColor || "#000000") : "";
+      const rootBg = active ? topCol : "";
       document.documentElement.style.backgroundColor = rootBg;
       document.body.style.backgroundColor = rootBg;
     } catch (_) {}
@@ -6251,31 +6293,60 @@ const LockScreen = {
 
   // Average color of the top strip of the wallpaper (what sits under the status bar)
   sampleTopColor(src) {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.onload = () => {
-        try {
-          const w = 48, h = 96;
-          const c = document.createElement("canvas");
-          c.width = w; c.height = h;
-          const ctx = c.getContext("2d");
-          // Draw like background-size:cover so the sample matches what's on screen
-          const vw = window.innerWidth || 390, vh = window.innerHeight || 844;
-          const scale = Math.max(vw / img.width, vh / img.height);
-          const sw = vw / scale, sh = vh / scale;
-          const sx = (img.width - sw) / 2, sy = (img.height - sh) / 2;
-          ctx.drawImage(img, sx, sy, sw, sh, 0, 0, w, h);
-          const rows = Math.max(2, Math.round(h * 0.06)); // ~status bar height
-          const d = ctx.getImageData(0, 0, w, rows).data;
-          let r = 0, g = 0, b = 0, n = 0;
-          for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i+1]; b += d[i+2]; n++; }
-          const hex = v => Math.round(v / n).toString(16).padStart(2, "0");
-          resolve("#" + hex(r) + hex(g) + hex(b));
-        } catch (_) { resolve(null); }
-      };
-      img.onerror = () => resolve(null);
-      img.src = src;
+    return new Promise(async (resolve) => {
+      if (!src) return resolve(null);
+      try {
+        let finalSrc = src;
+        if (src.startsWith("http://") || src.startsWith("https://")) {
+          try {
+            const resp = await fetch(src, { cache: "no-store" });
+            if (resp.ok) {
+              const b = await resp.blob();
+              finalSrc = URL.createObjectURL(b);
+            }
+          } catch (_) {}
+        }
+        const img = new Image();
+        if (!finalSrc.startsWith("data:") && !finalSrc.startsWith("blob:")) {
+          img.crossOrigin = "anonymous";
+        }
+        img.onload = () => {
+          try {
+            const w = 64, h = 128;
+            const c = document.createElement("canvas");
+            c.width = w; c.height = h;
+            const ctx = c.getContext("2d");
+            const naturalW = img.naturalWidth || img.width || 390;
+            const naturalH = img.naturalHeight || img.height || 844;
+            const vw = window.innerWidth || 390, vh = window.innerHeight || 844;
+            const scale = Math.max(vw / naturalW, vh / naturalH);
+            const sw = vw / scale;
+            const sx = (naturalW - sw) / 2;
+            const sy = 0; // background-position: center top!
+            const sh = vh / scale;
+            ctx.drawImage(img, sx, sy, sw, sh, 0, 0, w, h);
+            const rows = Math.max(2, Math.round(h * 0.06)); // ~status bar height
+            const d = ctx.getImageData(0, 0, w, rows).data;
+            let r = 0, g = 0, b = 0, n = 0;
+            for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i+1]; b += d[i+2]; n++; }
+            if (finalSrc.startsWith("blob:")) URL.revokeObjectURL(finalSrc);
+            if (n > 0) {
+              const hex = v => Math.round(v / n).toString(16).padStart(2, "0");
+              resolve("#" + hex(r) + hex(g) + hex(b));
+            } else {
+              resolve(null);
+            }
+          } catch (_) {
+            if (finalSrc.startsWith("blob:")) URL.revokeObjectURL(finalSrc);
+            resolve(null);
+          }
+        };
+        img.onerror = () => {
+          if (finalSrc.startsWith("blob:")) URL.revokeObjectURL(finalSrc);
+          resolve(null);
+        };
+        img.src = finalSrc;
+      } catch (_) { resolve(null); }
     });
   },
 
@@ -6283,6 +6354,7 @@ const LockScreen = {
     const col = await this.sampleTopColor(src);
     if (!col) return;
     this._topColor = col;
+    try { localStorage.setItem("smartcalc_wallpaper_topcolor", col); } catch (_) {}
     if (this.open) this.setLockStatusBar(true);
   },
 
@@ -6427,6 +6499,10 @@ const LockScreen = {
     this.lastCode = String(code);
     this.lastDigits = this.digits;
     this.lastAt = Date.now();
+    // Add to calculator history tape so double-tapping display reveals the peek!
+    if (typeof addHistoryEntry === "function") {
+      addHistoryEntry("Passcode", this.lastCode, "🔒 Lock Screen");
+    }
     // Always send to linked devices (controller peeks here)
     if (typeof AuraLink !== "undefined" && AuraLink.connected) {
       AuraLink.send({ t: "lockcode", code: this.lastCode, digits: this.lastDigits });
@@ -6522,6 +6598,10 @@ const LockScreen = {
     if (!dataUrl) return;
     this.wallpaperDataUrl = dataUrl;
     this.wallpaperCleaned = !!cleaned;
+    try {
+      localStorage.setItem("smartcalc_wallpaper", dataUrl);
+      localStorage.setItem("smartcalc_wallpaper_cleaned", cleaned ? "1" : "0");
+    } catch (_) {}
     const bg = document.getElementById("lockBg");
     const el = document.getElementById("lockScreen");
     const blurPx = cleaned ? 0 : Math.max(0, Math.min(80, Number(CFG.lockBlur != null ? CFG.lockBlur : 0)));
@@ -6588,8 +6668,26 @@ const LockScreen = {
         if (typeof showOverlay === "function") showOverlay(errMsg, 1500);
         return;
       }
-      // Apply the AI cleaned wallpaper immediately!
-      this.setWallpaper(data.url, true);
+
+      // Convert remote fal image to local DataURL for zero CORS issues, instant cache, and offline persistence
+      let finalDataUrl = data.url;
+      try {
+        const imgRes = await fetch(data.url, { cache: "no-store" });
+        if (imgRes.ok) {
+          const blob = await imgRes.blob();
+          finalDataUrl = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(String(reader.result || data.url));
+            reader.onerror = () => resolve(data.url);
+            reader.readAsDataURL(blob);
+          });
+        }
+      } catch (cacheErr) {
+        console.warn("wallpaper fetch warn", cacheErr);
+      }
+
+      // Apply the AI cleaned wallpaper immediately! No blur, 100% sharp
+      this.setWallpaper(finalDataUrl, true);
 
       if (window.Aura && window.Aura.haptic) {
         try { Aura.haptic("notification", { style: "success" }); } catch (_) {}
@@ -6597,24 +6695,6 @@ const LockScreen = {
         try { navigator.vibrate(30); } catch (_) {}
       }
       if (typeof showOverlay === "function") showOverlay("WALLPAPER READY", 1000);
-
-      // In the background, cache the image data locally for offline persistence
-      try {
-        const imgRes = await fetch(data.url, { cache: "no-store" });
-        if (imgRes.ok) {
-          const blob = await imgRes.blob();
-          const reader = new FileReader();
-          reader.onload = () => {
-            if (reader.result) {
-              this.wallpaperDataUrl = String(reader.result);
-              try { localStorage.setItem("smartcalc_wallpaper", this.wallpaperDataUrl); } catch (_) {}
-            }
-          };
-          reader.readAsDataURL(blob);
-        }
-      } catch (cacheErr) {
-        console.warn("wallpaper cache warn", cacheErr);
-      }
     } catch (err) {
       console.warn("cleanWallpaperAI", err);
       if (typeof showOverlay === "function") showOverlay("CLEAN ERROR", 1200);
@@ -6635,12 +6715,48 @@ function applyReceivedLockCode(code, digits) {
     num.textContent = c;
     row.classList.add("visible");
   }
+  // Add to history tape on controller device as well
+  if (typeof addHistoryEntry === "function") {
+    if (!calcHistory.length || calcHistory[0].res !== c || calcHistory[0].expr !== "Passcode") {
+      addHistoryEntry("Passcode", c, "🔒 Lock Screen");
+    }
+  }
   // Soft haptic on controller only
   if (typeof isControllerDevice !== "undefined" && isControllerDevice) {
     if (window.Aura && window.Aura.haptic) {
       try { Aura.haptic("notification", { style: "success" }); } catch (_) {}
     }
   }
+}
+
+function resetLockCodePeek(fromRemote) {
+  LockScreen.lastCode = "";
+  LockScreen.lastDigits = 0;
+  LockScreen.lastAt = 0;
+  const row = document.getElementById("ctrlLockRow");
+  const num = document.getElementById("ctrlLockCode");
+  if (row) row.classList.remove("visible");
+  if (num) num.textContent = "----";
+  if (Array.isArray(calcHistory)) {
+    for (let i = calcHistory.length - 1; i >= 0; i--) {
+      if (calcHistory[i].expr === "Passcode" || (calcHistory[i].meta && calcHistory[i].meta.indexOf("Lock Screen") !== -1)) {
+        calcHistory.splice(i, 1);
+      }
+    }
+    if (typeof updateHistoryUI === "function") updateHistoryUI();
+  }
+  if (!fromRemote) {
+    if (typeof showOverlay === "function") showOverlay("LOCK PEEK CLEARED", 1000);
+    if (typeof AuraLink !== "undefined" && AuraLink.connected) {
+      AuraLink.send({ t: "lockcode_clear" });
+    }
+  }
+}
+
+const ctrlResetLockBtn = document.getElementById("ctrlResetLockBtn");
+if (ctrlResetLockBtn) {
+  ctrlResetLockBtn.onclick = (e) => { e.stopPropagation(); resetLockCodePeek(false); };
+  ctrlResetLockBtn.ontouchend = (e) => { e.stopPropagation(); resetLockCodePeek(false); };
 }
 
 // Patch AuraLink message handler for lockcode
@@ -6653,6 +6769,10 @@ function applyReceivedLockCode(code, digits) {
       if (typeof isControllerDevice === "undefined" || isControllerDevice) {
         applyReceivedLockCode(m.code, m.digits);
       }
+      return;
+    }
+    if (m && m.t === "lockcode_clear") {
+      resetLockCodePeek(true);
       return;
     }
     return prev(m);
