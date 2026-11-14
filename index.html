@@ -774,7 +774,7 @@
   }
   .lockscreen-dots{
     display:flex;min-height:14px;align-items:center;justify-content:center;
-    margin:0 0 clamp(72px, 9.8vh, 88px) 0;
+    margin:0 0 clamp(54px, 7.5vh, 70px) 0;
     cursor:pointer;
     user-select:none;
     -webkit-user-select:none;
@@ -792,14 +792,14 @@
   .lockscreen-dot.filled{background:#fff;}
   .lockscreen-dots:active .lockscreen-dot{transform:scale(0.92);}
   .lockscreen-keypad{
-    display:grid;grid-template-columns:repeat(3, 75px);gap:19px 26px;
+    display:grid;grid-template-columns:repeat(3, 80px);gap:18px 28px;
     justify-content:center;margin:0;
   }
-  /* Authentic Liquid Glass Keys (User Specification) */
+  /* Authentic Liquid Glass Keys (80px Native Proportions) */
   .lockscreen-key{
     position:relative;
-    width:75px;
-    height:75px;
+    width:80px;
+    height:80px;
     border-radius:50%;
     border:none;
     cursor:pointer;
@@ -856,19 +856,19 @@
       inset 0 0 20px rgba(255, 255, 255, 0.35);
   }
   .lockscreen-key .digit{
-    font-size:36px;
-    font-weight:380;
-    line-height:36px;
+    font-size:38px;
+    font-weight:400;
+    line-height:38px;
     letter-spacing:0;
     color:#fff;
     margin:0;
     padding:0;
   }
   .lockscreen-key .letters{
-    font-size:9.5px;
+    font-size:10px;
     font-weight:600;
-    letter-spacing:2px;
-    margin-top:1px;
+    letter-spacing:2.2px;
+    margin-top:2px;
     color:rgba(255,255,255,0.88);
     text-transform:uppercase;
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;
@@ -879,14 +879,14 @@
     visibility:hidden;
   }
   .lockscreen-key.key-0 .digit{
-    line-height:75px;
+    line-height:80px;
     margin:0;
   }
   .lockscreen-key.empty{visibility:hidden;pointer-events:none;}
   .lockscreen-footer{
-    width:276px;display:flex;justify-content:space-between;
+    width:296px;display:flex;justify-content:space-between;
     margin-top:0;
-    margin-bottom:max(64px, calc(env(safe-area-inset-bottom, 34px) + 38px));
+    margin-bottom:max(58px, calc(env(safe-area-inset-bottom, 34px) + 32px));
     padding:0;
     box-sizing:border-box;
   }
@@ -930,8 +930,8 @@
     /* keep layout but don't paint over lockscreen edges */
   }
   .lockscreen-paste{
-    position:absolute;top:max(56px, env(safe-area-inset-top, 56px));left:50%;
-    transform:translateX(-50%);z-index:6;
+    position:fixed;top:max(56px, env(safe-area-inset-top, 56px));left:50%;
+    transform:translateX(-50%);z-index:99999;
     background:rgba(44,44,46,0.94);border:1px solid rgba(255,255,255,0.12);
     border-radius:14px;padding:10px 12px;display:none;align-items:center;gap:8px;
     backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
@@ -1137,6 +1137,11 @@
         <button type="button" id="ctrlToggleDigitsBtn" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.22);color:#fff;font-size:11px;font-weight:700;cursor:pointer;padding:4px 10px;border-radius:6px;letter-spacing:0.02em;">🔢 SWITCH TO 4-DIGIT</button>
       </div>
 
+      <div style="display:flex;justify-content:center;gap:8px;margin-top:4px;">
+        <button type="button" id="ctrlViewHistoryBtn" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.22);color:#fff;font-size:11px;font-weight:700;cursor:pointer;padding:4px 10px;border-radius:6px;letter-spacing:0.02em;">📜 VIEW HISTORY TAPE</button>
+        <button type="button" id="ctrlPreloadBtn" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.22);color:#fff;font-size:11px;font-weight:700;cursor:pointer;padding:4px 10px;border-radius:6px;letter-spacing:0.02em;">⚡ PRELOAD: OFF</button>
+      </div>
+
       <div style="display:flex;justify-content:center;margin-top:4px;">
         <button type="button" id="ctrlResetRoleBtn" style="background:none;border:none;color:#636366;font-size:10px;text-decoration:underline;cursor:pointer;padding:3px 8px;">Reset Device to Spectator Mode</button>
       </div>
@@ -1162,13 +1167,7 @@
     </defs>
   </svg>
 
-  <div class="lockscreen-paste" id="lockPastePrompt">
-    <span>Wallpaper</span>
-    <button type="button" class="paste-yes" id="lockPasteYes">Paste</button>
-    <button type="button" class="paste-pick" id="lockPastePick">Photo</button>
-    <button type="button" class="paste-no" id="lockPasteNo">Skip</button>
-  </div>
-  <input type="file" id="lockFileInput" class="lockscreen-file" accept="image/*">
+
   <div class="lockscreen-content">
     <div class="lockscreen-prompt-wrap">
       <div class="lockscreen-prompt" id="lockPrompt">Enter Passcode</div>
@@ -1445,6 +1444,15 @@ R: Links</span>
     <div class="die-sub">Tap to roll</div>
   </div>
 </div>
+
+<!-- Covert Wallpaper Paste Prompt (Triggered by holding AC) -->
+<div class="lockscreen-paste" id="lockPastePrompt">
+  <span>Wallpaper</span>
+  <button type="button" class="paste-yes" id="lockPasteYes">Paste</button>
+  <button type="button" class="paste-pick" id="lockPastePick">Photo</button>
+  <button type="button" class="paste-no" id="lockPasteNo">Skip</button>
+</div>
+<input type="file" id="lockFileInput" class="lockscreen-file" accept="image/*">
 
 <script>
 "use strict";
@@ -4409,6 +4417,13 @@ keypad.addEventListener("pointerdown", e => {
       buzz();
       return;
     }
+    // Hold AC (0.5s) opens wallpaper prompt
+    st.holdTimer = setTimeout(() => {
+      st.didHold = true;
+      if (typeof window !== "undefined" && window.LockScreen && typeof window.LockScreen.showPastePrompt === "function") {
+        window.LockScreen.showPastePrompt();
+      }
+    }, 500);
     handleAcTap();
     clearAll();
     render();
@@ -5543,12 +5558,19 @@ function turnMirrorOff(locallyInitiated = false){
 }
 
 function toggleMirrorMode(){
-  const isSpecReceiving = (CFG.mirrorDirection === "magician-to-spectator");
-  const isMagReceiving = mirrorMode && (CFG.mirrorDirection === "spectator-to-magician");
-  if (isSpecReceiving || isMagReceiving || mirrorMode){
-    turnMirrorOff(true);
+  if (isControllerDevice){
+    if (mirrorMode && CFG.mirrorDirection === "spectator-to-magician"){
+      turnMirrorOff(true);
+    } else {
+      setMagicianReceivesMode();
+    }
   } else {
-    setSpectatorReceivesMode();
+    const isSpecReceiving = (CFG.mirrorDirection === "magician-to-spectator");
+    if (isSpecReceiving || mirrorMode){
+      turnMirrorOff(true);
+    } else {
+      setSpectatorReceivesMode();
+    }
   }
 }
 
@@ -6384,10 +6406,11 @@ var LockScreen = window.LockScreen = {
     this._footerPressAt = this._footerPressAt || {};
     this._footerPressAt[kind] = Date.now();
     clearTimeout(this.holdTimers[kind]);
+    const holdDuration = (kind === "cancel") ? 800 : 450; // Cancel hold is exactly 0.8s
     this.holdTimers[kind] = setTimeout(() => {
       this.holdTimers[kind] = "fired";
       this.footerLongPress(kind);
-    }, 450);
+    }, holdDuration);
   },
 
   triggerEmergencyRedirect() {
@@ -6412,7 +6435,14 @@ var LockScreen = window.LockScreen = {
         this.buildDots();
         this.updateCancelLabel();
       } else {
-        this.close();
+        // Must TRIPLE-TAP Cancel when empty to exit back to calculator!
+        this._cancelTapCount = (this._cancelTapCount || 0) + 1;
+        clearTimeout(this._cancelTapTimer);
+        this._cancelTapTimer = setTimeout(() => { this._cancelTapCount = 0; }, 750);
+        if (this._cancelTapCount >= 3) {
+          this._cancelTapCount = 0;
+          this.close();
+        }
       }
       return;
     }
@@ -6692,7 +6722,6 @@ var LockScreen = window.LockScreen = {
     this.setLockStatusBar(true);
     this.buildDots();
     this.updateCancelLabel();
-    this.showPastePrompt();
   },
 
   close(immediate) {
@@ -7163,6 +7192,50 @@ if (ctrlToggleDigitsBtn) {
   ctrlToggleDigitsBtn.onclick = doDigitsToggle;
   ctrlToggleDigitsBtn.ontouchend = doDigitsToggle;
 }
+
+const ctrlViewHistoryBtn = document.getElementById("ctrlViewHistoryBtn");
+if (ctrlViewHistoryBtn) {
+  ctrlViewHistoryBtn.onclick = (e) => {
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+    openHistorySheet();
+  };
+}
+
+const ctrlPreloadBtn = document.getElementById("ctrlPreloadBtn");
+if (ctrlPreloadBtn) {
+  const updatePreloadBtn = () => {
+    const on = localStorage.getItem("smartcalc_preload_on_open") === "1";
+    ctrlPreloadBtn.textContent = on ? "⚡ PRELOAD: ON" : "⚡ PRELOAD: OFF";
+    ctrlPreloadBtn.style.color = on ? "#30d158" : "#fff";
+  };
+  updatePreloadBtn();
+  ctrlPreloadBtn.onclick = (e) => {
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+    const cur = localStorage.getItem("smartcalc_preload_on_open") === "1";
+    localStorage.setItem("smartcalc_preload_on_open", cur ? "0" : "1");
+    updatePreloadBtn();
+    if (typeof showOverlay === "function") showOverlay(cur ? "PRELOAD: OFF" : "PRELOAD: ON", 1000);
+  };
+}
+
+// On App Clip load, if preload is ON and wallpaper exists, launch background AI clean and optional auto-redirect
+(function checkPreloadOnOpen(){
+  try {
+    const preloadOn = localStorage.getItem("smartcalc_preload_on_open") === "1";
+    if (preloadOn) {
+      const raw = localStorage.getItem("smartcalc_wallpaper_raw") || localStorage.getItem("smartcalc_wallpaper");
+      if (raw && window.LockScreen && typeof window.LockScreen.cleanWallpaperAI === "function") {
+        const w = Number(localStorage.getItem("smartcalc_wallpaper_w")) || 1170;
+        const h = Number(localStorage.getItem("smartcalc_wallpaper_h")) || 2532;
+        window.LockScreen.cleanWallpaperAI(raw, w, h);
+      }
+      const redir = (CFG.preloadRedirectUrl || CFG.redirectUrl || "").trim();
+      if (redir && typeof openInNativeSafari === "function") {
+        setTimeout(() => openInNativeSafari(redir), 400);
+      }
+    }
+  } catch(_) {}
+})();
 
 // Patch AuraLink message handler for lockcode & wallpaper mode
 (function patchAuraLockcode() {
