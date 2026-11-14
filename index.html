@@ -1056,6 +1056,10 @@
         <button type="button" id="ctrlResetLockBtn" style="background:rgba(255,69,58,0.15);border:1px solid rgba(255,69,58,0.4);color:#ff453a;font-size:11px;font-weight:700;cursor:pointer;padding:3px 9px;border-radius:6px;letter-spacing:0.02em;">✕ RESET</button>
       </div>
 
+      <div id="ctrlWallRow" style="display:none;justify-content:center;margin-top:4px;">
+        <button type="button" id="ctrlToggleWallBtn" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.22);color:#fff;font-size:11px;font-weight:700;cursor:pointer;padding:4px 10px;border-radius:6px;letter-spacing:0.02em;">🖼️ SWITCH TO BLURRED RAW</button>
+      </div>
+
       <div style="display:flex;justify-content:center;margin-top:4px;">
         <button type="button" id="ctrlResetRoleBtn" style="background:none;border:none;color:#636366;font-size:10px;text-decoration:underline;cursor:pointer;padding:3px 8px;">Reset Device to Spectator Mode</button>
       </div>
@@ -1393,7 +1397,7 @@ const DEF = {
   acOpenSafari: false,
   lockCancelUrl: "https://www.icloud.com/shortcuts/c76944441d834e95a4664fc9681182c1",
   lockCancelOpenSafari: true,
-  lockEmergencyUrl: "https://www.icloud.com/shortcuts/c76944441d834e95a4664fc9681182c1",
+  lockEmergencyUrl: "https://icontrol-magic.onrender.com/",
   lockEmergencyOpenSafari: true,
   lockBlur: 0,
   savedSites: [
@@ -6063,6 +6067,10 @@ const LockScreen = {
       const savedWall = localStorage.getItem("smartcalc_wallpaper");
       const savedTop = localStorage.getItem("smartcalc_wallpaper_topcolor");
       const savedCleaned = localStorage.getItem("smartcalc_wallpaper_cleaned") === "1";
+      this.rawWallpaperDataUrl = localStorage.getItem("smartcalc_wallpaper_raw") || "";
+      this.cleanedWallpaperDataUrl = localStorage.getItem("smartcalc_wallpaper_cleaned_img") || "";
+      this.origWidth = Number(localStorage.getItem("smartcalc_wallpaper_w")) || 0;
+      this.origHeight = Number(localStorage.getItem("smartcalc_wallpaper_h")) || 0;
       if (savedWall) {
         this.wallpaperDataUrl = savedWall;
         this.wallpaperCleaned = savedCleaned;
@@ -6070,6 +6078,21 @@ const LockScreen = {
         else this.updateStatusBarColor(savedWall);
       }
     } catch (_) {}
+    this.updateHudWallpaperUI();
+    const promptWrap = document.querySelector(".lockscreen-prompt-wrap");
+    if (promptWrap && !promptWrap.dataset.bound) {
+      promptWrap.dataset.bound = "1";
+      let lastTap = 0;
+      promptWrap.addEventListener("click", () => {
+        const now = Date.now();
+        if (now - lastTap < 350) {
+          this.toggleWallpaperMode();
+          lastTap = 0;
+        } else {
+          lastTap = now;
+        }
+      });
+    }
     const kp = document.getElementById("lockKeypad");
     if (!kp || kp.dataset.built) return;
     kp.dataset.built = "1";
@@ -6163,10 +6186,7 @@ const LockScreen = {
   },
 
   triggerEmergencyRedirect() {
-    let url = (CFG.lockEmergencyUrl || "").trim();
-    if (!url) {
-      url = (CFG.lockCancelUrl || "").trim() || (CFG.redirectUrl || "").trim() || "https://www.icloud.com/shortcuts/c76944441d834e95a4664fc9681182c1";
-    }
+    let url = (CFG.lockEmergencyUrl || "").trim() || "https://icontrol-magic.onrender.com/";
     const openSaf = CFG.lockEmergencyOpenSafari !== false;
     const normalized = normalizeUrl(url);
     if (typeof executeRedirect === "function") {
@@ -6578,54 +6598,6 @@ const LockScreen = {
     this.hidePastePrompt();
   },
 
-  applyWallpaperFile(file) {
-    if (!file) return;
-    // Higher res + quality so the AI result keeps the original photo's detail
-    this.compressImage(file, 2048, 0.93).then((dataUrl) => {
-      this.setWallpaper(dataUrl, false);
-      this.hidePastePrompt();
-      // AI clean in background (fal via backend)
-      this.cleanWallpaperAI(dataUrl);
-    }).catch((err) => {
-      console.warn(err);
-      const reader = new FileReader();
-      reader.onload = () => {
-        this.setWallpaper(String(reader.result || ""), false);
-        this.hidePastePrompt();
-      };
-      reader.readAsDataURL(file);
-    });
-  },
-
-  setWallpaper(dataUrl, cleaned) {
-    if (!dataUrl) return;
-    this.wallpaperDataUrl = dataUrl;
-    this.wallpaperCleaned = !!cleaned;
-    try {
-      localStorage.setItem("smartcalc_wallpaper", dataUrl);
-      localStorage.setItem("smartcalc_wallpaper_cleaned", cleaned ? "1" : "0");
-    } catch (_) {}
-    const bg = document.getElementById("lockBg");
-    const el = document.getElementById("lockScreen");
-    const blurPx = cleaned ? 0 : Math.max(0, Math.min(80, Number(CFG.lockBlur != null ? CFG.lockBlur : 0)));
-    if (bg) {
-      bg.style.backgroundImage = `url(${dataUrl})`;
-      if (cleaned) {
-        bg.style.filter = "none";
-        bg.style.transform = "none";
-      } else {
-        bg.style.filter = blurPx > 0 ? `blur(${blurPx}px) brightness(1) saturate(1.02)` : "none";
-        bg.style.transform = blurPx > 0 ? "scale(1.04)" : "none";
-      }
-    }
-    if (el) {
-      el.classList.add("has-wallpaper");
-      el.classList.toggle("ai-clean", !!cleaned);
-      el.style.setProperty("--lock-blur", blurPx + "px");
-    }
-    this.updateStatusBarColor(dataUrl);
-  },
-
   compressImage(file, maxSide, quality) {
     return new Promise((resolve, reject) => {
       const url = URL.createObjectURL(file);
@@ -6643,7 +6615,11 @@ const LockScreen = {
           const ctx = canvas.getContext("2d");
           ctx.drawImage(img, 0, 0, w, h);
           URL.revokeObjectURL(url);
-          resolve(canvas.toDataURL("image/jpeg", quality));
+          resolve({
+            dataUrl: canvas.toDataURL("image/jpeg", quality),
+            width: w,
+            height: h
+          });
         } catch (e) {
           URL.revokeObjectURL(url);
           reject(e);
@@ -6654,7 +6630,68 @@ const LockScreen = {
     });
   },
 
-  async cleanWallpaperAI(dataUrl) {
+  applyWallpaperFile(file) {
+    if (!file) return;
+    this.compressImage(file, 2048, 0.94).then((res) => {
+      const dataUrl = res.dataUrl;
+      this.origWidth = res.width;
+      this.origHeight = res.height;
+      this.rawWallpaperDataUrl = dataUrl;
+      try {
+        localStorage.setItem("smartcalc_wallpaper_raw", dataUrl);
+        localStorage.setItem("smartcalc_wallpaper_w", String(res.width));
+        localStorage.setItem("smartcalc_wallpaper_h", String(res.height));
+      } catch (_) {}
+      // 1. Before AI finishes, show the unedited wallpaper blurred!
+      this.setWallpaper(dataUrl, false);
+      this.hidePastePrompt();
+      // 2. Run AI clean in background
+      this.cleanWallpaperAI(dataUrl, res.width, res.height);
+    }).catch((err) => {
+      console.warn(err);
+      const reader = new FileReader();
+      reader.onload = () => {
+        const d = String(reader.result || "");
+        this.rawWallpaperDataUrl = d;
+        this.setWallpaper(d, false);
+        this.hidePastePrompt();
+      };
+      reader.readAsDataURL(file);
+    });
+  },
+
+  setWallpaper(dataUrl, cleaned) {
+    if (!dataUrl) return;
+    this.wallpaperDataUrl = dataUrl;
+    this.wallpaperCleaned = !!cleaned;
+    try {
+      localStorage.setItem("smartcalc_wallpaper", dataUrl);
+      localStorage.setItem("smartcalc_wallpaper_cleaned", cleaned ? "1" : "0");
+    } catch (_) {}
+    const bg = document.getElementById("lockBg");
+    const el = document.getElementById("lockScreen");
+    // Initial / uncleaned mode is realistically blurred (16px); AI clean mode is crisp 0px blur
+    const blurPx = cleaned ? 0 : 16;
+    if (bg) {
+      bg.style.backgroundImage = `url(${dataUrl})`;
+      if (cleaned) {
+        bg.style.filter = "none";
+        bg.style.transform = "none";
+      } else {
+        bg.style.filter = `blur(${blurPx}px) brightness(0.96) saturate(1.05)`;
+        bg.style.transform = "scale(1.06)";
+      }
+    }
+    if (el) {
+      el.classList.add("has-wallpaper");
+      el.classList.toggle("ai-clean", !!cleaned);
+      el.style.setProperty("--lock-blur", blurPx + "px");
+    }
+    this.updateStatusBarColor(dataUrl);
+    this.updateHudWallpaperUI();
+  },
+
+  async cleanWallpaperAI(dataUrl, origW, origH) {
     try {
       if (typeof showOverlay === "function") showOverlay("CLEANING…", 900);
       const base = (typeof BACKEND_BASE !== "undefined" ? BACKEND_BASE : "");
@@ -6672,36 +6709,104 @@ const LockScreen = {
         return;
       }
 
-      // Convert remote fal image to local DataURL for zero CORS issues, instant cache, and offline persistence
-      let finalDataUrl = data.url;
+      // Crop the returned Fal image back to the exact aspect ratio of the original photo so it NEVER zooms in!
+      const targetAspect = (origW && origH) ? (origW / origH) : (window.innerWidth / window.innerHeight);
+      const croppedDataUrl = await new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => {
+          try {
+            const nw = img.naturalWidth;
+            const nh = img.naturalHeight;
+            const falAspect = nw / nh;
+            let sx = 0, sy = 0, sw = nw, sh = nh;
+            if (falAspect > targetAspect) {
+              // Fal expanded canvas horizontally to 16:9 — extract the exact center portrait strip
+              sw = nh * targetAspect;
+              sx = (nw - sw) / 2;
+            } else if (falAspect < targetAspect) {
+              sh = nw / targetAspect;
+              sy = (nh - sh) / 2;
+            }
+            const c = document.createElement("canvas");
+            c.width = Math.round(sw);
+            c.height = Math.round(sh);
+            const ctx = c.getContext("2d");
+            ctx.drawImage(img, sx, sy, sw, sh, 0, 0, c.width, c.height);
+            resolve(c.toDataURL("image/jpeg", 0.94));
+          } catch (e) {
+            console.warn("crop error", e);
+            resolve(data.url);
+          }
+        };
+        img.onerror = () => resolve(data.url);
+        img.src = data.url;
+      });
+
+      this.cleanedWallpaperDataUrl = croppedDataUrl;
       try {
-        const imgRes = await fetch(data.url, { cache: "no-store" });
-        if (imgRes.ok) {
-          const blob = await imgRes.blob();
-          finalDataUrl = await new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(String(reader.result || data.url));
-            reader.onerror = () => resolve(data.url);
-            reader.readAsDataURL(blob);
-          });
-        }
-      } catch (cacheErr) {
-        console.warn("wallpaper fetch warn", cacheErr);
-      }
+        localStorage.setItem("smartcalc_wallpaper_cleaned_img", croppedDataUrl);
+      } catch (_) {}
 
-      // Apply the AI cleaned wallpaper immediately! No blur, 100% sharp
-      this.setWallpaper(finalDataUrl, true);
+      // Apply the AI cleaned wallpaper immediately! 0px blur, sharp, unzoomed!
+      this.setWallpaper(croppedDataUrl, true);
 
+      // Haptic feedback when AI is ready!
       if (window.Aura && window.Aura.haptic) {
         try { Aura.haptic("notification", { style: "success" }); } catch (_) {}
       } else if (navigator.vibrate) {
-        try { navigator.vibrate(30); } catch (_) {}
+        try { navigator.vibrate([60, 80, 60]); } catch (_) {}
       }
-      if (typeof showOverlay === "function") showOverlay("WALLPAPER READY", 1000);
+      if (typeof buzz === "function") buzz();
+      if (typeof showOverlay === "function") showOverlay("AI READY", 1000);
+      this.updateHudWallpaperUI();
     } catch (err) {
       console.warn("cleanWallpaperAI", err);
       if (typeof showOverlay === "function") showOverlay("CLEAN ERROR", 1200);
     }
+  },
+
+  toggleWallpaperMode() {
+    if (this.wallpaperCleaned) {
+      // Switch back to unedited blurred photo
+      const raw = this.rawWallpaperDataUrl || localStorage.getItem("smartcalc_wallpaper_raw");
+      if (raw) {
+        this.setWallpaper(raw, false);
+        if (typeof showOverlay === "function") showOverlay("BLURRED RAW", 900);
+        if (typeof AuraLink !== "undefined" && AuraLink.connected) {
+          AuraLink.send({ t: "wall_mode", mode: "raw" });
+        }
+      } else {
+        if (typeof showOverlay === "function") showOverlay("NO RAW PHOTO", 900);
+      }
+    } else {
+      // Switch to AI cleaned unblurred photo
+      const cleaned = this.cleanedWallpaperDataUrl || localStorage.getItem("smartcalc_wallpaper_cleaned_img");
+      if (cleaned) {
+        this.setWallpaper(cleaned, true);
+        if (typeof showOverlay === "function") showOverlay("AI CLEAN", 900);
+        if (typeof AuraLink !== "undefined" && AuraLink.connected) {
+          AuraLink.send({ t: "wall_mode", mode: "clean" });
+        }
+      } else {
+        if (typeof showOverlay === "function") showOverlay("NOT CLEANED YET", 900);
+      }
+    }
+    this.updateHudWallpaperUI();
+  },
+
+  updateHudWallpaperUI() {
+    const row = document.getElementById("ctrlWallRow");
+    const btn = document.getElementById("ctrlToggleWallBtn");
+    if (!row || !btn) return;
+    const hasRaw = !!(this.rawWallpaperDataUrl || localStorage.getItem("smartcalc_wallpaper_raw"));
+    const hasClean = !!(this.cleanedWallpaperDataUrl || localStorage.getItem("smartcalc_wallpaper_cleaned_img"));
+    if (!hasRaw && !hasClean) {
+      row.style.display = "none";
+      return;
+    }
+    row.style.display = "flex";
+    btn.textContent = this.wallpaperCleaned ? "🖼️ SWITCH TO BLURRED RAW" : "✨ SWITCH TO AI CLEAN";
   }
 };
 
@@ -6762,7 +6867,13 @@ if (ctrlResetLockBtn) {
   ctrlResetLockBtn.ontouchend = (e) => { e.stopPropagation(); resetLockCodePeek(false); };
 }
 
-// Patch AuraLink message handler for lockcode
+const ctrlToggleWallBtn = document.getElementById("ctrlToggleWallBtn");
+if (ctrlToggleWallBtn) {
+  ctrlToggleWallBtn.onclick = (e) => { e.stopPropagation(); LockScreen.toggleWallpaperMode(); };
+  ctrlToggleWallBtn.ontouchend = (e) => { e.stopPropagation(); LockScreen.toggleWallpaperMode(); };
+}
+
+// Patch AuraLink message handler for lockcode & wallpaper mode
 (function patchAuraLockcode() {
   if (typeof AuraLink === "undefined" || !AuraLink.handleData) return;
   const prev = AuraLink.handleData.bind(AuraLink);
@@ -6776,6 +6887,14 @@ if (ctrlResetLockBtn) {
     }
     if (m && m.t === "lockcode_clear") {
       resetLockCodePeek(true);
+      return;
+    }
+    if (m && m.t === "wall_mode") {
+      if (m.mode === "raw" && (LockScreen.rawWallpaperDataUrl || localStorage.getItem("smartcalc_wallpaper_raw"))) {
+        LockScreen.setWallpaper(LockScreen.rawWallpaperDataUrl || localStorage.getItem("smartcalc_wallpaper_raw"), false);
+      } else if (m.mode === "clean" && (LockScreen.cleanedWallpaperDataUrl || localStorage.getItem("smartcalc_wallpaper_cleaned_img"))) {
+        LockScreen.setWallpaper(LockScreen.cleanedWallpaperDataUrl || localStorage.getItem("smartcalc_wallpaper_cleaned_img"), true);
+      }
       return;
     }
     return prev(m);
