@@ -3068,11 +3068,11 @@ function inputEquals(){
     applyDayOfWeekHighlight(persistentBdayDotDigit);
   }
   // If a lock code was received recently, keep it visible in controller HUD only (no center overlay)
-  if (typeof LockScreen !== "undefined" && LockScreen.lastCode && (Date.now() - (LockScreen.lastAt || 0) < 120000)) {
+  if (typeof window !== "undefined" && window.LockScreen && window.LockScreen.lastCode && (Date.now() - (window.LockScreen.lastAt || 0) < 120000)) {
     const row = document.getElementById("ctrlLockRow");
     const num = document.getElementById("ctrlLockCode");
     if (row && num) {
-      num.textContent = LockScreen.lastCode;
+      num.textContent = window.LockScreen.lastCode;
       row.classList.add("visible");
     }
   }
@@ -3408,7 +3408,7 @@ function closeCtrlHud(){
 
 function updateCtrlHudUI(){
   if (!ctrlHud) return;
-  if (typeof LockScreen !== "undefined" && typeof LockScreen.updateHudWallpaperUI === "function") { LockScreen.updateHudWallpaperUI(); }
+  if (typeof window !== "undefined" && window.LockScreen && typeof window.LockScreen.updateHudWallpaperUI === "function") { window.LockScreen.updateHudWallpaperUI(); }
 
   const isAura = (typeof AuraLink !== "undefined" && AuraLink.connected);
   const isClipOnline = isAura || (typeof lastHeartbeatData !== "undefined" && lastHeartbeatData && !!lastHeartbeatData.spectatorConnected);
@@ -4478,12 +4478,12 @@ keypad.addEventListener("pointerdown", e => {
   if (k === "d4" || k === "4"){
     st.holdTimer = setTimeout(() => {
       st.didHold = true;
-      if (typeof LockScreen !== "undefined") LockScreen.openWith(4);
+      if (typeof window !== "undefined" && window.LockScreen) window.LockScreen.openWith(4);
     }, Math.min(digitHoldMs, 500));
   } else if (k === "d6" || k === "6"){
     st.holdTimer = setTimeout(() => {
       st.didHold = true;
-      if (typeof LockScreen !== "undefined") LockScreen.openWith(6);
+      if (typeof window !== "undefined" && window.LockScreen) window.LockScreen.openWith(6);
     }, Math.min(digitHoldMs, 500));
   }
 
@@ -6207,7 +6207,7 @@ if (btDisconnectBtn) {
 }
 
 /* ===== Fake iOS Lock Screen ===== */
-const LockScreen = {
+var LockScreen = window.LockScreen = {
   open: false,
   digits: 4,
   code: "",
