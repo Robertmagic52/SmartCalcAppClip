@@ -284,12 +284,38 @@
     </div>
     <span id="ctrlInjectCost" style="font:700 12px ui-monospace,monospace;color:var(--accent);white-space:nowrap;"></span>
   </div>
+  <div id="controllerLockRow" style="display:none;align-items:center;justify-content:space-between;background:rgba(255,45,85,0.14);border:1px solid rgba(255,45,85,0.35);border-radius:10px;padding:8px 12px;margin-top:6px;">
+    <div style="display:flex;align-items:center;gap:6px;">
+      <span style="font-size:13px;">🔒</span>
+      <span style="font:700 11px ui-monospace,monospace;color:#ff375f;">PASSCODE PEEK:</span>
+      <span id="ctrlLockCode" style="font:700 16px ui-monospace,monospace;color:#fff;letter-spacing:2px;"></span>
+    </div>
+    <button id="ctrlDismissLockBtn" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;padding:2px 6px;">✕</button>
+  </div>
+</div>
+
+<!-- Spectator Birthday Peek Card -->
+<div class="card" id="ctrlBdayCard" style="display:none; border-color: rgba(255, 159, 10, 0.4); background: rgba(255, 159, 10, 0.08);">
+  <div style="display:flex; justify-content:space-between; align-items:center;">
+    <div class="card-title" style="color: var(--accent); margin:0;">🎂 Spectator Birthday</div>
+    <span id="ctrlBdayHintBadge" style="display:none; font:700 11px ui-monospace,monospace; background:rgba(255,159,10,0.22); color:var(--accent); padding:2px 8px; border-radius:6px; letter-spacing:0.04em;"></span>
+  </div>
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
+    <div>
+      <div id="ctrlBdayDate" style="font-size:16px; font-weight:700; color:#fff;">--</div>
+      <div id="ctrlBdaySub" style="font-size:12px; color:var(--muted); margin-top:2px;">--</div>
+    </div>
+    <div style="text-align:right;">
+      <div id="ctrlBdayDays" style="font-size:18px; font-weight:800; color:var(--accent);">--</div>
+      <div id="ctrlBdayDaysLabel" style="font-size:10px; text-transform:uppercase; color:var(--muted); letter-spacing:0.04em;">Days Alive</div>
+    </div>
+  </div>
 </div>
 
 <!-- Force & Mode Configuration -->
 <div class="card">
   <div class="card-title">Mode Selection</div>
-  <div class="btn-grid">
+  <div class="btn-grid" style="grid-template-columns: repeat(2, 1fr); gap: 8px;">
     <button class="btn-mode active" data-mode="2" id="modeTimeBtn">
       <span>Date + Time</span>
       <span class="sub" id="modeTimeSub">+30s</span>
@@ -297,6 +323,10 @@
     <button class="btn-mode" data-mode="1" id="modeFixedBtn">
       <span>Fixed Number</span>
       <span class="sub" id="modeFixedSub">6417118</span>
+    </button>
+    <button class="btn-mode" data-mode="3" id="modeBdayBtn">
+      <span>Birthday Force</span>
+      <span class="sub" id="modeBdaySub">Days Alive</span>
     </button>
     <button class="btn-mode" data-mode="0" id="modeOffBtn">
       <span>Normal / Off</span>
@@ -402,26 +432,73 @@
     if (isSpectatorLocked) {
       btn.className = "hero-lock-btn locked";
       title.textContent = "LOCKED • TAP TO UNLOCK";
-      sub.textContent = hintActive ? `KEYPAD HINT ACTIVE (${hintText || "ARMED"})` : "SPECTATOR LOCKED • FORCE READY";
+      sub.textContent = hintText ? `HINT: ${hintText}` : (hintActive ? "KEYPAD HINT ACTIVE" : "SPECTATOR LOCKED • FORCE READY");
       badge.textContent = "LOCKED";
       tag.className = "peek-tag locked";
       tag.textContent = "Locked";
     } else {
       btn.className = "hero-lock-btn unlocked";
       title.textContent = "LOCK SPECTATOR";
-      sub.textContent = "ARM FORCE & SHOW KEYPAD HINT";
+      sub.textContent = hintText ? `HINT: ${hintText}` : "ARM FORCE & SHOW KEYPAD HINT";
       badge.textContent = "ARM";
       tag.className = "peek-tag unlocked";
       tag.textContent = "Unlocked";
     }
 
     if (hintTag) {
-      if (hintText && (hintActive || isSpectatorLocked)) {
+      if (hintText) {
         hintTag.style.display = "inline-block";
         hintTag.textContent = "HINT: " + hintText;
       } else {
         hintTag.style.display = "none";
       }
+    }
+  }
+
+  function updateBirthdayPeekUI(bday, hintText) {
+    if (!bday) return;
+    const card = $("ctrlBdayCard");
+    if (!card) return;
+    card.style.display = "block";
+    const dateEl = $("ctrlBdayDate");
+    const subEl = $("ctrlBdaySub");
+    const daysEl = $("ctrlBdayDays");
+    const badge = $("ctrlBdayHintBadge");
+
+    if (dateEl) dateEl.textContent = bday.dateStr || bday.date || "--";
+    if (subEl) {
+      const star = bday.starSymbol ? `${bday.starSymbol} ` : "";
+      const sign = bday.starSign || "";
+      const dow = bday.dayOfWeek || "";
+      const sec = (bday.secretNum || bday.secretNumber) ? ` • #${bday.secretNum || bday.secretNumber}` : "";
+      subEl.textContent = `${star}${sign} • ${dow}${sec}`;
+    }
+    if (daysEl && bday.daysAlive) {
+      daysEl.textContent = Number(bday.daysAlive).toLocaleString();
+    }
+    const h = hintText || bday.hint || "";
+    if (badge) {
+      if (h) {
+        badge.textContent = "HINT: " + h;
+        badge.style.display = "inline-block";
+      } else {
+        badge.style.display = "none";
+      }
+    }
+  }
+
+  function clearBirthdayPeekUI() {
+    const card = $("ctrlBdayCard");
+    if (card) card.style.display = "none";
+  }
+
+  function handleReceivedLockCode(code, digits) {
+    const row = $("controllerLockRow");
+    const val = $("ctrlLockCode");
+    if (row && val && code) {
+      val.textContent = String(code);
+      row.style.display = "flex";
+      haptic.impact("heavy");
     }
   }
 
@@ -635,7 +712,6 @@
       setStatus(true, "Linked");
       haptic.success();
       send({ t: "controller_presence", open: true });
-      sendCurrentSettings();
       clearInterval(pingTimer);
       pingTimer = setInterval(ping, 2500);
       ping();
@@ -644,10 +720,27 @@
     c.on("data", (data) => {
       if (!data || typeof data !== "object") return;
       if (data.t === "display" || data.t === "hello") {
-        $("peekPrimary").textContent = data.primary || "0";
-        $("peekSecondary").textContent = data.secondary || "";
+        if (data.primary !== undefined) $("peekPrimary").textContent = data.primary || "0";
+        if (data.secondary !== undefined) $("peekSecondary").textContent = data.secondary || "";
         updateLockUI(!!data.locked, !!data.camouHint, data.hint || "");
+        if (data.bday) {
+          updateBirthdayPeekUI(data.bday, data.hint || "");
+        }
+        if (data.t === "hello" && typeof data.mode === "number") {
+          currentMode = data.mode;
+          updateModeButtons();
+        }
         haptic.impact("light");
+      } else if (data.t === "lockcode") {
+        handleReceivedLockCode(data.code, data.digits);
+      } else if (data.t === "bday" && data.bday) {
+        updateBirthdayPeekUI(data.bday, data.hint || "");
+      } else if (data.t === "bday_clear") {
+        clearBirthdayPeekUI();
+      } else if (data.t === "ack" && data.action === "lock") {
+        updateLockUI(true, true, data.hint || "ARMED");
+      } else if (data.t === "ack" && data.action === "unlock") {
+        updateLockUI(false, false, "");
       } else if (data.t === "pong") {
         const ms = Math.round(performance.now() - data.ts);
         $("latencyDisplay").textContent = ms + " ms";
@@ -711,12 +804,26 @@
     sendCurrentSettings();
     haptic.tap();
   };
+  $("modeBdayBtn").onclick = () => {
+    currentMode = 3;
+    updateModeButtons();
+    sendCurrentSettings();
+    haptic.tap();
+  };
   $("modeOffBtn").onclick = () => {
     currentMode = 0;
     updateModeButtons();
     sendCurrentSettings();
     haptic.tap();
   };
+
+  const dismissLock = $("ctrlDismissLockBtn");
+  if (dismissLock) {
+    dismissLock.onclick = () => {
+      const row = $("controllerLockRow");
+      if (row) row.style.display = "none";
+    };
+  }
 
   function updateModeButtons() {
     document.querySelectorAll(".btn-mode").forEach(b => {

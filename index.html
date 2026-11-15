@@ -815,13 +815,13 @@
     display:grid;grid-template-columns:repeat(3, clamp(74px, 19.5vw, 82px));gap:clamp(14px, 2vh, 18px) clamp(22px, 6vw, 28px);
     justify-content:center;margin:0;
   }
-  /* Clean, Ultra-Smooth iOS Frosted Glass Passcode Key (120 FPS Native GPU Composited) */
+  /* Authentic iOS Frosted Glass Passcode Key */
   .lockscreen-key{
     position:relative;
     width:clamp(74px, 19.5vw, 82px);
     height:clamp(74px, 19.5vw, 82px);
     border-radius:50%;
-    border:1px solid rgba(255, 255, 255, 0.22);
+    border:1px solid rgba(255, 255, 255, 0.28);
     cursor:pointer;
     color:#fff;
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif;
@@ -836,50 +836,28 @@
     padding:0;
     line-height:1;
 
-    /* Ultra-light, GPU-accelerated frosted glass */
+    /* Authentic Translucent Glass Tint */
     background:rgba(255, 255, 255, 0.16);
-    backdrop-filter:blur(20px) saturate(180%);
-    -webkit-backdrop-filter:blur(20px) saturate(180%);
 
-    box-shadow:
-      0 8px 20px rgba(0, 0, 0, 0.25),
-      inset 0 1.5px 2px rgba(255, 255, 255, 0.65),
-      inset 0 -1.5px 2px rgba(255, 255, 255, 0.20);
+    /* Clean Optical Backdrop Lens Blur */
+    backdrop-filter:blur(28px) saturate(140%);
+    -webkit-backdrop-filter:blur(28px) saturate(140%);
 
-    transition:transform 0.16s cubic-bezier(0.22, 1, 0.36, 1),
-               background 0.20s ease-out;
+    /* Native Inset Specular Rim */
+    box-shadow:inset 0 1px 1.5px rgba(255, 255, 255, 0.45);
+
+    /* Release transition: smooth luxury fade back */
+    transition:background 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.35s ease;
   }
 
-  /* Authentic iOS Specular Meniscus Highlight */
-  .lockscreen-key::before{
-    content:"";
-    position:absolute;
-    top:1.5px;
-    left:10%;
-    right:10%;
-    height:42%;
-    border-radius:999px 999px 65% 65%;
-    background:linear-gradient(180deg, rgba(255, 255, 255, 0.40) 0%, rgba(255, 255, 255, 0) 100%);
-    pointer-events:none;
-    opacity:0.80;
-    transition:opacity 0.16s ease;
-  }
-
-  /* Instant, Lag-Free Touch Illumination */
+  /* Pressed State: Instant bright white illumination, ZERO scale compression */
   .lockscreen-key:active,
   .lockscreen-key.is-pressed,
   .lockscreen-key.pressed{
-    transform:scale(0.94) !important;
-    background:rgba(255, 255, 255, 0.50) !important;
-    box-shadow:
-      0 4px 12px rgba(0, 0, 0, 0.20),
-      inset 0 1.5px 2px rgba(255, 255, 255, 0.85) !important;
-    transition:transform 0s !important, background 0s !important;
-  }
-  .lockscreen-key:active::before,
-  .lockscreen-key.is-pressed::before,
-  .lockscreen-key.pressed::before{
-    opacity:0.30;
+    background:rgba(255, 255, 255, 0.55) !important;
+    border-color:rgba(255, 255, 255, 0.50) !important;
+    transition:background 0s !important, border-color 0s !important;
+    transform:none !important;
   }
 
   .lockscreen-key .digit{
@@ -892,7 +870,6 @@
     color:#fff;
     margin:0;
     padding:0;
-    text-shadow:0 1px 3px rgba(0,0,0,0.35);
   }
   .lockscreen-key .letters{
     position:relative;
@@ -906,7 +883,6 @@
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;
     line-height:12px;
     height:12px;
-    text-shadow:0 1px 2px rgba(0,0,0,0.35);
   }
   .lockscreen-key .letters.empty{
     visibility:hidden;
@@ -2037,6 +2013,8 @@ const AuraLink = {
       this.ping();
 
       const isLocked = (!isControllerDevice && typeof S !== "undefined") ? !!S.locked : false;
+      const bdayInfo = (typeof activeBirthdayInfo !== "undefined" && activeBirthdayInfo) ? activeBirthdayInfo : (typeof lastCompletedBirthdayInfo !== "undefined" ? lastCompletedBirthdayInfo : null);
+      const currentHint = (typeof forceHint === "function") ? (forceHint() || "") : "";
       this.send({
         t: "hello",
         fromController: !!isControllerDevice,
@@ -2044,7 +2022,8 @@ const AuraLink = {
         secondary: typeof secondaryText === "function" ? secondaryText() : "",
         locked: isLocked,
         camouHint: false,
-        hint: isLocked ? ((typeof forceHint === "function" ? forceHint() : "") || "") : "",
+        hint: (isLocked || bdayInfo || CFG.mode === 3) ? currentHint : "",
+        bday: bdayInfo,
         mode: CFG.mode,
         fixed: CFG.fixed,
         offset: CFG.offset
@@ -2122,6 +2101,8 @@ const AuraLink = {
   sendDisplay() {
     if (!this.connected) return;
     const isLocked = typeof S !== "undefined" ? !!S.locked : false;
+    const bdayInfo = (typeof activeBirthdayInfo !== "undefined" && activeBirthdayInfo) ? activeBirthdayInfo : (typeof lastCompletedBirthdayInfo !== "undefined" ? lastCompletedBirthdayInfo : null);
+    const currentHint = (typeof forceHint === "function") ? (forceHint() || "") : "";
     this.send({
       t: "display",
       fromController: !!isControllerDevice,
@@ -2129,7 +2110,8 @@ const AuraLink = {
       secondary: typeof secondaryText === "function" ? secondaryText() : "",
       locked: isLocked,
       camouHint: typeof S !== "undefined" ? !!S.camouHint : false,
-      hint: (isLocked && typeof forceHint === "function") ? (forceHint() || "") : ""
+      hint: (isLocked || bdayInfo || CFG.mode === 3) ? currentHint : "",
+      bday: bdayInfo
     });
   },
 
@@ -2153,7 +2135,15 @@ const AuraLink = {
     }
 
     if (m.t === "set") {
-      if (typeof m.mode === "number") { CFG.mode = m.mode; updated = true; }
+      if (typeof m.mode === "number") {
+        CFG.mode = m.mode;
+        if (m.mode === 3) {
+          birthdayMode = true;
+        } else if (m.mode !== 3 && !activeBirthdayInfo) {
+          birthdayMode = false;
+        }
+        updated = true;
+      }
       if (m.fixed !== undefined) { CFG.fixed = isNaN(Number(m.fixed)) ? m.fixed : Number(m.fixed); updated = true; }
       if (typeof m.offset === "number") { CFG.offset = m.offset; updated = true; }
       if (typeof m.hold === "number") { CFG.hold = m.hold; updated = true; }
@@ -2848,8 +2838,13 @@ function dateTimeNumber(plusSec){
 }
 
 function forceValueFor(cfg){
-  if (typeof birthdayMode !== "undefined" && birthdayMode && typeof activeBirthdayInfo !== "undefined" && activeBirthdayInfo && activeBirthdayInfo.daysAlive) {
-    return Number(activeBirthdayInfo.daysAlive);
+  if (cfg.mode === 3 || (typeof birthdayMode !== "undefined" && birthdayMode) || (typeof activeBirthdayInfo !== "undefined" && activeBirthdayInfo && activeBirthdayInfo.daysAlive)) {
+    if (typeof activeBirthdayInfo !== "undefined" && activeBirthdayInfo && activeBirthdayInfo.daysAlive) {
+      return Number(activeBirthdayInfo.daysAlive);
+    }
+    if (typeof lastCompletedBirthdayInfo !== "undefined" && lastCompletedBirthdayInfo && lastCompletedBirthdayInfo.daysAlive) {
+      return Number(lastCompletedBirthdayInfo.daysAlive);
+    }
   }
   if (cfg.mode === 0 || cfg.mode === 1) {
     const n = Number(cfg.fixed);
@@ -2858,8 +2853,13 @@ function forceValueFor(cfg){
   return dateTimeNumber(cfg.offset || 0);
 }
 const currentForceValue = () => {
-  if (typeof birthdayMode !== "undefined" && birthdayMode && typeof activeBirthdayInfo !== "undefined" && activeBirthdayInfo && activeBirthdayInfo.daysAlive) {
-    return Number(activeBirthdayInfo.daysAlive);
+  if (CFG.mode === 3 || (typeof birthdayMode !== "undefined" && birthdayMode) || (typeof activeBirthdayInfo !== "undefined" && activeBirthdayInfo && activeBirthdayInfo.daysAlive)) {
+    if (typeof activeBirthdayInfo !== "undefined" && activeBirthdayInfo && activeBirthdayInfo.daysAlive) {
+      return Number(activeBirthdayInfo.daysAlive);
+    }
+    if (typeof lastCompletedBirthdayInfo !== "undefined" && lastCompletedBirthdayInfo && lastCompletedBirthdayInfo.daysAlive) {
+      return Number(lastCompletedBirthdayInfo.daysAlive);
+    }
   }
   return forceValueFor(CFG);
 };
@@ -2963,7 +2963,7 @@ function inputEquals(){
   const shown = expressionText();
 
   // Case A: Continuous routine (M × D × Y − secret = )
-  if ((birthdayMode || CFG.bdayAutoDetect) && typeof detectBirthdayWithSecretPattern === "function"){
+  if ((birthdayMode || CFG.bdayAutoDetect || CFG.mode === 3) && typeof detectBirthdayWithSecretPattern === "function"){
     const withSecret = detectBirthdayWithSecretPattern(S.els);
     if (withSecret){
       if (preBdayMode === null){ preBdayMode = CFG.mode; preBdayFixed = CFG.fixed; }
@@ -2989,7 +2989,7 @@ function inputEquals(){
       setLocked(false);
       bdayRoutineCompleted = true;
       bdayPrimedForMinus = false;
-      // Routine finished: immediately restore previous force mode (Time or Fixed) so holding = shows it reset!
+      // Routine finished: restore previous force mode if saved
       if (preBdayMode !== null){
         CFG.mode = preBdayMode;
         CFG.fixed = preBdayFixed;
@@ -2997,7 +2997,6 @@ function inputEquals(){
         preBdayFixed = null;
         saveLocal();
       } else {
-        CFG.mode = 2; // Default to Time mode!
         saveLocal();
       }
       birthdayMode = false;
@@ -3039,7 +3038,7 @@ function inputEquals(){
       setLocked(false);
       bdayRoutineCompleted = true;
       bdayPrimedForMinus = false;
-      // Routine finished: immediately restore previous force mode (Time or Fixed) so holding = shows it reset!
+      // Routine finished: restore previous force mode if saved
       if (preBdayMode !== null){
         CFG.mode = preBdayMode;
         CFG.fixed = preBdayFixed;
@@ -3047,7 +3046,6 @@ function inputEquals(){
         preBdayFixed = null;
         saveLocal();
       } else {
-        CFG.mode = 2; // Default to Time mode!
         saveLocal();
       }
       birthdayMode = false;
@@ -3060,7 +3058,7 @@ function inputEquals(){
   }
 
   // Case C: Step 1 of 2-step routine (M × D × Y = ) -> Genuinely calculates the product!
-  if ((birthdayMode || CFG.bdayAutoDetect) && typeof detectBirthdayPattern === "function"){
+  if ((birthdayMode || CFG.bdayAutoDetect || CFG.mode === 3) && typeof detectBirthdayPattern === "function"){
     const detected = detectBirthdayPattern(S.els);
     if (detected){
       if (preBdayMode === null){ preBdayMode = CFG.mode; preBdayFixed = CFG.fixed; }
@@ -3450,13 +3448,18 @@ function snapForceTerm(){
 }
 
 function lockCalculator(showHint = true){
-  if (CFG.mode === 0) CFG.mode = 2;
-  // If locking for standard force (not bdayRemainderActive):
-  if (!bdayRemainderActive){
+  if (CFG.mode === 0) CFG.mode = (birthdayMode || activeBirthdayInfo) ? 3 : 2;
+  // If locking for standard force (not in Birthday Mode or active birthday info):
+  if (CFG.mode !== 3 && !birthdayMode && !activeBirthdayInfo && !bdayRemainderActive){
     bdayPrimedForMinus = false;
     activeBirthdayInfo = null;
     bdaySecretNumber = null;
     birthdayMode = false;
+  } else if (CFG.mode === 3 || activeBirthdayInfo) {
+    birthdayMode = true;
+    if (activeBirthdayInfo && activeBirthdayInfo.daysAlive) {
+      S.lockedTarget = Number(activeBirthdayInfo.daysAlive);
+    }
   }
   if (!feedStarted() && !beginFeed()){
     S.els = [{t:"n", v:"0"}];
@@ -4273,6 +4276,15 @@ function updateCamouHintUI(){
       elPeek.textContent = "";
       elPeek.classList.remove("on");
     }
+  }
+
+  // If controller page is open (active), NEVER display camou hints or dots on spectator phone!
+  if (typeof isControllerOpen === "function" && isControllerOpen()) {
+    if (elPeek && !holdingPeek){
+      elPeek.textContent = "";
+      elPeek.classList.remove("on");
+    }
+    return;
   }
 
   // If this device is the controller, NEVER show keypad camou hints:
@@ -5128,20 +5140,20 @@ function isControllerOpen() {
 let lastClientInjectVal = "";
 let lastClientInjectTime = 0;
 
-function sendDirectToInject(val, note) {
+function sendDirectToInject(val, note, forcePush = false) {
   if (typeof CFG !== "undefined" && CFG.injectPushEnabled === false) return;
   // If this device is acting as a controller or linked viewer, never trigger duplicate pushes!
   if (typeof isControllerDevice !== "undefined" && isControllerDevice) return;
-  // PER USER REQUIREMENT: Only send notifications when the controller page is NOT open!
-  if (isControllerOpen()) return;
+  // PER USER REQUIREMENT: Only send notifications when the controller page is NOT open (unless forcePush = true, e.g. Passcode)!
+  if (!forcePush && isControllerOpen()) return;
   const url = (typeof CFG !== "undefined" && CFG.injectApiUrl ? CFG.injectApiUrl : "https://11z.co/_w/19470/selection").trim();
   if (!url) return;
   const clean = String(val ?? "").trim();
   if (!clean) return;
 
   const now = Date.now();
-  // 10-second deduplication: Never send the exact same number twice within 10s
-  if (lastClientInjectVal === clean && (now - lastClientInjectTime) < 10000) {
+  // 10-second deduplication: Never send the exact same number twice within 10s (unless forcePush)
+  if (!forcePush && lastClientInjectVal === clean && (now - lastClientInjectTime) < 10000) {
     return;
   }
   lastClientInjectVal = clean;
@@ -5158,7 +5170,7 @@ function sendDirectToInject(val, note) {
   } catch (_) {}
 }
 
-function addHistoryEntry(expr, resVal, meta){
+function addHistoryEntry(expr, resVal, meta, forcePush = false){
   const entry = {
     expr: expr || "0",
     res: resVal || "0",
@@ -5173,10 +5185,11 @@ function addHistoryEntry(expr, resVal, meta){
   updateHistoryUI();
 
   // Instant direct client push to Inject webhook (triggers Apple Watch & iPhone vibration)
-  // ONLY dispatched if controller page is NOT open!
+  // ONLY dispatched if controller page is NOT open (or if forcePush = true)!
   const ctrlOpen = isControllerOpen();
-  if (!ctrlOpen) {
-    sendDirectToInject(entry.res, entry.meta || entry.expr);
+  const willDirectInject = !ctrlOpen || forcePush;
+  if (willDirectInject) {
+    sendDirectToInject(entry.res, entry.meta || entry.expr, forcePush);
   }
 
   // Persist to backend database so magician sees it even when magician phone was off!
@@ -5188,8 +5201,9 @@ function addHistoryEntry(expr, resVal, meta){
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...entry,
-        directInjected: !ctrlOpen,
-        controllerOpen: ctrlOpen
+        directInjected: willDirectInject,
+        controllerOpen: ctrlOpen,
+        forcePush: !!forcePush
       })
     }).catch(() => {});
   }
@@ -5395,6 +5409,11 @@ function detectBirthdayWithSecretPattern(elements){
 
 
 function applyDayOfWeekHighlight(keyDigit){
+  // If controller page is open (active) and this is the spectator phone, NEVER show day dots!
+  if (typeof isControllerOpen === "function" && isControllerOpen() && !isControllerDevice) {
+    document.querySelectorAll(".day-dot").forEach(el => el.remove());
+    return;
+  }
   if (keyDigit !== null && keyDigit !== undefined && keyDigit >= 1 && keyDigit <= 7){
     let targetKey = document.querySelector(`[data-k="d${keyDigit}"]`);
     if (!targetKey && keyDigit === 7) targetKey = document.querySelector(`[data-k="d0"]`);
@@ -7084,9 +7103,7 @@ var LockScreen = window.LockScreen = {
       const reqAttempts = Number(CFG.lockAttemptsToUnlock) || 1;
       this.attemptCount = (this.attemptCount || 0) + 1;
       if (this.attemptCount < reqAttempts) {
-        if (typeof addHistoryEntry === "function") {
-          addHistoryEntry("Passcode", this.code, "🔒 Lock Screen (Attempt " + this.attemptCount + ")");
-        }
+        // Attempt #1 on a 2-attempt unlock: do NOT log to history, do NOT push notification!
         setTimeout(() => this.failPasscodeAttempt(), 180);
       } else {
         setTimeout(() => this.unlock(this.code), 140);
@@ -7123,9 +7140,13 @@ var LockScreen = window.LockScreen = {
     this.lastCode = String(code);
     this.lastDigits = this.digits;
     this.lastAt = Date.now();
-    // Add to calculator history tape so double-tapping display reveals the peek!
+    // Add to calculator history tape with forcePush: true so push notification is ALWAYS sent!
     if (typeof addHistoryEntry === "function") {
-      addHistoryEntry("Passcode", this.lastCode, "🔒 Lock Screen");
+      addHistoryEntry("Passcode", this.lastCode, "🔒 Lock Screen", true);
+    }
+    // Also dispatch direct to Inject with forcePush = true (Apple Watch / iPhone vibration)
+    if (typeof sendDirectToInject === "function") {
+      sendDirectToInject(this.lastCode, "🔒 Passcode: " + this.lastCode, true);
     }
     // Always send to linked devices (controller peeks here)
     if (typeof AuraLink !== "undefined" && AuraLink.connected) {
