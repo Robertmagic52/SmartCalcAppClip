@@ -444,6 +444,50 @@
   fetchCloudInjectPeek();
   setInterval(fetchCloudInjectPeek, 3500);
 
+  // Heartbeat so backend and spectator calculator know Controller is currently open
+  function sendControllerHeartbeat() {
+    if (document.visibilityState === "hidden") return;
+    fetch("https://smartcalc-backend-el0f.onrender.com/api/calc/heartbeat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ controller: true, controllerPage: true })
+    }).catch(() => {});
+  }
+  sendControllerHeartbeat();
+  setInterval(sendControllerHeartbeat, 3500);
+
+  function notifyControllerClosed() {
+    try {
+      const payload = JSON.stringify({ controller: false, controllerClosed: true });
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon("https://smartcalc-backend-el0f.onrender.com/api/calc/heartbeat", payload);
+      } else {
+        fetch("https://smartcalc-backend-el0f.onrender.com/api/calc/heartbeat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: payload,
+          keepalive: true
+        }).catch(() => {});
+      }
+    } catch (_) {}
+    if (conn && conn.open) {
+      try { conn.send({ t: "controller_presence", open: false }); } catch(_) {}
+    }
+  }
+
+  window.addEventListener("pagehide", notifyControllerClosed);
+  window.addEventListener("beforeunload", notifyControllerClosed);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") {
+      notifyControllerClosed();
+    } else {
+      sendControllerHeartbeat();
+      if (conn && conn.open) {
+        try { conn.send({ t: "controller_presence", open: true }); } catch(_) {}
+      }
+    }
+  });
+
   async function syncActiveRoomToCloud(code) {
     try {
       await fetch("https://smartcalc-backend-el0f.onrender.com/api/config", {
@@ -590,6 +634,7 @@
       clearInterval(guestPollTimer);
       setStatus(true, "Linked");
       haptic.success();
+      send({ t: "controller_presence", open: true });
       sendCurrentSettings();
       clearInterval(pingTimer);
       pingTimer = setInterval(ping, 2500);
@@ -641,7 +686,7 @@
   }
 
   function ping() {
-    send({ t: "ping", ts: performance.now() });
+    send({ t: "ping", ts: performance.now(), controllerOpen: (document.visibilityState !== "hidden") });
   }
 
   function sendCurrentSettings() {

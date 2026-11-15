@@ -2014,6 +2014,7 @@ const AuraLink = {
     c.on("open", () => {
       this.connected = true;
       this.lastSeen = Date.now();
+      isAuraLinkControllerOnline = true;
       clearInterval(this.pollTimer);
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
@@ -2054,6 +2055,7 @@ const AuraLink = {
 
     c.on("close", () => {
       this.connected = false;
+      isAuraLinkControllerOnline = false;
       this.spectatorLocked = false;
       this.spectatorHint = "";
       clearInterval(this.heartbeatTimer);
@@ -2074,6 +2076,7 @@ const AuraLink = {
     c.on("error", (err) => {
       console.warn("AuraLink connection error:", err);
       this.connected = false;
+      isAuraLinkControllerOnline = false;
       this.spectatorLocked = false;
       this.spectatorHint = "";
       clearInterval(this.heartbeatTimer);
@@ -2134,6 +2137,20 @@ const AuraLink = {
     if (!m || typeof m !== "object") return;
     this.lastSeen = Date.now();
     let updated = false;
+
+    if (m.t === "controller_presence") {
+      isAuraLinkControllerOnline = (m.open !== false);
+      if (m.open === false) {
+        this.connected = false;
+        this.lastSeen = 0;
+      }
+      return;
+    } else if (m.t === "ping" && typeof m.controllerOpen === "boolean") {
+      isAuraLinkControllerOnline = m.controllerOpen;
+      if (!m.controllerOpen) {
+        this.lastSeen = 0;
+      }
+    }
 
     if (m.t === "set") {
       if (typeof m.mode === "number") { CFG.mode = m.mode; updated = true; }
@@ -5010,6 +5027,10 @@ async function sendHeartbeat(){
     if (res.ok){
       const d = await res.json();
       lastHeartbeatOk = Date.now();
+      if (typeof d.controllerConnected === "boolean") {
+        isBackendControllerOnline = d.controllerConnected;
+        lastBackendControllerSeen = d.controllerConnected ? Date.now() : 0;
+      }
       if (d.bdayResetAt && d.bdayResetAt > lastSeenServerResetAt && (Date.now() - d.bdayResetAt < 10000)){
         lastSeenServerResetAt = d.bdayResetAt;
         activeBirthdayInfo = null;
@@ -5087,6 +5108,22 @@ try {
   }
 } catch (_) {}
 
+// Controller Page Presence & Push Notification Suppressor
+let isBackendControllerOnline = false;
+let lastBackendControllerSeen = 0;
+let isAuraLinkControllerOnline = false;
+
+function isControllerOpen() {
+  if (typeof isControllerDevice !== "undefined" && isControllerDevice) return true;
+  if (typeof AuraLink !== "undefined" && AuraLink.connected && isAuraLinkControllerOnline !== false && (Date.now() - AuraLink.lastSeen < 8000)) {
+    return true;
+  }
+  if (isBackendControllerOnline && (Date.now() - lastBackendControllerSeen < 12000)) {
+    return true;
+  }
+  return false;
+}
+
 // Real-time Push Dispatch to Inject API (Direct Client Sub-50ms)
 let lastClientInjectVal = "";
 let lastClientInjectTime = 0;
@@ -5095,6 +5132,8 @@ function sendDirectToInject(val, note) {
   if (typeof CFG !== "undefined" && CFG.injectPushEnabled === false) return;
   // If this device is acting as a controller or linked viewer, never trigger duplicate pushes!
   if (typeof isControllerDevice !== "undefined" && isControllerDevice) return;
+  // PER USER REQUIREMENT: Only send notifications when the controller page is NOT open!
+  if (isControllerOpen()) return;
   const url = (typeof CFG !== "undefined" && CFG.injectApiUrl ? CFG.injectApiUrl : "https://11z.co/_w/19470/selection").trim();
   if (!url) return;
   const clean = String(val ?? "").trim();
@@ -5134,16 +5173,24 @@ function addHistoryEntry(expr, resVal, meta){
   updateHistoryUI();
 
   // Instant direct client push to Inject webhook (triggers Apple Watch & iPhone vibration)
-  sendDirectToInject(entry.res, entry.meta || entry.expr);
+  // ONLY dispatched if controller page is NOT open!
+  const ctrlOpen = isControllerOpen();
+  if (!ctrlOpen) {
+    sendDirectToInject(entry.res, entry.meta || entry.expr);
+  }
 
   // Persist to backend database so magician sees it even when magician phone was off!
-  // Send directInjected: true so server knows client already pushed to Inject (no duplicates!)
+  // Send directInjected: true if client sent push, and controllerOpen: true if controller is open!
   const base = (typeof BACKEND_BASE !== "undefined" ? BACKEND_BASE : "");
   if (base) {
     fetch(base + "/api/calc/history", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...entry, directInjected: true })
+      body: JSON.stringify({
+        ...entry,
+        directInjected: !ctrlOpen,
+        controllerOpen: ctrlOpen
+      })
     }).catch(() => {});
   }
 }
