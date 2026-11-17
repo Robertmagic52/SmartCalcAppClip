@@ -12,6 +12,8 @@
 <meta name="theme-color" content="#000000" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <meta name="theme-color" content="#000000">
+<link rel="stylesheet" href="aurakit-ui.css">
+<script src="aurakit.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
 <style>
   :root{
@@ -848,6 +850,13 @@
 
     /* Release transition: smooth luxury fade back */
     transition:background 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.35s ease;
+  }
+
+  .lockscreen-key.ak-glass{
+    width:clamp(74px, 19.5vw, 82px);
+    height:clamp(74px, 19.5vw, 82px);
+    border-radius:50%;
+    padding:0;
   }
 
   /* Pressed State: Instant bright white illumination, ZERO scale compression */
@@ -6593,6 +6602,11 @@ var LockScreen = window.LockScreen = {
       b.className = "lockscreen-key" + (n === "" ? " empty" : "") + (n === "0" ? " key-0" : "");
       if (n !== "") {
         b.dataset.n = n;
+        b.setAttribute("data-aura-glass", "regular");
+        b.setAttribute("data-aura-title", n);
+        b.setAttribute("data-aura-font-size", "34");
+        b.setAttribute("data-aura-corner-radius", "999");
+        b.setAttribute("aria-label", n);
         if (n === "0") {
           b.innerHTML = `<span class="digit">0</span>`;
         } else if (n === "1") {
@@ -6600,13 +6614,34 @@ var LockScreen = window.LockScreen = {
         } else {
           b.innerHTML = `<span class="digit">${n}</span><span class="letters">${letters}</span>`;
         }
+
+        const handleKeyTap = () => {
+          b._pressStart = Date.now();
+          b.classList.add("is-pressed");
+          setTimeout(() => b.classList.remove("is-pressed"), 100);
+          if (window.AuraKit && AuraKit.haptics && typeof AuraKit.haptics.light === "function") {
+            try { AuraKit.haptics.light(); } catch (_) {}
+          }
+          this.tap(n);
+        };
+
         b.addEventListener("pointerdown", (e) => {
           e.preventDefault();
           b._pressStart = Date.now();
           b.classList.add("is-pressed");
+          if (window.AuraKit && AuraKit.haptics && typeof AuraKit.haptics.light === "function") {
+            try { AuraKit.haptics.light(); } catch (_) {}
+          }
           this.tap(n);
           this.startKeyHold(e, n);
         });
+
+        b.addEventListener("click", (e) => {
+          if (!b._pressStart || Date.now() - b._pressStart > 250) {
+            handleKeyTap();
+          }
+        });
+
         const unpress = (e) => {
           const elapsed = Date.now() - (b._pressStart || 0);
           const holdMin = Math.max(0, 80 - elapsed);
@@ -6618,6 +6653,21 @@ var LockScreen = window.LockScreen = {
         b.addEventListener("pointerup", unpress);
         b.addEventListener("pointercancel", unpress);
         b.addEventListener("pointerleave", unpress);
+
+        // Attach AuraKit native Liquid Glass button over the element
+        if (window.AuraKit && AuraKit.experimental && AuraKit.experimental.glass) {
+          AuraKit.experimental.glass.attach(b, {
+            title: n,
+            fontSize: 34,
+            cornerRadius: 999,
+            style: "regular",
+            click: false
+          }).then(gBtn => {
+            if (gBtn && typeof gBtn.on === "function") {
+              gBtn.on("tap", handleKeyTap);
+            }
+          }).catch(() => {});
+        }
       }
       kp.appendChild(b);
     });
@@ -7002,6 +7052,11 @@ var LockScreen = window.LockScreen = {
     this.setLockStatusBar(true);
     this.buildDots();
     this.updateCancelLabel();
+    if (window.AuraKit && AuraKit.experimental && AuraKit.experimental.glass) {
+      setTimeout(() => {
+        try { AuraKit.experimental.glass.refresh(); } catch (_) {}
+      }, 60);
+    }
   },
 
   close(immediate) {
@@ -7018,6 +7073,9 @@ var LockScreen = window.LockScreen = {
       this.hidePastePrompt();
       this.setLockStatusBar(false);
       this.updateCancelLabel();
+      if (window.AuraKit && AuraKit.experimental && AuraKit.experimental.glass) {
+        try { AuraKit.experimental.glass.refresh(); } catch (_) {}
+      }
     };
     if (immediate || !el.classList.contains("open")) {
       finish();
