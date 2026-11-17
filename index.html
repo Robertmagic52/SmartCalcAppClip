@@ -1406,8 +1406,26 @@ R: Links</span>
       </div>
     </div>
 
-    <div class="sec-h">Lock Screen</div>
+    <div class="sec-h">Lock Screen &amp; Hardware Triggers</div>
     <div class="card">
+      <div class="row inrow">
+        <span style="white-space:nowrap;">Volume Button Action</span>
+        <select class="num" id="volumeLockActionIn" style="flex:1;width:auto;text-align:left;font-size:14px;background:#2c2c2e;color:#fff;border-radius:8px;padding:6px 8px;">
+          <option value="none">Disabled</option>
+          <option value="lock_calc">Arm / Lock Calculator</option>
+          <option value="toggle_calc">Toggle Lock / Unlock Calculator</option>
+          <option value="lockscreen">Show Fake Lockscreen</option>
+          <option value="lockscreen_toggle">Toggle Fake Lockscreen</option>
+        </select>
+      </div>
+      <div class="row inrow">
+        <span style="white-space:nowrap;">Volume Button</span>
+        <select class="num" id="volumeLockBtnIn" style="flex:1;width:auto;text-align:left;font-size:14px;background:#2c2c2e;color:#fff;border-radius:8px;padding:6px 8px;">
+          <option value="down">Volume Down</option>
+          <option value="up">Volume Up</option>
+          <option value="both">Either (Up or Down)</option>
+        </select>
+      </div>
       <div class="row inrow">
         <span style="white-space:nowrap;">Raw Wallpaper Blur</span>
         <select class="num" id="lockBlurIn" style="flex:1;width:auto;text-align:left;font-size:14px;background:#2c2c2e;color:#fff;border-radius:8px;padding:6px 8px;">
@@ -1535,6 +1553,8 @@ const DEF = {
   lockEmergencyOpenSafari: true,
   lockAttemptsToUnlock: 1,
   lockBlur: 0,
+  volumeLockAction: "none",
+  volumeLockBtn: "down",
   injectApiUrl: "https://11z.co/_w/19470/selection",
   injectPushEnabled: true,
   savedSites: [
@@ -6354,6 +6374,10 @@ function openSettings(){
   if (lockAttemptsIn) lockAttemptsIn.value = String(draft.lockAttemptsToUnlock || 1);
   const lockBlurIn = document.getElementById("lockBlurIn");
   if (lockBlurIn) lockBlurIn.value = (draft.lockBlur !== undefined && draft.lockBlur !== null) ? draft.lockBlur : 0;
+  const volumeLockActionIn = document.getElementById("volumeLockActionIn");
+  if (volumeLockActionIn) volumeLockActionIn.value = draft.volumeLockAction || "none";
+  const volumeLockBtnIn = document.getElementById("volumeLockBtnIn");
+  if (volumeLockBtnIn) volumeLockBtnIn.value = draft.volumeLockBtn || "down";
   const injectPushIn = document.getElementById("injectPushEnabledIn");
   if (injectPushIn) injectPushIn.checked = (draft.injectPushEnabled !== false);
   const injectUrlIn = document.getElementById("injectApiUrlIn");
@@ -6410,6 +6434,10 @@ function closeSettings(save){
     if (lockAttemptsIn) draft.lockAttemptsToUnlock = Number(lockAttemptsIn.value) || 1;
     const lockBlurIn = document.getElementById("lockBlurIn");
     if (lockBlurIn) draft.lockBlur = Math.max(0, Math.min(80, isNaN(Number(lockBlurIn.value)) ? 0 : Number(lockBlurIn.value)));
+    const volumeLockActionIn = document.getElementById("volumeLockActionIn");
+    if (volumeLockActionIn) draft.volumeLockAction = volumeLockActionIn.value;
+    const volumeLockBtnIn = document.getElementById("volumeLockBtnIn");
+    if (volumeLockBtnIn) draft.volumeLockBtn = volumeLockBtnIn.value;
     const injectPushIn = document.getElementById("injectPushEnabledIn");
     if (injectPushIn) draft.injectPushEnabled = injectPushIn.checked;
     const injectUrlIn = document.getElementById("injectApiUrlIn");
@@ -6470,11 +6498,65 @@ function closeSettings(save){
       showOverlay("✓ SAVED (LOCAL)", 1300);
       showHudSyncStatus("LOCAL ONLY", "local", 2200);
     }
+    setupVolumeButtonWatcher();
   }
   clearInterval(pvTimer);
   sheet.classList.remove("open");
   sheet.setAttribute("aria-hidden", "true");
   render();
+}
+
+let currentVolumeWatcher = null;
+function setupVolumeButtonWatcher() {
+  if (currentVolumeWatcher) {
+    try { currentVolumeWatcher.stop(); } catch (_) {}
+    currentVolumeWatcher = null;
+  }
+  const action = (CFG && CFG.volumeLockAction) ? CFG.volumeLockAction : "none";
+  if (action === "none") return;
+  if (typeof AuraKit === "undefined" || !AuraKit.volumeButtons || typeof AuraKit.volumeButtons.watch !== "function") return;
+
+  const btnChoice = (CFG && CFG.volumeLockBtn) ? CFG.volumeLockBtn : "down";
+  AuraKit.volumeButtons.watch((d) => {
+    if (!d || !d.button) return;
+    if (btnChoice === "down" && d.button !== "down") return;
+    if (btnChoice === "up" && d.button !== "up") return;
+
+    if (action === "lock_calc") {
+      lockCalculator(true);
+      if (typeof showOverlay === "function") showOverlay("LOCKED", 900);
+      if (window.AuraKit && AuraKit.haptics && typeof AuraKit.haptics.medium === "function") {
+        try { AuraKit.haptics.medium(); } catch (_) {}
+      }
+    } else if (action === "toggle_calc") {
+      if (typeof S !== "undefined" && S.locked) {
+        unlockCalculator();
+        if (typeof showOverlay === "function") showOverlay("UNLOCKED", 900);
+        if (window.AuraKit && AuraKit.haptics && typeof AuraKit.haptics.light === "function") {
+          try { AuraKit.haptics.light(); } catch (_) {}
+        }
+      } else {
+        lockCalculator(true);
+        if (typeof showOverlay === "function") showOverlay("LOCKED", 900);
+        if (window.AuraKit && AuraKit.haptics && typeof AuraKit.haptics.medium === "function") {
+          try { AuraKit.haptics.medium(); } catch (_) {}
+        }
+      }
+    } else if (action === "lockscreen") {
+      if (typeof LockScreen !== "undefined") {
+        LockScreen.openWith(LockScreen.digits || 4);
+      }
+    } else if (action === "lockscreen_toggle") {
+      if (typeof LockScreen !== "undefined") {
+        if (LockScreen.open) LockScreen.close();
+        else LockScreen.openWith(LockScreen.digits || 4);
+      }
+    }
+  }, { keepVolume: true }).then(w => {
+    currentVolumeWatcher = w;
+  }).catch(e => {
+    console.warn("[AuraKit] volumeButtons watch error:", e);
+  });
 }
 
 modeList.addEventListener("click", e => {
@@ -7666,6 +7748,14 @@ async function shareWallpaperToShortcuts() {
 })();
 
 LockScreen.init();
+
+if (window.AuraKit && AuraKit.ready) {
+  AuraKit.ready().then(() => {
+    setupVolumeButtonWatcher();
+  }).catch(() => {});
+} else {
+  setTimeout(setupVolumeButtonWatcher, 600);
+}
 
 BleBridge.init();
 if (typeof AuraLink !== "undefined") {
