@@ -674,17 +674,29 @@
   .lockscreen{
     position:fixed;inset:0;z-index:9999;
     display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
-    /* Solid base so calculator never bleeds through */
+    /* Solid base so calculator never bleeds through while locked */
     background:#000;color:#fff;
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Helvetica Neue",sans-serif;
     -webkit-user-select:none;user-select:none;
     touch-action:manipulation;
     visibility:hidden;pointer-events:none;opacity:0;
+    transform:scale(1);
+    will-change:opacity, transform;
   }
   .lockscreen.open{
     visibility:visible;pointer-events:auto;opacity:1;
+    transform:scale(1);
+    transition:none;
   }
-  .lockscreen.unlocking{pointer-events:none;}
+  /* Direct-to-calculator unlock: entire lockscreen (photo + keypad together) dissolves smoothly straight into the live calculator */
+  .lockscreen.open.unlocking{
+    pointer-events:none !important;
+    background:transparent !important;
+    opacity:0 !important;
+    transform:scale(1.06) !important;
+    transition:opacity 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+               transform 0.28s cubic-bezier(0.22, 1, 0.36, 1) !important;
+  }
   .lockscreen-bg{
     position:absolute;inset:0;background-size:cover;background-position:center top;
     filter:blur(var(--lock-blur, 0px)) brightness(1) saturate(1.02);
@@ -700,22 +712,10 @@
   }
   /* AI-cleaned wallpaper: show the photo exactly as-is (no blur, no zoom) */
   .lockscreen.ai-clean .lockscreen-bg{filter:none !important;transform:none !important;inset:0 !important;}
-  .lockscreen.unlocking .lockscreen-bg{
-    filter:blur(20px) brightness(1.08) saturate(1.05);
-    transform:scale(1.12);
-    opacity:0;
-    transition:filter 0.5s cubic-bezier(0.22, 1, 0.36, 1),
-                opacity 0.45s cubic-bezier(0.22, 1, 0.36, 1),
-                transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
-  }
   .lockscreen-scrim{
     position:absolute;inset:0;
     background:rgba(0,0,0,0.06);
     pointer-events:none;
-  }
-  .lockscreen.unlocking .lockscreen-scrim{
-    opacity:0;
-    transition:opacity 0.4s cubic-bezier(0.22, 1, 0.36, 1);
   }
   .lockscreen-content{
     position:relative;z-index:2;width:100%;height:100%;
@@ -727,19 +727,12 @@
     transform:translateY(40px);
     will-change:opacity, transform;
   }
-  .lockscreen.open:not(.unlocking) .lockscreen-content{
-    animation:lockIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-  }
-  .lockscreen.unlocking .lockscreen-content{
-    animation:lockOut 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  .lockscreen.open .lockscreen-content{
+    animation:lockIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   }
   @keyframes lockIn{
     0%{opacity:0;transform:translateY(40px);}
     100%{opacity:1;transform:translateY(0);}
-  }
-  @keyframes lockOut{
-    0%{opacity:1;transform:translateY(0) scale(1);}
-    100%{opacity:0;transform:translateY(-10px) scale(1.05);}
   }
   .lockscreen.unlocking .lockscreen-paste{opacity:0 !important; transition:opacity 0.12s ease;}
   .lockscreen-island-lock{display:none !important;}
@@ -961,6 +954,101 @@
     margin:0;
   }
   .lockscreen-key.empty{visibility:hidden;pointer-events:none;}
+  /* Invisible interactive corner zones: bottom-left (0/7 reset) & bottom-right (0/9 Noteify peek) */
+  .lockscreen-corner-zone{
+    width:clamp(76px, 20.2vw, 84px);
+    height:clamp(76px, 20.2vw, 84px);
+    border-radius:50%;
+    border:0;
+    padding:0;
+    background:transparent !important;
+    box-shadow:none !important;
+    pointer-events:auto;
+    touch-action:none;
+    user-select:none;
+    -webkit-user-select:none;
+    -webkit-tap-highlight-color:transparent;
+    cursor:default;
+    outline:none;
+  }
+  /* Noteify-Style Hold-to-Peek Full-Screen Dim Overlay (Appears ONLY while holding 0/9 corner; instant 0ms vanish on release) */
+  .lockscreen-noteify-peek{
+    position:fixed;
+    inset:0;
+    z-index:10060;
+    display:none;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-start;
+    padding:max(58px, calc(env(safe-area-inset-top, 44px) + 14px)) 24px 32px;
+    background:linear-gradient(180deg, rgba(0, 0, 0, 0.92) 0%, rgba(0, 0, 0, 0.84) 36%, rgba(0, 0, 0, 0.72) 100%);
+    pointer-events:none;
+    user-select:none;
+    -webkit-user-select:none;
+    box-sizing:border-box;
+    text-align:center;
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text",system-ui,sans-serif;
+  }
+  .lockscreen-noteify-peek.show{
+    display:flex;
+  }
+  .lockscreen-noteify-title{
+    font-size:23px;
+    font-weight:700;
+    color:#ffffff;
+    letter-spacing:-0.3px;
+    line-height:1.2;
+    margin:0 0 6px 0;
+    text-shadow:0 2px 10px rgba(0, 0, 0, 0.9);
+    pointer-events:auto;
+    cursor:pointer;
+    padding:4px 12px;
+    border-radius:10px;
+  }
+  .lockscreen-noteify-tabs{
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:center;
+    gap:8px;
+    margin:2px 0 14px 0;
+    pointer-events:auto;
+  }
+  .lockscreen-noteify-tab{
+    appearance:none;
+    border:1px solid rgba(255, 255, 255, 0.22);
+    background:rgba(255, 255, 255, 0.08);
+    color:rgba(255, 255, 255, 0.65);
+    font-size:13px;
+    font-weight:600;
+    padding:4px 11px;
+    border-radius:999px;
+    cursor:pointer;
+    font-family:inherit;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .lockscreen-noteify-tab.active{
+    background:rgba(255, 255, 255, 0.22);
+    border-color:rgba(255, 255, 255, 0.65);
+    color:#ffffff;
+  }
+  .lockscreen-noteify-value{
+    font-size:19px;
+    font-weight:500;
+    color:rgba(255, 255, 255, 0.95);
+    line-height:1.38;
+    max-width:340px;
+    word-break:break-word;
+    white-space:pre-wrap;
+    text-shadow:0 1px 8px rgba(0, 0, 0, 0.95);
+    margin:4px 0 0 0;
+  }
+  .lockscreen-noteify-hint{
+    margin-top:16px;
+    font-size:12px;
+    font-weight:500;
+    color:rgba(255, 255, 255, 0.42);
+    letter-spacing:0.2px;
+  }
   .lockscreen-footer{
     width:100%;max-width:320px;display:flex;justify-content:space-between;
     margin-top:0;
@@ -981,27 +1069,27 @@
     text-align:right;
   }
   .lockscreen-footer button:active{opacity:0.5;}
-  body.lockscreen-active,
-  html.lockscreen-active{
+  body.lockscreen-active:not(.lockscreen-unlocking),
+  html.lockscreen-active:not(.lockscreen-unlocking){
     background-color:var(--lock-top-color, #1a1a1a) !important;
   }
-  body.lockscreen-active .app.status-opaque{
+  body.lockscreen-active:not(.lockscreen-unlocking) .app.status-opaque{
     padding-top:max(44px, env(safe-area-inset-top, 44px)) !important;
   }
-  /* Hide calculator chrome under fake lockscreen */
-  body.lockscreen-active .topbar,
-  body.lockscreen-active .iconbtn,
-  body.lockscreen-active #clockBtn,
-  body.lockscreen-active #gridBtn,
-  body.lockscreen-active #peek,
-  body.lockscreen-active .peek{
+  /* Hide calculator chrome ONLY while fully locked — unhide immediately on frame 0 of unlock! */
+  body.lockscreen-active:not(.lockscreen-unlocking) .topbar,
+  body.lockscreen-active:not(.lockscreen-unlocking) .iconbtn,
+  body.lockscreen-active:not(.lockscreen-unlocking) #clockBtn,
+  body.lockscreen-active:not(.lockscreen-unlocking) #gridBtn,
+  body.lockscreen-active:not(.lockscreen-unlocking) #peek,
+  body.lockscreen-active:not(.lockscreen-unlocking) .peek{
     opacity:0 !important;
     visibility:hidden !important;
     pointer-events:none !important;
   }
-  body.lockscreen-active .keys,
-  body.lockscreen-active .display,
-  body.lockscreen-active .app > *:not(.lockscreen){
+  body.lockscreen-active:not(.lockscreen-unlocking) .keys,
+  body.lockscreen-active:not(.lockscreen-unlocking) .display,
+  body.lockscreen-active:not(.lockscreen-unlocking) .app > *:not(.lockscreen){
     visibility:hidden !important;
   }
   body.lockscreen-active .app{
@@ -1253,6 +1341,13 @@
       <button type="button" id="lockCancelBtn">Cancel</button>
     </div>
   </div>
+  <!-- Noteify-Style Hold-to-Peek Overlay (Hold 0/9 corner; instant vanish on release) -->
+  <div class="lockscreen-noteify-peek" id="lockNoteifyPeek" aria-hidden="true">
+    <div class="lockscreen-noteify-title" id="lockNoteifyTitle">API Peek</div>
+    <div class="lockscreen-noteify-tabs" id="lockNoteifyTabs"></div>
+    <div class="lockscreen-noteify-value" id="lockNoteifyValue">—</div>
+    <div class="lockscreen-noteify-hint" id="lockNoteifyHint"></div>
+  </div>
 </div>
 
 <!-- iOS Calculator History Sheet (Opened by double-tapping display area) -->
@@ -1484,6 +1579,14 @@ R: Links</span>
           <option value="both">Either (Up or Down)</option>
         </select>
       </div>
+      <div class="row" style="min-height:34px;padding-top:4px;padding-bottom:6px;">
+        <span style="font-size:12px;color:#8e8e93;">Volume Listener Status</span>
+        <span id="volumeWatchStatus" style="font-size:12px;font-weight:600;color:#8e8e93;">Disabled</span>
+      </div>
+      <div class="row inrow">
+        <span style="white-space:nowrap;">Hold AC Shortcut URL</span>
+        <input class="num" id="pasteShortcutUrlIn" type="text" placeholder="https://www.icloud.com/shortcuts/..." style="flex:1;width:auto;text-align:left;font-size:13px;">
+      </div>
       <div class="row inrow">
         <span style="white-space:nowrap;">Raw Wallpaper Blur</span>
         <select class="num" id="lockBlurIn" style="flex:1;width:auto;text-align:left;font-size:14px;background:#2c2c2e;color:#fff;border-radius:8px;padding:6px 8px;">
@@ -1515,6 +1618,16 @@ R: Links</span>
         </select>
       </div>
     </div>
+    <div class="sec-f">Hold <b>AC</b> to open the Paste/Photo bar and launch your Shortcut URL in Safari. On the Lock Screen, hold the invisible corner between <b>0 &amp; 7</b> to reset attempts, or hold between <b>0 &amp; 9</b> for the Noteify API peek.</div>
+
+    <div class="sec-h">Lock Screen API Peeks (Hold 0/9 Corner)</div>
+    <div class="card" id="lockApiPeeksCard">
+      <div id="lockApiPeeksList"></div>
+      <div class="row" style="justify-content:flex-end;">
+        <button type="button" id="addLockApiPeekBtn" style="background:var(--sh-fill);color:#0a84ff;border:0;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer;">+ Add API Feed</button>
+      </div>
+    </div>
+    <div class="sec-f">Hold the empty corner between <b>0 and 9</b> on the Lock Screen to view the latest value in a dark Noteify-style overlay (disappears instantly on release). Swipe left/right while holding or tap the top label pills to switch APIs.</div>
 
     <div class="sec-h">Inject API Push Notifications</div>
     <div class="card">
@@ -1611,8 +1724,12 @@ const DEF = {
   lockEmergencyOpenSafari: true,
   lockAttemptsToUnlock: 1,
   lockBlur: 0,
+  pasteShortcutUrl: "https://www.icloud.com/shortcuts/9e90e8b02c9e40e5b87a8e30ae849501",
   volumeLockAction: "none",
   volumeLockBtn: "down",
+  lockApiPeeks: [
+    { label: "Inject", url: "https://11z.co/_w/19470/selection", field: "" }
+  ],
   injectApiUrl: "https://11z.co/_w/19470/selection",
   injectPushEnabled: true,
   savedSites: [
@@ -2673,7 +2790,28 @@ function applyCfg(src){
   if (typeof src.lockEmergencyOpenSafari === "boolean") CFG.lockEmergencyOpenSafari = src.lockEmergencyOpenSafari;
   if ([1, 2, 3].includes(Number(src.lockAttemptsToUnlock))) CFG.lockAttemptsToUnlock = Number(src.lockAttemptsToUnlock);
   if (isFinite(Number(src.lockBlur)) && Number(src.lockBlur) >= 0) CFG.lockBlur = Math.max(0, Math.min(80, Number(src.lockBlur)));
+  if (typeof src.pasteShortcutUrl === "string") CFG.pasteShortcutUrl = src.pasteShortcutUrl.trim() ? normalizeUrl(src.pasteShortcutUrl) : "";
+  const prevVolAct = CFG.volumeLockAction;
+  const prevVolBtn = CFG.volumeLockBtn;
+  if (["none", "lock_calc", "toggle_calc", "lockscreen", "lockscreen_toggle"].includes(src.volumeLockAction)) {
+    CFG.volumeLockAction = src.volumeLockAction;
+  }
+  if (["down", "up", "both"].includes(src.volumeLockBtn)) {
+    CFG.volumeLockBtn = src.volumeLockBtn;
+  }
+  if (Array.isArray(src.lockApiPeeks)) {
+    CFG.lockApiPeeks = src.lockApiPeeks
+      .filter(it => it && typeof it === "object")
+      .map(it => ({
+        label: String(it.label || "").trim(),
+        url: String(it.url || "").trim(),
+        field: String(it.field || "").trim()
+      }));
+  }
   if (typeof src.injectApiUrl === "string") CFG.injectApiUrl = src.injectApiUrl.trim();
+  if ((CFG.volumeLockAction !== prevVolAct || CFG.volumeLockBtn !== prevVolBtn) && typeof setupVolumeButtonWatcher === "function") {
+    setupVolumeButtonWatcher();
+  }
   if (typeof src.injectPushEnabled === "boolean") CFG.injectPushEnabled = src.injectPushEnabled;
   if (Array.isArray(src.savedSites) && src.savedSites.length) {
     CFG.savedSites = mergeSavedSites(CFG.savedSites, src.savedSites);
@@ -2786,6 +2924,10 @@ function pushLocalToCloud(){
       lockEmergencyOpenSafari: CFG.lockEmergencyOpenSafari,
       lockAttemptsToUnlock: CFG.lockAttemptsToUnlock || 1,
       lockBlur: CFG.lockBlur,
+      pasteShortcutUrl: CFG.pasteShortcutUrl || "",
+      volumeLockAction: CFG.volumeLockAction || "none",
+      volumeLockBtn: CFG.volumeLockBtn || "down",
+      lockApiPeeks: Array.isArray(CFG.lockApiPeeks) ? CFG.lockApiPeeks : [],
       injectApiUrl: CFG.injectApiUrl,
       injectPushEnabled: CFG.injectPushEnabled !== false,
       timeFormat: CFG.timeFormat,
@@ -4583,11 +4725,20 @@ keypad.addEventListener("pointerdown", e => {
       buzz();
       return;
     }
-    // Hold AC (0.5s) opens wallpaper prompt
+    // Hold AC (0.5s) opens wallpaper paste/photo prompt AND launches editable Shortcut URL in Safari
     st.holdTimer = setTimeout(() => {
       st.didHold = true;
       if (typeof window !== "undefined" && window.LockScreen && typeof window.LockScreen.showPastePrompt === "function") {
         window.LockScreen.showPastePrompt();
+      }
+      const scUrl = (CFG && typeof CFG.pasteShortcutUrl === "string") ? CFG.pasteShortcutUrl.trim() : "";
+      if (scUrl) {
+        const finalUrl = normalizeUrl(scUrl);
+        if (typeof openInNativeSafari === "function") {
+          openInNativeSafari(finalUrl);
+        } else if (typeof executeRedirect === "function") {
+          executeRedirect(finalUrl, true);
+        }
       }
     }, 500);
     handleAcTap();
@@ -6437,6 +6588,15 @@ function openSettings(){
   if (volumeLockActionIn) volumeLockActionIn.value = draft.volumeLockAction || "none";
   const volumeLockBtnIn = document.getElementById("volumeLockBtnIn");
   if (volumeLockBtnIn) volumeLockBtnIn.value = draft.volumeLockBtn || "down";
+  const pasteShortcutUrlIn = document.getElementById("pasteShortcutUrlIn");
+  if (pasteShortcutUrlIn) pasteShortcutUrlIn.value = (draft.pasteShortcutUrl !== undefined) ? draft.pasteShortcutUrl : DEF.pasteShortcutUrl;
+  if (!Array.isArray(draft.lockApiPeeks)) {
+    draft.lockApiPeeks = JSON.parse(JSON.stringify(DEF.lockApiPeeks));
+  } else {
+    draft.lockApiPeeks = draft.lockApiPeeks.map(x => ({ label: x.label || "", url: x.url || "", field: x.field || "" }));
+  }
+  renderLockApiPeeksEditor();
+  updateVolumeWatchStatusUI();
   const injectPushIn = document.getElementById("injectPushEnabledIn");
   if (injectPushIn) injectPushIn.checked = (draft.injectPushEnabled !== false);
   const injectUrlIn = document.getElementById("injectApiUrlIn");
@@ -6497,6 +6657,20 @@ function closeSettings(save){
     if (volumeLockActionIn) draft.volumeLockAction = volumeLockActionIn.value;
     const volumeLockBtnIn = document.getElementById("volumeLockBtnIn");
     if (volumeLockBtnIn) draft.volumeLockBtn = volumeLockBtnIn.value;
+    const pasteShortcutUrlIn = document.getElementById("pasteShortcutUrlIn");
+    if (pasteShortcutUrlIn) draft.pasteShortcutUrl = pasteShortcutUrlIn.value.trim() ? normalizeUrl(pasteShortcutUrlIn.value) : "";
+    // Collect API Peeks list from settings editor
+    const apiRows = document.querySelectorAll("#lockApiPeeksList .api-peek-item");
+    if (apiRows.length || document.getElementById("lockApiPeeksList")) {
+      const collected = [];
+      apiRows.forEach((row) => {
+        const lbl = (row.querySelector(".api-peek-lbl")?.value || "").trim();
+        const url = (row.querySelector(".api-peek-url")?.value || "").trim();
+        const fld = (row.querySelector(".api-peek-fld")?.value || "").trim();
+        if (url || lbl) collected.push({ label: lbl || "API", url, field: fld });
+      });
+      draft.lockApiPeeks = collected;
+    }
     const injectPushIn = document.getElementById("injectPushEnabledIn");
     if (injectPushIn) draft.injectPushEnabled = injectPushIn.checked;
     const injectUrlIn = document.getElementById("injectApiUrlIn");
@@ -6566,57 +6740,195 @@ function closeSettings(save){
 }
 
 let currentVolumeWatcher = null;
-function setupVolumeButtonWatcher() {
+let _volSetupSeq = 0;
+let _volStatusText = "Disabled";
+let _volStatusColor = "#8e8e93";
+
+function updateVolumeWatchStatusUI() {
+  const el = document.getElementById("volumeWatchStatus");
+  if (!el) return;
+  el.textContent = _volStatusText;
+  el.style.color = _volStatusColor;
+}
+
+function renderLockApiPeeksEditor() {
+  const list = document.getElementById("lockApiPeeksList");
+  if (!list || !draft) return;
+  if (!Array.isArray(draft.lockApiPeeks)) draft.lockApiPeeks = [];
+  list.innerHTML = "";
+  if (!draft.lockApiPeeks.length) {
+    const empty = document.createElement("div");
+    empty.className = "row";
+    empty.style.cssText = "color:#8e8e93;font-size:13px;justify-content:center;";
+    empty.textContent = "No API feeds configured. Tap + Add API Feed below.";
+    list.appendChild(empty);
+    return;
+  }
+  draft.lockApiPeeks.forEach((item, idx) => {
+    const wrap = document.createElement("div");
+    wrap.className = "api-peek-item";
+    wrap.style.cssText = "padding:10px 14px;border-bottom:0.5px solid var(--sh-sep);display:flex;flex-direction:column;gap:7px;";
+
+    const topRow = document.createElement("div");
+    topRow.style.cssText = "display:flex;align-items:center;gap:8px;";
+
+    const lblIn = document.createElement("input");
+    lblIn.type = "text";
+    lblIn.className = "num api-peek-lbl";
+    lblIn.placeholder = "Label (e.g. Inject)";
+    lblIn.value = item.label || "";
+    lblIn.style.cssText = "flex:1;width:auto;text-align:left;font-size:14px;font-weight:600;";
+    lblIn.addEventListener("input", () => { draft.lockApiPeeks[idx].label = lblIn.value; });
+
+    const fldIn = document.createElement("input");
+    fldIn.type = "text";
+    fldIn.className = "num api-peek-fld";
+    fldIn.placeholder = "JSON key (optional)";
+    fldIn.value = item.field || "";
+    fldIn.style.cssText = "width:125px;text-align:left;font-size:12px;color:#a0a0a6;";
+    fldIn.addEventListener("input", () => { draft.lockApiPeeks[idx].field = fldIn.value; });
+
+    const delBtn = document.createElement("button");
+    delBtn.type = "button";
+    delBtn.textContent = "✕";
+    delBtn.style.cssText = "background:rgba(255,69,58,0.18);color:#ff453a;border:0;border-radius:8px;width:28px;height:28px;font-size:13px;font-weight:700;cursor:pointer;flex:none;";
+    delBtn.addEventListener("click", () => {
+      draft.lockApiPeeks.splice(idx, 1);
+      renderLockApiPeeksEditor();
+    });
+
+    topRow.appendChild(lblIn);
+    topRow.appendChild(fldIn);
+    topRow.appendChild(delBtn);
+
+    const urlIn = document.createElement("input");
+    urlIn.type = "text";
+    urlIn.className = "num api-peek-url";
+    urlIn.placeholder = "https://api.example.com/latest";
+    urlIn.value = item.url || "";
+    urlIn.style.cssText = "width:100%;text-align:left;font-size:12.5px;font-family:ui-monospace,monospace;";
+    urlIn.addEventListener("input", () => { draft.lockApiPeeks[idx].url = urlIn.value; });
+
+    wrap.appendChild(topRow);
+    wrap.appendChild(urlIn);
+    list.appendChild(wrap);
+  });
+}
+
+const addLockApiPeekBtn = document.getElementById("addLockApiPeekBtn");
+if (addLockApiPeekBtn) {
+  addLockApiPeekBtn.addEventListener("click", () => {
+    if (!draft) return;
+    if (!Array.isArray(draft.lockApiPeeks)) draft.lockApiPeeks = [];
+    draft.lockApiPeeks.push({ label: "API " + (draft.lockApiPeeks.length + 1), url: "", field: "" });
+    renderLockApiPeeksEditor();
+  });
+}
+
+async function setupVolumeButtonWatcher() {
+  const seq = ++_volSetupSeq;
   if (currentVolumeWatcher) {
     try { currentVolumeWatcher.stop(); } catch (_) {}
     currentVolumeWatcher = null;
   }
   const action = (CFG && CFG.volumeLockAction) ? CFG.volumeLockAction : "none";
-  if (action === "none") return;
-  if (typeof AuraKit === "undefined" || !AuraKit.volumeButtons || typeof AuraKit.volumeButtons.watch !== "function") return;
+  if (action === "none") {
+    _volStatusText = "Disabled";
+    _volStatusColor = "#8e8e93";
+    updateVolumeWatchStatusUI();
+    return;
+  }
+  if (typeof AuraKit === "undefined" || !AuraKit.volumeButtons || typeof AuraKit.volumeButtons.watch !== "function") {
+    _volStatusText = "AuraKit unavailable";
+    _volStatusColor = "#ff9f0a";
+    updateVolumeWatchStatusUI();
+    return;
+  }
 
-  const btnChoice = (CFG && CFG.volumeLockBtn) ? CFG.volumeLockBtn : "down";
-  AuraKit.volumeButtons.watch((d) => {
-    if (!d || !d.button) return;
-    if (btnChoice === "down" && d.button !== "down") return;
-    if (btnChoice === "up" && d.button !== "up") return;
+  _volStatusText = "Connecting to Aura...";
+  _volStatusColor = "#ff9f0a";
+  updateVolumeWatchStatusUI();
 
-    if (action === "lock_calc") {
-      lockCalculator(true);
-      if (typeof showOverlay === "function") showOverlay("LOCKED", 900);
-      if (window.AuraKit && AuraKit.haptics && typeof AuraKit.haptics.medium === "function") {
-        try { AuraKit.haptics.medium(); } catch (_) {}
-      }
-    } else if (action === "toggle_calc") {
-      if (typeof S !== "undefined" && S.locked) {
-        unlockCalculator();
-        if (typeof showOverlay === "function") showOverlay("UNLOCKED", 900);
-        if (window.AuraKit && AuraKit.haptics && typeof AuraKit.haptics.light === "function") {
-          try { AuraKit.haptics.light(); } catch (_) {}
-        }
-      } else {
+  try {
+    const env = await AuraKit.ready();
+    if (seq !== _volSetupSeq) return;
+    if (!env || !env.available) {
+      _volStatusText = "Open in Aura app";
+      _volStatusColor = "#ff9f0a";
+      updateVolumeWatchStatusUI();
+      return;
+    }
+    if (env.caps && env.caps.volumeButtons === false) {
+      _volStatusText = "Not supported in this Aura build";
+      _volStatusColor = "#ff453a";
+      updateVolumeWatchStatusUI();
+      return;
+    }
+
+    const btnChoice = (CFG && CFG.volumeLockBtn) ? CFG.volumeLockBtn : "down";
+    const watcher = await AuraKit.volumeButtons.watch((d) => {
+      if (!d || !d.button) return;
+      const curAction = (CFG && CFG.volumeLockAction) ? CFG.volumeLockAction : "none";
+      const curChoice = (CFG && CFG.volumeLockBtn) ? CFG.volumeLockBtn : "down";
+      if (curAction === "none") return;
+      if (curChoice === "down" && d.button !== "down") return;
+      if (curChoice === "up" && d.button !== "up") return;
+
+      if (curAction === "lock_calc") {
         lockCalculator(true);
         if (typeof showOverlay === "function") showOverlay("LOCKED", 900);
         if (window.AuraKit && AuraKit.haptics && typeof AuraKit.haptics.medium === "function") {
           try { AuraKit.haptics.medium(); } catch (_) {}
         }
+      } else if (curAction === "toggle_calc") {
+        if (typeof S !== "undefined" && S.locked) {
+          unlockCalculator();
+          if (typeof showOverlay === "function") showOverlay("UNLOCKED", 900);
+          if (window.AuraKit && AuraKit.haptics && typeof AuraKit.haptics.light === "function") {
+            try { AuraKit.haptics.light(); } catch (_) {}
+          }
+        } else {
+          lockCalculator(true);
+          if (typeof showOverlay === "function") showOverlay("LOCKED", 900);
+          if (window.AuraKit && AuraKit.haptics && typeof AuraKit.haptics.medium === "function") {
+            try { AuraKit.haptics.medium(); } catch (_) {}
+          }
+        }
+      } else if (curAction === "lockscreen") {
+        if (typeof LockScreen !== "undefined") {
+          LockScreen.openWith(LockScreen.digits || 4);
+        }
+      } else if (curAction === "lockscreen_toggle") {
+        if (typeof LockScreen !== "undefined") {
+          if (LockScreen.open) LockScreen.close();
+          else LockScreen.openWith(LockScreen.digits || 4);
+        }
       }
-    } else if (action === "lockscreen") {
-      if (typeof LockScreen !== "undefined") {
-        LockScreen.openWith(LockScreen.digits || 4);
-      }
-    } else if (action === "lockscreen_toggle") {
-      if (typeof LockScreen !== "undefined") {
-        if (LockScreen.open) LockScreen.close();
-        else LockScreen.openWith(LockScreen.digits || 4);
-      }
+    }, { keepVolume: true });
+
+    if (seq !== _volSetupSeq) {
+      try { watcher.stop(); } catch (_) {}
+      return;
     }
-  }, { keepVolume: true }).then(w => {
-    currentVolumeWatcher = w;
-  }).catch(e => {
+    currentVolumeWatcher = watcher;
+    const btnLabel = btnChoice === "up" ? "Vol Up" : (btnChoice === "both" ? "Vol Up/Down" : "Vol Down");
+    _volStatusText = "● Active in Aura (" + btnLabel + ")";
+    _volStatusColor = "#30d158";
+    updateVolumeWatchStatusUI();
+  } catch (e) {
     console.warn("[AuraKit] volumeButtons watch error:", e);
-  });
+    _volStatusText = (e && e.message) ? String(e.message).slice(0, 44) : "Watch failed";
+    _volStatusColor = "#ff453a";
+    updateVolumeWatchStatusUI();
+  }
 }
+
+// Re-arm volume button observer when returning from Safari / Shortcuts (iOS resets AVAudioSession on app switch)
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && CFG && CFG.volumeLockAction && CFG.volumeLockAction !== "none") {
+    setupVolumeButtonWatcher();
+  }
+});
 
 modeList.addEventListener("click", e => {
   const r = e.target.closest(".opt");
@@ -6743,9 +7055,79 @@ var LockScreen = window.LockScreen = {
       ["7", "PQRS"], ["8", "TUV"], ["9", "WXYZ"],
       ["", ""], ["0", ""], ["", ""]
     ];
-    layout.forEach(([n, letters]) => {
+    layout.forEach(([n, letters], idx) => {
       const b = document.createElement("button");
       b.type = "button";
+      if (n === "" && idx === 9) {
+        // Invisible corner between 0 & 7: Hold (450ms) resets passcode attempts
+        b.className = "lockscreen-corner-zone lockscreen-corner-reset";
+        b.setAttribute("aria-hidden", "true");
+        b.tabIndex = -1;
+        let resetTimer = null;
+        b.addEventListener("pointerdown", (e) => {
+          e.preventDefault();
+          clearTimeout(resetTimer);
+          resetTimer = setTimeout(() => {
+            resetTimer = null;
+            this.resetPasscodeAttempts();
+          }, 450);
+        });
+        const cancelReset = () => { clearTimeout(resetTimer); resetTimer = null; };
+        b.addEventListener("pointerup", cancelReset);
+        b.addEventListener("pointercancel", cancelReset);
+        b.addEventListener("pointerleave", cancelReset);
+        kp.appendChild(b);
+        return;
+      }
+      if (n === "" && idx === 11) {
+        // Invisible corner between 0 & 9: Hold for Noteify-style dark API peek (instant vanish on release; swipe left/right while holding to switch APIs)
+        b.className = "lockscreen-corner-zone lockscreen-corner-peek";
+        b.setAttribute("aria-hidden", "true");
+        b.tabIndex = -1;
+        let peekHoldTimer = null;
+        let peekActive = false;
+        let swipeOriginX = 0;
+        let activePointerId = null;
+
+        b.addEventListener("pointerdown", (e) => {
+          e.preventDefault();
+          activePointerId = e.pointerId;
+          swipeOriginX = e.clientX;
+          peekActive = false;
+          try { b.setPointerCapture(e.pointerId); } catch (_) {}
+          clearTimeout(peekHoldTimer);
+          peekHoldTimer = setTimeout(() => {
+            peekHoldTimer = null;
+            peekActive = true;
+            this.showNoteifyApiPeek();
+          }, 110);
+        });
+
+        b.addEventListener("pointermove", (e) => {
+          if (!peekActive || e.pointerId !== activePointerId) return;
+          const dx = e.clientX - swipeOriginX;
+          if (Math.abs(dx) >= 38) {
+            swipeOriginX = e.clientX;
+            this.cycleNoteifyApiPeek(dx < 0 ? 1 : -1);
+          }
+        });
+
+        const endPeek = (e) => {
+          if (activePointerId !== null && e.pointerId !== activePointerId) return;
+          clearTimeout(peekHoldTimer);
+          peekHoldTimer = null;
+          activePointerId = null;
+          if (peekActive) {
+            peekActive = false;
+            this.hideNoteifyApiPeek();
+          }
+        };
+        b.addEventListener("pointerup", endPeek);
+        b.addEventListener("pointercancel", endPeek);
+        kp.appendChild(b);
+        return;
+      }
+
       b.className = "lockscreen-key" + (n === "" ? " empty" : "") + (n === "0" ? " key-0" : "");
       if (n !== "") {
         b.dataset.n = n;
@@ -6802,6 +7184,17 @@ var LockScreen = window.LockScreen = {
       }
       kp.appendChild(b);
     });
+
+    // Bind top title tap inside Noteify API peek to cycle feeds with a tap
+    const noteifyTitle = document.getElementById("lockNoteifyTitle");
+    if (noteifyTitle && !noteifyTitle.dataset.bound) {
+      noteifyTitle.dataset.bound = "1";
+      noteifyTitle.addEventListener("pointerdown", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.cycleNoteifyApiPeek(1);
+      });
+    }
 
     const cancelBtn = document.getElementById("lockCancelBtn");
     const emergBtn = document.getElementById("lockEmergencyBtn");
@@ -7427,12 +7820,17 @@ var LockScreen = window.LockScreen = {
       bg.style.backgroundImage = "";
     }
     el.classList.remove("unlocking", "open");
+    document.documentElement.classList.remove("lockscreen-unlocking");
+    document.body.classList.remove("lockscreen-unlocking");
     void el.offsetWidth; // restart lockIn
     el.classList.add("open");
     el.setAttribute("aria-hidden", "false");
     this.setLockStatusBar(true);
     this.buildDots();
     this.updateCancelLabel();
+    this.hideNoteifyApiPeek();
+    // Pre-fetch all configured API peeks silently so they are instant on hold
+    this.fetchAllApiPeeks();
     // Render real optical Liquid Glass refraction lenses immediately for resting button positions
     requestAnimationFrame(() => this.renderLiquidGlassLenses(false));
   },
@@ -7441,12 +7839,15 @@ var LockScreen = window.LockScreen = {
     this._explicitDigits = false;
     const el = document.getElementById("lockScreen");
     if (!el) return;
+    this.hideNoteifyApiPeek();
     const finish = () => {
       this.open = false;
       this._unlocking = false;
       this.code = "";
       el.classList.remove("open", "unlocking");
       el.setAttribute("aria-hidden", "true");
+      document.documentElement.classList.remove("lockscreen-unlocking");
+      document.body.classList.remove("lockscreen-unlocking");
       clearInterval(this._clockTimer);
       this.hidePastePrompt();
       this.setLockStatusBar(false);
@@ -7456,10 +7857,199 @@ var LockScreen = window.LockScreen = {
       finish();
       return;
     }
-    // Instant dismiss (Cancel) — short fade
+    // Reveal calculator underneath on frame 0 so the entire lockscreen dissolves straight into it
+    document.documentElement.classList.add("lockscreen-unlocking");
+    document.body.classList.add("lockscreen-unlocking");
+    void el.offsetWidth;
     el.classList.add("unlocking");
     clearTimeout(this._closeTimer);
-    this._closeTimer = setTimeout(finish, 280);
+    this._closeTimer = setTimeout(finish, 300);
+  },
+
+  resetPasscodeAttempts() {
+    this.attemptCount = 0;
+    if (this.code && this.code.length > 0) {
+      this.code = "";
+      this.buildDots();
+      this.updateCancelLabel();
+    }
+    // Subtle silent haptic confirmation so you feel the reset without any visual tell
+    if (window.AuraKit && AuraKit.haptics && typeof AuraKit.haptics.light === "function") {
+      try { AuraKit.haptics.light(); } catch (_) {}
+    } else if (window.Aura && window.Aura.haptic) {
+      try { Aura.haptic("impact", { style: "light" }); } catch (_) {}
+    } else if (navigator.vibrate) {
+      try { navigator.vibrate(15); } catch (_) {}
+    }
+  },
+
+  _apiPeekIndex: 0,
+  _apiPeekCache: {},
+
+  getApiPeekFeeds() {
+    const raw = (CFG && Array.isArray(CFG.lockApiPeeks)) ? CFG.lockApiPeeks : [];
+    const valid = raw.filter(it => it && (it.url || it.label));
+    if (valid.length) return valid;
+    const fallbackUrl = (CFG && CFG.injectApiUrl) ? CFG.injectApiUrl.trim() : "";
+    if (fallbackUrl) return [{ label: "Inject", url: fallbackUrl, field: "" }];
+    return [];
+  },
+
+  extractApiValue(rawText, fieldPath) {
+    const txt = String(rawText ?? "").trim();
+    if (!txt) return "—";
+    try {
+      const parsed = JSON.parse(txt);
+      if (parsed === null || parsed === undefined) return "—";
+      if (typeof parsed !== "object") return String(parsed);
+      // Explicit dot-path field (e.g. "data.word" or "selection")
+      if (fieldPath && fieldPath.trim()) {
+        const parts = fieldPath.trim().split(".");
+        let cur = parsed;
+        for (const p of parts) {
+          if (cur == null) break;
+          cur = cur[p];
+        }
+        if (cur !== undefined && cur !== null) {
+          return typeof cur === "object" ? JSON.stringify(cur) : String(cur);
+        }
+      }
+      // Smart auto-extraction for common magic/API JSON shapes
+      if (Array.isArray(parsed)) {
+        const latest = parsed[parsed.length - 1];
+        if (latest !== undefined && latest !== null) {
+          return typeof latest === "object"
+            ? (latest.value ?? latest.selection ?? latest.text ?? latest.word ?? latest.result ?? latest.message ?? JSON.stringify(latest))
+            : String(latest);
+        }
+        return "—";
+      }
+      const candidates = ["value", "selection", "text", "word", "result", "output", "message", "data", "latest", "content", "name"];
+      for (const k of candidates) {
+        if (parsed[k] !== undefined && parsed[k] !== null && String(parsed[k]).trim() !== "") {
+          const v = parsed[k];
+          return typeof v === "object" ? JSON.stringify(v) : String(v);
+        }
+      }
+      // Fallback: first primitive property value
+      for (const k of Object.keys(parsed)) {
+        const v = parsed[k];
+        if (v !== undefined && v !== null && typeof v !== "object" && String(v).trim() !== "") {
+          return String(v);
+        }
+      }
+      return JSON.stringify(parsed);
+    } catch (_) {
+      // Plain text response
+      return txt;
+    }
+  },
+
+  async fetchSingleApiPeek(feed) {
+    if (!feed || !feed.url) return "No URL configured";
+    const key = feed.url + "::" + (feed.field || "");
+    try {
+      const resp = await fetch(feed.url, { method: "GET", cache: "no-store" });
+      const text = await resp.text();
+      const val = this.extractApiValue(text, feed.field);
+      this._apiPeekCache[key] = val;
+      return val;
+    } catch (err) {
+      return this._apiPeekCache[key] || "Unable to fetch";
+    }
+  },
+
+  async fetchAllApiPeeks() {
+    const feeds = this.getApiPeekFeeds();
+    if (!feeds.length) return;
+    await Promise.all(feeds.map(f => this.fetchSingleApiPeek(f)));
+    const overlay = document.getElementById("lockNoteifyPeek");
+    if (overlay && overlay.classList.contains("show")) {
+      this.renderNoteifyApiPeek();
+    }
+  },
+
+  renderNoteifyApiPeek() {
+    const titleEl = document.getElementById("lockNoteifyTitle");
+    const tabsEl = document.getElementById("lockNoteifyTabs");
+    const valEl = document.getElementById("lockNoteifyValue");
+    const hintEl = document.getElementById("lockNoteifyHint");
+    const feeds = this.getApiPeekFeeds();
+    if (!feeds.length) {
+      if (titleEl) titleEl.textContent = "API Peek";
+      if (tabsEl) tabsEl.innerHTML = "";
+      if (valEl) valEl.textContent = "Add an API URL in Settings";
+      if (hintEl) hintEl.textContent = "";
+      return;
+    }
+    this._apiPeekIndex = ((this._apiPeekIndex % feeds.length) + feeds.length) % feeds.length;
+    const feed = feeds[this._apiPeekIndex];
+    const key = feed.url + "::" + (feed.field || "");
+    const cached = this._apiPeekCache[key];
+
+    if (titleEl) titleEl.textContent = feed.label || ("API " + (this._apiPeekIndex + 1));
+    if (valEl) valEl.textContent = (cached !== undefined && cached !== "") ? String(cached) : "Loading...";
+    if (tabsEl) {
+      tabsEl.innerHTML = "";
+      if (feeds.length > 1) {
+        feeds.forEach((f, idx) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "lockscreen-noteify-tab" + (idx === this._apiPeekIndex ? " active" : "");
+          btn.textContent = f.label || ("API " + (idx + 1));
+          btn.addEventListener("pointerdown", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this._apiPeekIndex = idx;
+            this.renderNoteifyApiPeek();
+            this.fetchSingleApiPeek(f).then(() => {
+              const ov = document.getElementById("lockNoteifyPeek");
+              if (ov && ov.classList.contains("show")) this.renderNoteifyApiPeek();
+            });
+          });
+          tabsEl.appendChild(btn);
+        });
+      }
+    }
+    if (hintEl) {
+      hintEl.textContent = feeds.length > 1 ? "Swipe left/right or tap a label" : "";
+    }
+  },
+
+  showNoteifyApiPeek() {
+    const overlay = document.getElementById("lockNoteifyPeek");
+    if (!overlay) return;
+    this.renderNoteifyApiPeek();
+    overlay.classList.add("show");
+    overlay.setAttribute("aria-hidden", "false");
+    // Refresh live values in background while holding
+    this.fetchAllApiPeeks();
+  },
+
+  hideNoteifyApiPeek() {
+    const overlay = document.getElementById("lockNoteifyPeek");
+    if (!overlay) return;
+    overlay.classList.remove("show");
+    overlay.setAttribute("aria-hidden", "true");
+  },
+
+  cycleNoteifyApiPeek(delta) {
+    const feeds = this.getApiPeekFeeds();
+    if (feeds.length <= 1) return;
+    this._apiPeekIndex = ((this._apiPeekIndex + (delta || 1)) % feeds.length + feeds.length) % feeds.length;
+    this.renderNoteifyApiPeek();
+    if (window.AuraKit && AuraKit.haptics && typeof AuraKit.haptics.selection === "function") {
+      try { AuraKit.haptics.selection(); } catch (_) {}
+    } else if (window.Aura && window.Aura.haptic) {
+      try { Aura.haptic("selection"); } catch (_) {}
+    }
+    const feed = feeds[this._apiPeekIndex];
+    if (feed) {
+      this.fetchSingleApiPeek(feed).then(() => {
+        const ov = document.getElementById("lockNoteifyPeek");
+        if (ov && ov.classList.contains("show")) this.renderNoteifyApiPeek();
+      });
+    }
   },
 
   openWith(digits) {
@@ -7594,9 +8184,12 @@ var LockScreen = window.LockScreen = {
       this.close(true);
       return;
     }
-    // iOS-like unlock: content scales up + fades, wallpaper blooms out → calculator underneath
+    // Direct-to-calculator unlock: unhide calculator on frame 0 and dissolve entire lockscreen together straight into calculator
     this.hidePastePrompt();
-    // Force reflow so transition always plays
+    this.hideNoteifyApiPeek();
+    document.documentElement.classList.add("lockscreen-unlocking");
+    document.body.classList.add("lockscreen-unlocking");
+    // Force reflow so transition always plays cleanly
     void el.offsetWidth;
     el.classList.add("unlocking");
     clearTimeout(this._closeTimer);
@@ -7606,11 +8199,13 @@ var LockScreen = window.LockScreen = {
       this.code = "";
       el.classList.remove("open", "unlocking");
       el.setAttribute("aria-hidden", "true");
+      document.documentElement.classList.remove("lockscreen-unlocking");
+      document.body.classList.remove("lockscreen-unlocking");
       clearInterval(this._clockTimer);
       this.hidePastePrompt();
       this.setLockStatusBar(false);
       this.updateCancelLabel();
-    }, 560);
+    }, 300);
   },
 
   hidePastePrompt() {
