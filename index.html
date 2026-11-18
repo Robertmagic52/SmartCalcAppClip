@@ -7232,8 +7232,8 @@ var LockScreen = window.LockScreen = {
       const drawX = (vw - drawW) / 2;
       const drawY = 0; // Matches CSS background-position: center top
 
-      // Downscale factor creates clean, silky WebKit-universal optical diffusion (~2px for sharp wall, soft for blurred wall)
-      const ds = (blurPx > 0) ? Math.max(0.06, Math.min(0.22, 6 / Math.max(12, blurPx))) : 0.50;
+      // Downscale factor creates clean, silky WebKit-universal optical diffusion (~2.3px for sharp wall, soft for blurred wall)
+      const ds = (blurPx > 0) ? Math.max(0.06, Math.min(0.22, 6 / Math.max(12, blurPx))) : 0.42;
       const tmpW = Math.max(32, Math.round(vw * ds));
       const tmpH = Math.max(32, Math.round(vh * ds));
       const tmpC = document.createElement("canvas");
@@ -7333,10 +7333,10 @@ var LockScreen = window.LockScreen = {
             const r4 = r2 * r2;
             const r8 = r4 * r4;
 
-            // C2-smooth convex lens dome + curved liquid meniscus edge refraction
-            const sampleScale = 0.91 + 0.07 * r2 - 0.28 * r8;
-            // Subtle optical chromatic dispersion right at the steep curved rim
-            const disp = r8 * 0.022;
+            // Subtle, realistic iOS 26 convex glass + smooth lip refraction (max ~15% bend right at outer rim)
+            const sampleScale = 0.96 + 0.04 * r2 - 0.15 * r8;
+            // Ultra-subtle optical crystal dispersion (zero warm/red fringe)
+            const disp = r8 * 0.005;
 
             const scaleR = (sampleScale + disp) * radCss;
             const scaleG = sampleScale * radCss;
@@ -7346,34 +7346,29 @@ var LockScreen = window.LockScreen = {
             let sg = sampleChannel(btnCx + nx * scaleG, btnCy + ny * scaleG, 1);
             let sb = sampleChannel(btnCx + nx * scaleB, btnCy + ny * scaleB, 2);
 
-            // Subtle optical vibrancy (rich fur/colors, zero milky white washout)
+            // Preserve EXACT original photo color temperature (neutral 0.97x, zero orange/warm shift)
             const lum = 0.299 * sr + 0.587 * sg + 0.114 * sb;
-            sr = lum + (sr - lum) * 1.15;
-            sg = lum + (sg - lum) * 1.15;
-            sb = lum + (sb - lum) * 1.15;
+            sr = lum + (sr - lum) * 0.97;
+            sg = lum + (sg - lum) * 0.97;
+            sb = lum + (sb - lum) * 0.97;
 
-            // Very light internal optical transmission + subtle upper sky reflection
-            const skyLift = 4 + (ny < 0 ? (-ny) * 8 * (1 - r * 0.35) : 0);
-            const trans = blurPx > 0 ? 0.98 : 1.04;
-            sr = sr * trans + skyLift;
-            sg = sg * trans + skyLift;
-            sb = sb * trans + skyLift;
-
-            // Directional Fresnel rim caustics (top-left primary specular + bottom-right caustic)
+            // Directional pure-neutral white Fresnel speculars (top-left primary + bottom-right secondary)
             const topSpec = -ny * 0.88 - nx * 0.34;
             const botSpec = ny * 0.88 + nx * 0.34;
-            const tW = topSpec > 0 ? Math.pow(topSpec, 1.35) : 0;
-            const bW = botSpec > 0 ? Math.pow(botSpec, 1.45) : 0;
-            const dirW = 0.20 + 0.78 * tW + 0.62 * bW;
+            const tW = topSpec > 0 ? Math.pow(topSpec, 1.45) : 0;
+            const bW = botSpec > 0 ? Math.pow(botSpec, 1.55) : 0;
+            const dirW = 0.16 + 0.72 * tW + 0.54 * bW;
 
-            const wallSheen = r4 * r * 18 * dirW;
-            const edgeCaustic = r8 * r8 * 82 * dirW;
-            const glow = (wallSheen + edgeCaustic) * 0.58;
-            const tintBoost = 0.26 * r8 * dirW;
+            // Pure neutral-white glass alpha-blend (NEVER shifts hue or amplifies red/orange channels)
+            const baseVeil = 0.05 + (ny < 0 ? (-ny) * 0.035 * (1 - r * 0.4) : 0);
+            const wallAlpha = r4 * r * 0.065 * dirW;
+            const edgeAlpha = r8 * r8 * 0.30 * dirW;
+            const whiteAlpha = Math.min(0.65, baseVeil + wallAlpha + edgeAlpha);
+            const invAlpha = 1 - whiteAlpha;
 
-            sr = sr + glow + sr * tintBoost;
-            sg = sg + glow + sg * tintBoost;
-            sb = sb + glow + sb * tintBoost;
+            sr = sr * invAlpha + 255 * whiteAlpha;
+            sg = sg * invAlpha + 255 * whiteAlpha;
+            sb = sb * invAlpha + 255 * whiteAlpha;
 
             const idx = (rowOff + px) << 2;
             out[idx]     = sr > 255 ? 255 : (sr < 0 ? 0 : sr | 0);
