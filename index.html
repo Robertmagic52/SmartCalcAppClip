@@ -6797,13 +6797,111 @@ function renderLockApiPeeksEditor() {
     lblIn.style.cssText = "flex:1;width:auto;text-align:left;font-size:14px;font-weight:600;";
     lblIn.addEventListener("input", () => { draft.lockApiPeeks[idx].label = lblIn.value; });
 
+    const fldRow = document.createElement("div");
+    fldRow.style.cssText = "display:flex;align-items:center;gap:6px;";
+
     const fldIn = document.createElement("input");
     fldIn.type = "text";
     fldIn.className = "num api-peek-fld";
-    fldIn.placeholder = "JSON keys (e.g. name, dob)";
+    fldIn.placeholder = "Fields to read (e.g. number, name)";
     fldIn.value = item.field || "";
-    fldIn.style.cssText = "flex:1;width:auto;text-align:left;font-size:12px;color:#a0a0a6;";
+    fldIn.style.cssText = "flex:1;width:auto;text-align:left;font-size:12px;color:#d1d1d6;";
     fldIn.addEventListener("input", () => { draft.lockApiPeeks[idx].field = fldIn.value; });
+
+    const pickBtn = document.createElement("button");
+    pickBtn.type = "button";
+    pickBtn.textContent = "🔍 Pick";
+    pickBtn.style.cssText = "background:rgba(10,132,255,0.18);color:#0a84ff;border:0;border-radius:7px;padding:5px 9px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;flex:none;";
+
+    const pickerBox = document.createElement("div");
+    pickerBox.style.cssText = "display:none;flex-wrap:wrap;gap:6px;padding-top:4px;";
+
+    const collectFields = (obj, prefix, out) => {
+      if (!obj || typeof obj !== "object") return;
+      if (Array.isArray(obj)) {
+        if (obj.length && typeof obj[obj.length - 1] === "object" && obj[obj.length - 1] !== null) {
+          collectFields(obj[obj.length - 1], prefix, out);
+        }
+        return;
+      }
+      for (const k of Object.keys(obj)) {
+        const v = obj[k];
+        const path = prefix ? (prefix + "." + k) : k;
+        if (v !== null && v !== undefined && typeof v === "object" && !Array.isArray(v)) {
+          if (path.split(".").length < 3) collectFields(v, path, out);
+        } else {
+          const preview = Array.isArray(v)
+            ? `[${v.length} items]`
+            : String(v ?? "").trim().slice(0, 22);
+          out.push({ path, preview });
+        }
+      }
+    };
+
+    const renderPickerChips = (fields) => {
+      pickerBox.innerHTML = "";
+      pickerBox.style.display = "flex";
+      if (!fields.length) {
+        const msg = document.createElement("div");
+        msg.style.cssText = "font-size:12px;color:#8e8e93;";
+        msg.textContent = "Plain text response (no JSON keys to pick — will display full text).";
+        pickerBox.appendChild(msg);
+        return;
+      }
+      const getSelected = () => String(fldIn.value || "").split(",").map(s => s.trim()).filter(Boolean);
+      const setSelected = (arr) => {
+        fldIn.value = arr.join(", ");
+        draft.lockApiPeeks[idx].field = fldIn.value;
+      };
+      fields.forEach(({ path, preview }) => {
+        const chip = document.createElement("button");
+        chip.type = "button";
+        const paintChip = () => {
+          const sel = getSelected().includes(path);
+          chip.style.cssText = sel
+            ? "background:#0a84ff;color:#fff;border:1px solid #0a84ff;border-radius:999px;padding:4px 9px;font-size:11.5px;font-weight:600;cursor:pointer;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+            : "background:#2c2c2e;color:#d1d1d6;border:1px solid rgba(255,255,255,0.14);border-radius:999px;padding:4px 9px;font-size:11.5px;font-weight:500;cursor:pointer;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;";
+          chip.textContent = (sel ? "✓ " : "") + path + (preview ? `: ${preview}` : "");
+        };
+        paintChip();
+        chip.addEventListener("click", () => {
+          const cur = getSelected();
+          const pos = cur.indexOf(path);
+          if (pos >= 0) cur.splice(pos, 1);
+          else cur.push(path);
+          setSelected(cur);
+          paintChip();
+        });
+        pickerBox.appendChild(chip);
+      });
+    };
+
+    pickBtn.addEventListener("click", async () => {
+      const targetUrl = (urlIn.value || "").trim();
+      if (!targetUrl) {
+        pickerBox.style.display = "flex";
+        pickerBox.innerHTML = `<div style="font-size:12px;color:#ff9f0a;">Enter an API URL first.</div>`;
+        return;
+      }
+      pickBtn.textContent = "…";
+      try {
+        const resp = await fetch(targetUrl, { method: "GET", cache: "no-store" });
+        const raw = (await resp.text()).trim();
+        let parsed = null;
+        try { parsed = JSON.parse(raw); } catch (_) {}
+        const found = [];
+        if (parsed && typeof parsed === "object") collectFields(parsed, "", found);
+        renderPickerChips(found);
+      } catch (e) {
+        pickerBox.style.display = "flex";
+        pickerBox.innerHTML = `<div style="font-size:12px;color:#ff453a;">Could not fetch URL — you can still type keys manually (e.g. number).</div>`;
+      } finally {
+        pickBtn.textContent = "🔍 Pick";
+      }
+    });
+
+    fldRow.appendChild(fldIn);
+    fldRow.appendChild(pickBtn);
 
     const maxSel = document.createElement("select");
     maxSel.className = "num api-peek-max";
@@ -6835,7 +6933,8 @@ function renderLockApiPeeksEditor() {
 
     wrap.appendChild(topRow);
     wrap.appendChild(urlIn);
-    wrap.appendChild(fldIn);
+    wrap.appendChild(fldRow);
+    wrap.appendChild(pickerBox);
     list.appendChild(wrap);
   });
 }
@@ -7821,8 +7920,15 @@ var LockScreen = window.LockScreen = {
     const parts = pathStr.trim().split(".");
     let cur = obj;
     for (const p of parts) {
-      if (cur == null) return undefined;
-      cur = cur[p];
+      if (cur == null || typeof cur !== "object") return undefined;
+      if (p in cur) {
+        cur = cur[p];
+      } else {
+        const lower = p.toLowerCase();
+        const matchKey = Object.keys(cur).find(k => k.toLowerCase() === lower);
+        if (matchKey !== undefined) cur = cur[matchKey];
+        else return undefined;
+      }
     }
     return cur;
   },
@@ -7850,11 +7956,26 @@ var LockScreen = window.LockScreen = {
       if (parsed === null || parsed === undefined) return [{ k: "", v: "—" }];
       if (typeof parsed !== "object") return [{ k: "", v: String(parsed) }];
 
-      // 1. Comma-separated explicit JSON keys (e.g. "name, dob, zodiac") or "*" for all fields
+      // 1. Comma-separated explicit JSON keys (e.g. "number" or "number, name, dob")
       const fp = String(fieldPath || "").trim();
       if (fp && fp !== "*") {
         const paths = fp.split(",").map(s => s.trim()).filter(Boolean);
-        if (paths.length > 1) {
+        // Support APIs returning an array of objects (pull picked fields from the newest N items)
+        if (Array.isArray(parsed)) {
+          const recentItems = parsed.slice(-limit).reverse();
+          const out = [];
+          for (const entry of recentItems) {
+            if (!entry || typeof entry !== "object") continue;
+            for (const p of paths) {
+              const val = this._getByDotPath(entry, p);
+              if (val !== undefined && val !== null && String(val).trim() !== "") {
+                const shortKey = paths.length > 1 ? p.split(".").pop() : "";
+                out.push({ k: shortKey, v: typeof val === "object" ? this._itemToString(val) : String(val).trim() });
+              }
+            }
+          }
+          if (out.length) return out;
+        } else if (paths.length > 1) {
           const out = [];
           for (const p of paths) {
             const val = this._getByDotPath(parsed, p);
