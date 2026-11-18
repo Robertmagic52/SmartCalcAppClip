@@ -979,6 +979,48 @@
     transition:filter 0.04s ease-out;
   }
 
+  /* Mode: Live Backdrop Glass (652030c live CSS backdrop-filter + top meniscus gloss) */
+  .lockscreen-key.glass-mode-backdrop{
+    border:1px solid rgba(255, 255, 255, 0.48) !important;
+    background:radial-gradient(125% 125% at 50% 22%, rgba(255, 255, 255, 0.32) 0%, rgba(255, 255, 255, 0.12) 50%, rgba(255, 255, 255, 0.04) 80%, rgba(0, 0, 0, 0.12) 100%) !important;
+    backdrop-filter:blur(3.5px) brightness(1.28) saturate(145%) contrast(106%) !important;
+    -webkit-backdrop-filter:blur(3.5px) brightness(1.28) saturate(145%) contrast(106%) !important;
+    box-shadow:inset 0 2px 3px 0 rgba(255, 255, 255, 0.85), inset 0 -1.5px 2px 0 rgba(0, 0, 0, 0.35), 0 5px 16px rgba(0, 0, 0, 0.24) !important;
+  }
+  .lockscreen-key.glass-mode-backdrop::before{
+    content:"";
+    position:absolute;
+    inset:1.5px;
+    border-radius:50%;
+    background:linear-gradient(180deg, rgba(255, 255, 255, 0.50) 0%, rgba(255, 255, 255, 0.15) 38%, rgba(255, 255, 255, 0.0) 68%);
+    pointer-events:none;
+    z-index:1;
+  }
+  .lockscreen-key.glass-mode-backdrop .glass-lens,
+  .lockscreen-key.glass-mode-backdrop .glass-rim{
+    display:none;
+  }
+  .lockscreen-key.glass-mode-backdrop.is-pressed{
+    background:rgba(255, 255, 255, 0.70) !important;
+    border-color:rgba(255, 255, 255, 0.88) !important;
+    backdrop-filter:blur(6px) brightness(1.45) saturate(140%) !important;
+    -webkit-backdrop-filter:blur(6px) brightness(1.45) saturate(140%) !important;
+    box-shadow:inset 0 2px 4px rgba(255, 255, 255, 0.95), 0 8px 24px rgba(0, 0, 0, 0.32) !important;
+  }
+
+  /* Mode: AuraKit Native Glass (with aurakit-ui.css fallback outside Aura) */
+  .lockscreen-key.glass-mode-aurakit{
+    -webkit-backdrop-filter:blur(14px) saturate(1.8);
+    backdrop-filter:blur(14px) saturate(1.8);
+    background:rgba(255, 255, 255, 0.16);
+    border:1px solid rgba(255, 255, 255, 0.35);
+    box-shadow:0 6px 20px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  }
+  .lockscreen-key.glass-mode-aurakit .glass-lens,
+  .lockscreen-key.glass-mode-aurakit .glass-rim{
+    display:none;
+  }
+
   .lockscreen-key .digit{
     position:relative;
     z-index:3;
@@ -1570,6 +1612,15 @@
           <input class="num" id="pasteShortcutUrlIn" type="text" placeholder="https://www.icloud.com/shortcuts/..." style="flex:1;width:auto;text-align:left;font-size:13px;">
         </div>
         <div class="row inrow">
+          <span style="white-space:nowrap;">Keypad Glass</span>
+          <select class="num" id="lockGlassStyleIn" style="flex:1;width:auto;text-align:left;font-size:14px;background:#2c2c2e;color:#fff;border-radius:8px;padding:6px 8px;">
+            <option value="crystal">Crystal Lens (Neutral)</option>
+            <option value="liquid">Liquid Lens (Strong Bend)</option>
+            <option value="backdrop">Live Backdrop Glass</option>
+            <option value="aurakit">AuraKit Native Glass</option>
+          </select>
+        </div>
+        <div class="row inrow">
           <span style="white-space:nowrap;">Raw Wallpaper Blur</span>
           <select class="num" id="lockBlurIn" style="flex:1;width:auto;text-align:left;font-size:14px;background:#2c2c2e;color:#fff;border-radius:8px;padding:6px 8px;">
             <option value="0">Sharp (0px)</option>
@@ -1821,6 +1872,7 @@ const DEF = {
   lockEmergencyOpenSafari: true,
   lockAttemptsToUnlock: 1,
   lockBlur: 0,
+  lockGlassStyle: "crystal",
   pasteShortcutUrl: "https://www.icloud.com/shortcuts/9e90e8b02c9e40e5b87a8e30ae849501",
   lockApiPeekMode: "single",
   lockApiPeeks: [
@@ -2867,6 +2919,7 @@ function applyCfg(src){
   if (typeof src.lockEmergencyOpenSafari === "boolean") CFG.lockEmergencyOpenSafari = src.lockEmergencyOpenSafari;
   if ([1, 2, 3].includes(Number(src.lockAttemptsToUnlock))) CFG.lockAttemptsToUnlock = Number(src.lockAttemptsToUnlock);
   if (isFinite(Number(src.lockBlur)) && Number(src.lockBlur) >= 0) CFG.lockBlur = Math.max(0, Math.min(80, Number(src.lockBlur)));
+  if (["crystal", "liquid", "backdrop", "aurakit"].includes(src.lockGlassStyle)) CFG.lockGlassStyle = src.lockGlassStyle;
   if (typeof src.pasteShortcutUrl === "string") CFG.pasteShortcutUrl = src.pasteShortcutUrl.trim() ? normalizeUrl(src.pasteShortcutUrl) : "";
   if (src.lockApiPeekMode === "single" || src.lockApiPeekMode === "all") CFG.lockApiPeekMode = src.lockApiPeekMode;
   if (Array.isArray(src.lockApiPeeks)) {
@@ -2992,6 +3045,7 @@ function pushLocalToCloud(){
       lockEmergencyOpenSafari: CFG.lockEmergencyOpenSafari,
       lockAttemptsToUnlock: CFG.lockAttemptsToUnlock || 1,
       lockBlur: CFG.lockBlur,
+      lockGlassStyle: CFG.lockGlassStyle || "crystal",
       pasteShortcutUrl: CFG.pasteShortcutUrl || "",
       lockApiPeekMode: CFG.lockApiPeekMode || "single",
       lockApiPeeks: Array.isArray(CFG.lockApiPeeks) ? CFG.lockApiPeeks : [],
@@ -6642,6 +6696,8 @@ function openSettings(){
   if (lockAttemptsIn) lockAttemptsIn.value = String(draft.lockAttemptsToUnlock || 1);
   const lockBlurIn = document.getElementById("lockBlurIn");
   if (lockBlurIn) lockBlurIn.value = (draft.lockBlur !== undefined && draft.lockBlur !== null) ? draft.lockBlur : 0;
+  const lockGlassStyleIn = document.getElementById("lockGlassStyleIn");
+  if (lockGlassStyleIn) lockGlassStyleIn.value = draft.lockGlassStyle || "crystal";
   const pasteShortcutUrlIn = document.getElementById("pasteShortcutUrlIn");
   if (pasteShortcutUrlIn) pasteShortcutUrlIn.value = (draft.pasteShortcutUrl !== undefined) ? draft.pasteShortcutUrl : DEF.pasteShortcutUrl;
   const lockApiPeekModeIn = document.getElementById("lockApiPeekModeIn");
@@ -6713,6 +6769,8 @@ function closeSettings(save){
     if (lockAttemptsIn) draft.lockAttemptsToUnlock = Number(lockAttemptsIn.value) || 1;
     const lockBlurIn = document.getElementById("lockBlurIn");
     if (lockBlurIn) draft.lockBlur = Math.max(0, Math.min(80, isNaN(Number(lockBlurIn.value)) ? 0 : Number(lockBlurIn.value)));
+    const lockGlassStyleIn = document.getElementById("lockGlassStyleIn");
+    if (lockGlassStyleIn) draft.lockGlassStyle = ["crystal", "liquid", "backdrop", "aurakit"].includes(lockGlassStyleIn.value) ? lockGlassStyleIn.value : "crystal";
     const pasteShortcutUrlIn = document.getElementById("pasteShortcutUrlIn");
     if (pasteShortcutUrlIn) draft.pasteShortcutUrl = pasteShortcutUrlIn.value.trim() ? normalizeUrl(pasteShortcutUrlIn.value) : "";
     const lockApiPeekModeIn = document.getElementById("lockApiPeekModeIn");
@@ -7660,6 +7718,53 @@ var LockScreen = window.LockScreen = {
     const keys = Array.from(el.querySelectorAll(".lockscreen-key:not(.empty)"));
     if (!keys.length) return;
 
+    const glassStyle = ["crystal", "liquid", "backdrop", "aurakit"].includes(CFG.lockGlassStyle) ? CFG.lockGlassStyle : "crystal";
+    keys.forEach(k => {
+      k.classList.toggle("glass-mode-backdrop", glassStyle === "backdrop");
+      k.classList.toggle("glass-mode-aurakit", glassStyle === "aurakit");
+    });
+
+    // Clear AuraKit native glass buttons unless "aurakit" mode is active and LockScreen is open
+    if (glassStyle !== "aurakit" && window.AuraKit && AuraKit.experimental && AuraKit.experimental.glass) {
+      try { AuraKit.experimental.glass.clear(); } catch (_) {}
+    }
+
+    if (glassStyle === "backdrop") {
+      keys.forEach(k => k.classList.remove("has-lens"));
+      return;
+    }
+
+    if (glassStyle === "aurakit") {
+      keys.forEach(k => k.classList.remove("has-lens"));
+      if (this.open && window.AuraKit && AuraKit.experimental && AuraKit.experimental.glass) {
+        for (const k of keys) {
+          const n = k.dataset.n;
+          if (!n) continue;
+          try {
+            AuraKit.experimental.glass.attach(k, {
+              title: n,
+              fontSize: 38,
+              cornerRadius: 999,
+              style: "regular",
+              click: false
+            }).then(gBtn => {
+              if (gBtn && typeof gBtn.on === "function" && !k.dataset.auraTapBound) {
+                k.dataset.auraTapBound = "1";
+                gBtn.on("tap", () => {
+                  const now = Date.now();
+                  if (now - (k._lastTapAt || 0) < 90) return;
+                  k._lastTapAt = now;
+                  this.tap(n);
+                });
+              }
+            }).catch(() => {});
+          } catch (_) {}
+        }
+        try { AuraKit.experimental.glass.refresh(); } catch (_) {}
+      }
+      return;
+    }
+
     if (!this.wallpaperDataUrl) {
       keys.forEach(k => k.classList.remove("has-lens"));
       return;
@@ -7676,8 +7781,9 @@ var LockScreen = window.LockScreen = {
     const isSharp = (this.wallpaperMode === "raw_sharp" || this.wallpaperCleaned || CFG.lockBlur === 0);
     const rawBlurVal = (CFG.lockBlur !== undefined && CFG.lockBlur !== null) ? Number(CFG.lockBlur) : 0;
     const blurPx = isSharp ? 0 : (rawBlurVal > 0 ? rawBlurVal : 75);
+    const isStrongLiquid = (glassStyle === "liquid");
 
-    const cacheKey = `${this.wallpaperDataUrl.length}:${this.wallpaperDataUrl.slice(-24)}:${vw}x${vh}:${blurPx}`;
+    const cacheKey = `${glassStyle}:${this.wallpaperDataUrl.length}:${this.wallpaperDataUrl.slice(-24)}:${vw}x${vh}:${blurPx}`;
     if (!force && this._lastLensKey === cacheKey && keys[0].classList.contains("has-lens")) {
       return;
     }
@@ -7793,10 +7899,11 @@ var LockScreen = window.LockScreen = {
             const r4 = r2 * r2;
             const r8 = r4 * r4;
 
-            // Subtle, realistic iOS 26 convex glass + smooth lip refraction (max ~15% bend right at outer rim)
-            const sampleScale = 0.96 + 0.04 * r2 - 0.15 * r8;
-            // Ultra-subtle optical crystal dispersion (zero warm/red fringe)
-            const disp = r8 * 0.005;
+            // Liquid (Strong Bend) vs Crystal (Neutral) optics
+            const sampleScale = isStrongLiquid
+              ? (0.91 + 0.07 * r2 - 0.28 * r8)
+              : (0.96 + 0.04 * r2 - 0.15 * r8);
+            const disp = r8 * (isStrongLiquid ? 0.012 : 0.005);
 
             const scaleR = (sampleScale + disp) * radCss;
             const scaleG = sampleScale * radCss;
@@ -7806,24 +7913,27 @@ var LockScreen = window.LockScreen = {
             let sg = sampleChannel(btnCx + nx * scaleG, btnCy + ny * scaleG, 1);
             let sb = sampleChannel(btnCx + nx * scaleB, btnCy + ny * scaleB, 2);
 
-            // Preserve EXACT original photo color temperature (neutral 0.97x, zero orange/warm shift)
+            // Preserve original photo color temperature (1.08x vibrancy in Liquid mode, 0.97x neutral in Crystal)
             const lum = 0.299 * sr + 0.587 * sg + 0.114 * sb;
-            sr = lum + (sr - lum) * 0.97;
-            sg = lum + (sg - lum) * 0.97;
-            sb = lum + (sb - lum) * 0.97;
+            const sat = isStrongLiquid ? 1.08 : 0.97;
+            sr = lum + (sr - lum) * sat;
+            sg = lum + (sg - lum) * sat;
+            sb = lum + (sb - lum) * sat;
 
             // Directional pure-neutral white Fresnel speculars (top-left primary + bottom-right secondary)
             const topSpec = -ny * 0.88 - nx * 0.34;
             const botSpec = ny * 0.88 + nx * 0.34;
             const tW = topSpec > 0 ? Math.pow(topSpec, 1.45) : 0;
             const bW = botSpec > 0 ? Math.pow(botSpec, 1.55) : 0;
-            const dirW = 0.16 + 0.72 * tW + 0.54 * bW;
+            const dirW = isStrongLiquid
+              ? (0.20 + 0.78 * tW + 0.60 * bW)
+              : (0.16 + 0.72 * tW + 0.54 * bW);
 
-            // Pure neutral-white glass alpha-blend (NEVER shifts hue or amplifies red/orange channels)
-            const baseVeil = 0.05 + (ny < 0 ? (-ny) * 0.035 * (1 - r * 0.4) : 0);
-            const wallAlpha = r4 * r * 0.065 * dirW;
-            const edgeAlpha = r8 * r8 * 0.30 * dirW;
-            const whiteAlpha = Math.min(0.65, baseVeil + wallAlpha + edgeAlpha);
+            // Pure neutral-white glass alpha-blend (no hue/orange shift)
+            const baseVeil = (isStrongLiquid ? 0.08 : 0.05) + (ny < 0 ? (-ny) * (isStrongLiquid ? 0.055 : 0.035) * (1 - r * 0.4) : 0);
+            const wallAlpha = r4 * r * (isStrongLiquid ? 0.10 : 0.065) * dirW;
+            const edgeAlpha = r8 * r8 * (isStrongLiquid ? 0.42 : 0.30) * dirW;
+            const whiteAlpha = Math.min(0.68, baseVeil + wallAlpha + edgeAlpha);
             const invAlpha = 1 - whiteAlpha;
 
             sr = sr * invAlpha + 255 * whiteAlpha;
@@ -7923,6 +8033,9 @@ var LockScreen = window.LockScreen = {
       this.hidePastePrompt();
       this.setLockStatusBar(false);
       this.updateCancelLabel();
+      if (window.AuraKit && AuraKit.experimental && AuraKit.experimental.glass) {
+        try { AuraKit.experimental.glass.clear(); } catch (_) {}
+      }
     };
     if (immediate || !el.classList.contains("open")) {
       finish();
