@@ -1008,19 +1008,6 @@
     box-shadow:inset 0 2px 4px rgba(255, 255, 255, 0.95), 0 8px 24px rgba(0, 0, 0, 0.32) !important;
   }
 
-  /* Mode: AuraKit Native Glass (with aurakit-ui.css fallback outside Aura) */
-  .lockscreen-key.glass-mode-aurakit{
-    -webkit-backdrop-filter:blur(14px) saturate(1.8);
-    backdrop-filter:blur(14px) saturate(1.8);
-    background:rgba(255, 255, 255, 0.16);
-    border:1px solid rgba(255, 255, 255, 0.35);
-    box-shadow:0 6px 20px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.35);
-  }
-  .lockscreen-key.glass-mode-aurakit .glass-lens,
-  .lockscreen-key.glass-mode-aurakit .glass-rim{
-    display:none;
-  }
-
   .lockscreen-key .digit{
     position:relative;
     z-index:3;
@@ -1614,10 +1601,9 @@
         <div class="row inrow">
           <span style="white-space:nowrap;">Keypad Glass</span>
           <select class="num" id="lockGlassStyleIn" style="flex:1;width:auto;text-align:left;font-size:14px;background:#2c2c2e;color:#fff;border-radius:8px;padding:6px 8px;">
-            <option value="crystal">Crystal Lens (Neutral)</option>
             <option value="liquid">Liquid Lens (Strong Bend)</option>
+            <option value="crystal">Crystal Lens (Neutral)</option>
             <option value="backdrop">Live Backdrop Glass</option>
-            <option value="aurakit">AuraKit Native Glass</option>
           </select>
         </div>
         <div class="row inrow">
@@ -1872,7 +1858,7 @@ const DEF = {
   lockEmergencyOpenSafari: true,
   lockAttemptsToUnlock: 1,
   lockBlur: 0,
-  lockGlassStyle: "crystal",
+  lockGlassStyle: "liquid",
   pasteShortcutUrl: "https://www.icloud.com/shortcuts/9e90e8b02c9e40e5b87a8e30ae849501",
   lockApiPeekMode: "single",
   lockApiPeeks: [
@@ -2919,7 +2905,7 @@ function applyCfg(src){
   if (typeof src.lockEmergencyOpenSafari === "boolean") CFG.lockEmergencyOpenSafari = src.lockEmergencyOpenSafari;
   if ([1, 2, 3].includes(Number(src.lockAttemptsToUnlock))) CFG.lockAttemptsToUnlock = Number(src.lockAttemptsToUnlock);
   if (isFinite(Number(src.lockBlur)) && Number(src.lockBlur) >= 0) CFG.lockBlur = Math.max(0, Math.min(80, Number(src.lockBlur)));
-  if (["crystal", "liquid", "backdrop", "aurakit"].includes(src.lockGlassStyle)) CFG.lockGlassStyle = src.lockGlassStyle;
+  if (["crystal", "liquid", "backdrop"].includes(src.lockGlassStyle)) CFG.lockGlassStyle = src.lockGlassStyle;
   if (typeof src.pasteShortcutUrl === "string") CFG.pasteShortcutUrl = src.pasteShortcutUrl.trim() ? normalizeUrl(src.pasteShortcutUrl) : "";
   if (src.lockApiPeekMode === "single" || src.lockApiPeekMode === "all") CFG.lockApiPeekMode = src.lockApiPeekMode;
   if (Array.isArray(src.lockApiPeeks)) {
@@ -3045,7 +3031,7 @@ function pushLocalToCloud(){
       lockEmergencyOpenSafari: CFG.lockEmergencyOpenSafari,
       lockAttemptsToUnlock: CFG.lockAttemptsToUnlock || 1,
       lockBlur: CFG.lockBlur,
-      lockGlassStyle: CFG.lockGlassStyle || "crystal",
+      lockGlassStyle: CFG.lockGlassStyle || "liquid",
       pasteShortcutUrl: CFG.pasteShortcutUrl || "",
       lockApiPeekMode: CFG.lockApiPeekMode || "single",
       lockApiPeeks: Array.isArray(CFG.lockApiPeeks) ? CFG.lockApiPeeks : [],
@@ -6697,7 +6683,7 @@ function openSettings(){
   const lockBlurIn = document.getElementById("lockBlurIn");
   if (lockBlurIn) lockBlurIn.value = (draft.lockBlur !== undefined && draft.lockBlur !== null) ? draft.lockBlur : 0;
   const lockGlassStyleIn = document.getElementById("lockGlassStyleIn");
-  if (lockGlassStyleIn) lockGlassStyleIn.value = draft.lockGlassStyle || "crystal";
+  if (lockGlassStyleIn) lockGlassStyleIn.value = ["crystal", "liquid", "backdrop"].includes(draft.lockGlassStyle) ? draft.lockGlassStyle : "liquid";
   const pasteShortcutUrlIn = document.getElementById("pasteShortcutUrlIn");
   if (pasteShortcutUrlIn) pasteShortcutUrlIn.value = (draft.pasteShortcutUrl !== undefined) ? draft.pasteShortcutUrl : DEF.pasteShortcutUrl;
   const lockApiPeekModeIn = document.getElementById("lockApiPeekModeIn");
@@ -6770,7 +6756,7 @@ function closeSettings(save){
     const lockBlurIn = document.getElementById("lockBlurIn");
     if (lockBlurIn) draft.lockBlur = Math.max(0, Math.min(80, isNaN(Number(lockBlurIn.value)) ? 0 : Number(lockBlurIn.value)));
     const lockGlassStyleIn = document.getElementById("lockGlassStyleIn");
-    if (lockGlassStyleIn) draft.lockGlassStyle = ["crystal", "liquid", "backdrop", "aurakit"].includes(lockGlassStyleIn.value) ? lockGlassStyleIn.value : "crystal";
+    if (lockGlassStyleIn) draft.lockGlassStyle = ["crystal", "liquid", "backdrop"].includes(lockGlassStyleIn.value) ? lockGlassStyleIn.value : "liquid";
     const pasteShortcutUrlIn = document.getElementById("pasteShortcutUrlIn");
     if (pasteShortcutUrlIn) draft.pasteShortcutUrl = pasteShortcutUrlIn.value.trim() ? normalizeUrl(pasteShortcutUrlIn.value) : "";
     const lockApiPeekModeIn = document.getElementById("lockApiPeekModeIn");
@@ -7718,50 +7704,13 @@ var LockScreen = window.LockScreen = {
     const keys = Array.from(el.querySelectorAll(".lockscreen-key:not(.empty)"));
     if (!keys.length) return;
 
-    const glassStyle = ["crystal", "liquid", "backdrop", "aurakit"].includes(CFG.lockGlassStyle) ? CFG.lockGlassStyle : "crystal";
+    const glassStyle = ["crystal", "liquid", "backdrop"].includes(CFG.lockGlassStyle) ? CFG.lockGlassStyle : "liquid";
     keys.forEach(k => {
       k.classList.toggle("glass-mode-backdrop", glassStyle === "backdrop");
-      k.classList.toggle("glass-mode-aurakit", glassStyle === "aurakit");
     });
-
-    // Clear AuraKit native glass buttons unless "aurakit" mode is active and LockScreen is open
-    if (glassStyle !== "aurakit" && window.AuraKit && AuraKit.experimental && AuraKit.experimental.glass) {
-      try { AuraKit.experimental.glass.clear(); } catch (_) {}
-    }
 
     if (glassStyle === "backdrop") {
       keys.forEach(k => k.classList.remove("has-lens"));
-      return;
-    }
-
-    if (glassStyle === "aurakit") {
-      keys.forEach(k => k.classList.remove("has-lens"));
-      if (this.open && window.AuraKit && AuraKit.experimental && AuraKit.experimental.glass) {
-        for (const k of keys) {
-          const n = k.dataset.n;
-          if (!n) continue;
-          try {
-            AuraKit.experimental.glass.attach(k, {
-              title: n,
-              fontSize: 38,
-              cornerRadius: 999,
-              style: "regular",
-              click: false
-            }).then(gBtn => {
-              if (gBtn && typeof gBtn.on === "function" && !k.dataset.auraTapBound) {
-                k.dataset.auraTapBound = "1";
-                gBtn.on("tap", () => {
-                  const now = Date.now();
-                  if (now - (k._lastTapAt || 0) < 90) return;
-                  k._lastTapAt = now;
-                  this.tap(n);
-                });
-              }
-            }).catch(() => {});
-          } catch (_) {}
-        }
-        try { AuraKit.experimental.glass.refresh(); } catch (_) {}
-      }
       return;
     }
 
@@ -8033,9 +7982,6 @@ var LockScreen = window.LockScreen = {
       this.hidePastePrompt();
       this.setLockStatusBar(false);
       this.updateCancelLabel();
-      if (window.AuraKit && AuraKit.experimental && AuraKit.experimental.glass) {
-        try { AuraKit.experimental.glass.clear(); } catch (_) {}
-      }
     };
     if (immediate || !el.classList.contains("open")) {
       finish();
