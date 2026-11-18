@@ -4521,28 +4521,29 @@ function updateCamouHintUI(){
   });
 
   // STRICT HINT ISOLATION:
-  // - When locked REMOTELY by the controller, S.camouHint is false -> ZERO hints shown on the spectator's phone!
-  // - ONLY when locked LOCALLY on this phone (Hold .) is S.camouHint true -> hints show on THIS phone.
-  // - On the controller phone, AuraLink.spectatorLocked is true -> hint displays ONLY on the controller phone.
+  // 1. Local lock (Hold . on this phone): S.camouHint is true -> ONLY bolded/highlighted keypad edge (+ decimal comma if minus), NO gray #peek text!
+  // 2. Controller locking Spectator's phone:
+  //    - On SPECTATOR'S phone: S.camouHint is false -> ZERO hints (no gray text, no bolded edge, no comma)!
+  //    - ONLY on CONTROLLER phone: displays BOTH the gray #peek text hint AND the highlighted/bolded keypad edge!
   const showLocalHint = (typeof S !== "undefined" && S.locked && S.camouHint && S.gapFed === 0);
   const showControllerRemoteHint = (isControllerDevice && typeof AuraLink !== "undefined" && AuraLink.spectatorLocked && !AuraLink.spectatorHintDismissed);
   const localHintText = (typeof forceHint === "function" ? forceHint() : "") || (typeof getSimpleHint === "function" ? getSimpleHint() : "");
   const remoteHintText = (typeof AuraLink !== "undefined" && AuraLink.spectatorHint) || localHintText;
+  const rStyle = (CFG && CFG.remoteHintStyle) ? CFG.remoteHintStyle : "both";
+  const allowRemoteText = (rStyle === "both" || rStyle === "history");
+  const allowRemoteEdge = (rStyle === "both" || rStyle === "keypad");
 
-  // Text Peek Display (next to clock button in top bar):
-  // - On Controller phone when spectator is locked by controller -> shows spectator's hint!
-  // - On local phone locked by itself (not stealth spectator) -> shows local hint!
-  // - On Spectator phone locked by controller -> ALWAYS EMPTY/HIDDEN!
+  // Gray Text Peek Display (next to clock icon in top bar):
+  // - Local lock: NEVER shown automatically (local lock shows ONLY the bolded keypad edge).
+  // - Controller locking spectator: SHOWN on controller phone ONLY (when remoteHintStyle allows text/both).
+  // - Manual hold on clock icon (holdingPeek): still works as manual peek.
   if (elPeek){
     if (holdingPeek){
       const h = (isControllerDevice && showControllerRemoteHint) ? remoteHintText : localHintText;
       elPeek.textContent = h || " ";
       elPeek.classList.add("on");
-    } else if (showControllerRemoteHint && !!remoteHintText && remoteHintText !== "off"){
+    } else if (showControllerRemoteHint && allowRemoteText && !!remoteHintText && remoteHintText !== "off"){
       elPeek.textContent = remoteHintText;
-      elPeek.classList.add("on");
-    } else if (showLocalHint && !isStealthSpectatorDevice() && !!localHintText && localHintText !== "off"){
-      elPeek.textContent = localHintText;
       elPeek.classList.add("on");
     } else {
       elPeek.textContent = "";
@@ -4550,25 +4551,25 @@ function updateCamouHintUI(){
     }
   }
 
-  // Covert Keypad Camouflage Hints:
-  // ONLY shown when THIS phone was locked locally by itself (S.camouHint === true).
-  // NEVER shown on the spectator's phone when locked remotely by the controller!
-  if (showLocalHint){
-    const allowKeypadHint = (!CFG.hintStyle || CFG.hintStyle === "keypad" || CFG.hintStyle === "both" || CFG.hintStyle === "old" || CFG.hintStyle === "bright" || CFG.hintStyle === "dot");
-    if (allowKeypadHint){
-      const { sign, count } = getHintSignAndCount();
-      if (dotKey && (sign === "−" || sign === "-")){
-        dotKey.innerHTML = SVG_COMMA;
-        dotKey.classList.add("camou-comma");
-      }
-      if (count >= 1 && count <= 10){
-        const digitNum = (count === 10) ? 0 : count;
-        const dKey = document.querySelector(`[data-k="d${digitNum}"]`);
-        if (dKey) {
-          dKey.classList.add("camou-digit");
-          if (CFG.hintStyle === "bright") dKey.classList.add("style-bright");
-          if (CFG.hintStyle === "dot") dKey.classList.add("style-dot");
-        }
+  // Highlighted / Bolded Edge on Keypad (.camou-digit + .camou-comma if subtraction):
+  // - Shown on THIS phone when locally locked (Hold .) -> ONLY bolded edge
+  // - Shown on CONTROLLER phone when locking spectator's device -> paired with gray #peek text
+  // - NEVER shown on spectator's phone when locked remotely by controller!
+  const allowLocalEdge = (!CFG.hintStyle || CFG.hintStyle === "keypad" || CFG.hintStyle === "both" || CFG.hintStyle === "old" || CFG.hintStyle === "bright" || CFG.hintStyle === "dot");
+  const shouldShowKeypadEdge = (showLocalHint && allowLocalEdge) || (showControllerRemoteHint && allowRemoteEdge);
+  if (shouldShowKeypadEdge){
+    const { sign, count } = getHintSignAndCount();
+    if (dotKey && (sign === "−" || sign === "-")){
+      dotKey.innerHTML = SVG_COMMA;
+      dotKey.classList.add("camou-comma");
+    }
+    if (count >= 1 && count <= 10){
+      const digitNum = (count === 10) ? 0 : count;
+      const dKey = document.querySelector(`[data-k="d${digitNum}"]`);
+      if (dKey) {
+        dKey.classList.add("camou-digit");
+        if (CFG.hintStyle === "bright") dKey.classList.add("style-bright");
+        if (CFG.hintStyle === "dot") dKey.classList.add("style-dot");
       }
     }
   }
