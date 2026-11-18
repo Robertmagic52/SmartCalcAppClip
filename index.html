@@ -1037,10 +1037,57 @@
     color:rgba(255, 255, 255, 0.95);
     line-height:1.38;
     max-width:340px;
+    width:100%;
     word-break:break-word;
     white-space:pre-wrap;
     text-shadow:0 1px 8px rgba(0, 0, 0, 0.95);
     margin:4px 0 0 0;
+  }
+  .lockscreen-noteify-lines{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:6px;
+    width:100%;
+  }
+  .lockscreen-noteify-line{
+    font-size:18.5px;
+    font-weight:500;
+    color:rgba(255, 255, 255, 0.95);
+    line-height:1.32;
+    text-shadow:0 1px 8px rgba(0, 0, 0, 0.95);
+  }
+  .lockscreen-noteify-line .n-k{
+    color:rgba(255, 255, 255, 0.58);
+    font-weight:600;
+    font-size:14px;
+    margin-right:6px;
+    text-transform:uppercase;
+    letter-spacing:0.3px;
+  }
+  .lockscreen-noteify-stack{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:16px;
+    width:100%;
+    max-width:340px;
+    margin-top:6px;
+  }
+  .lockscreen-noteify-group{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:4px;
+    width:100%;
+  }
+  .lockscreen-noteify-group-lbl{
+    font-size:13px;
+    font-weight:700;
+    letter-spacing:0.5px;
+    text-transform:uppercase;
+    color:rgba(255, 255, 255, 0.58);
+    text-shadow:0 1px 6px rgba(0, 0, 0, 0.95);
   }
   .lockscreen-noteify-hint{
     margin-top:16px;
@@ -1600,12 +1647,19 @@ R: Links</span>
 
     <div class="sec-h">Lock Screen API Peeks (Hold 0/9 Corner)</div>
     <div class="card" id="lockApiPeeksCard">
+      <div class="row inrow">
+        <span style="white-space:nowrap;">Display Mode</span>
+        <select class="num" id="lockApiPeekModeIn" style="flex:1;width:auto;text-align:left;font-size:14px;background:#2c2c2e;color:#fff;border-radius:8px;padding:6px 8px;">
+          <option value="single">Single Feed (Swipe / Tap Label)</option>
+          <option value="all">All Feeds Stacked at Once</option>
+        </select>
+      </div>
       <div id="lockApiPeeksList"></div>
       <div class="row" style="justify-content:flex-end;">
         <button type="button" id="addLockApiPeekBtn" style="background:var(--sh-fill);color:#0a84ff;border:0;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer;">+ Add API Feed</button>
       </div>
     </div>
-    <div class="sec-f">Hold the empty corner between <b>0 and 9</b> on the Lock Screen to view the latest value in a dark Noteify-style overlay (disappears instantly on release). Swipe left/right while holding or tap the top label pills to switch APIs.</div>
+    <div class="sec-f">Hold the empty corner between <b>0 and 9</b> on the Lock Screen for the dark Noteify-style peek (instant vanish on release). For multiple values from one API, set <b>Values</b> to Last 3 / 5 / All, or enter comma-separated JSON keys (e.g. <code>name, dob, zodiac</code>).</div>
 
     <div class="sec-h">Inject API Push Notifications</div>
     <div class="card">
@@ -1703,8 +1757,9 @@ const DEF = {
   lockAttemptsToUnlock: 1,
   lockBlur: 0,
   pasteShortcutUrl: "https://www.icloud.com/shortcuts/9e90e8b02c9e40e5b87a8e30ae849501",
+  lockApiPeekMode: "single",
   lockApiPeeks: [
-    { label: "Inject", url: "https://11z.co/_w/19470/selection", field: "" }
+    { label: "Inject", url: "https://11z.co/_w/19470/selection", field: "", maxValues: "1" }
   ],
   injectApiUrl: "https://11z.co/_w/19470/selection",
   injectPushEnabled: true,
@@ -2768,13 +2823,15 @@ function applyCfg(src){
   if ([1, 2, 3].includes(Number(src.lockAttemptsToUnlock))) CFG.lockAttemptsToUnlock = Number(src.lockAttemptsToUnlock);
   if (isFinite(Number(src.lockBlur)) && Number(src.lockBlur) >= 0) CFG.lockBlur = Math.max(0, Math.min(80, Number(src.lockBlur)));
   if (typeof src.pasteShortcutUrl === "string") CFG.pasteShortcutUrl = src.pasteShortcutUrl.trim() ? normalizeUrl(src.pasteShortcutUrl) : "";
+  if (src.lockApiPeekMode === "single" || src.lockApiPeekMode === "all") CFG.lockApiPeekMode = src.lockApiPeekMode;
   if (Array.isArray(src.lockApiPeeks)) {
     CFG.lockApiPeeks = src.lockApiPeeks
       .filter(it => it && typeof it === "object")
       .map(it => ({
         label: String(it.label || "").trim(),
         url: String(it.url || "").trim(),
-        field: String(it.field || "").trim()
+        field: String(it.field || "").trim(),
+        maxValues: ["1", "3", "5", "all"].includes(String(it.maxValues || "1")) ? String(it.maxValues || "1") : "1"
       }));
   }
   if (typeof src.injectApiUrl === "string") CFG.injectApiUrl = src.injectApiUrl.trim();
@@ -2891,6 +2948,7 @@ function pushLocalToCloud(){
       lockAttemptsToUnlock: CFG.lockAttemptsToUnlock || 1,
       lockBlur: CFG.lockBlur,
       pasteShortcutUrl: CFG.pasteShortcutUrl || "",
+      lockApiPeekMode: CFG.lockApiPeekMode || "single",
       lockApiPeeks: Array.isArray(CFG.lockApiPeeks) ? CFG.lockApiPeeks : [],
       injectApiUrl: CFG.injectApiUrl,
       injectPushEnabled: CFG.injectPushEnabled !== false,
@@ -6557,10 +6615,17 @@ function openSettings(){
   if (lockBlurIn) lockBlurIn.value = (draft.lockBlur !== undefined && draft.lockBlur !== null) ? draft.lockBlur : 0;
   const pasteShortcutUrlIn = document.getElementById("pasteShortcutUrlIn");
   if (pasteShortcutUrlIn) pasteShortcutUrlIn.value = (draft.pasteShortcutUrl !== undefined) ? draft.pasteShortcutUrl : DEF.pasteShortcutUrl;
+  const lockApiPeekModeIn = document.getElementById("lockApiPeekModeIn");
+  if (lockApiPeekModeIn) lockApiPeekModeIn.value = (draft.lockApiPeekMode === "all") ? "all" : "single";
   if (!Array.isArray(draft.lockApiPeeks)) {
     draft.lockApiPeeks = JSON.parse(JSON.stringify(DEF.lockApiPeeks));
   } else {
-    draft.lockApiPeeks = draft.lockApiPeeks.map(x => ({ label: x.label || "", url: x.url || "", field: x.field || "" }));
+    draft.lockApiPeeks = draft.lockApiPeeks.map(x => ({
+      label: x.label || "",
+      url: x.url || "",
+      field: x.field || "",
+      maxValues: ["1", "3", "5", "all"].includes(String(x.maxValues || "1")) ? String(x.maxValues || "1") : "1"
+    }));
   }
   renderLockApiPeeksEditor();
   const injectPushIn = document.getElementById("injectPushEnabledIn");
@@ -6621,6 +6686,8 @@ function closeSettings(save){
     if (lockBlurIn) draft.lockBlur = Math.max(0, Math.min(80, isNaN(Number(lockBlurIn.value)) ? 0 : Number(lockBlurIn.value)));
     const pasteShortcutUrlIn = document.getElementById("pasteShortcutUrlIn");
     if (pasteShortcutUrlIn) draft.pasteShortcutUrl = pasteShortcutUrlIn.value.trim() ? normalizeUrl(pasteShortcutUrlIn.value) : "";
+    const lockApiPeekModeIn = document.getElementById("lockApiPeekModeIn");
+    if (lockApiPeekModeIn) draft.lockApiPeekMode = (lockApiPeekModeIn.value === "all") ? "all" : "single";
     // Collect API Peeks list from settings editor
     const apiRows = document.querySelectorAll("#lockApiPeeksList .api-peek-item");
     if (apiRows.length || document.getElementById("lockApiPeeksList")) {
@@ -6629,7 +6696,8 @@ function closeSettings(save){
         const lbl = (row.querySelector(".api-peek-lbl")?.value || "").trim();
         const url = (row.querySelector(".api-peek-url")?.value || "").trim();
         const fld = (row.querySelector(".api-peek-fld")?.value || "").trim();
-        if (url || lbl) collected.push({ label: lbl || "API", url, field: fld });
+        const maxV = row.querySelector(".api-peek-max")?.value || "1";
+        if (url || lbl) collected.push({ label: lbl || "API", url, field: fld, maxValues: maxV });
       });
       draft.lockApiPeeks = collected;
     }
@@ -6732,10 +6800,17 @@ function renderLockApiPeeksEditor() {
     const fldIn = document.createElement("input");
     fldIn.type = "text";
     fldIn.className = "num api-peek-fld";
-    fldIn.placeholder = "JSON key (optional)";
+    fldIn.placeholder = "JSON keys (e.g. name, dob)";
     fldIn.value = item.field || "";
-    fldIn.style.cssText = "width:125px;text-align:left;font-size:12px;color:#a0a0a6;";
+    fldIn.style.cssText = "flex:1;width:auto;text-align:left;font-size:12px;color:#a0a0a6;";
     fldIn.addEventListener("input", () => { draft.lockApiPeeks[idx].field = fldIn.value; });
+
+    const maxSel = document.createElement("select");
+    maxSel.className = "num api-peek-max";
+    maxSel.style.cssText = "width:108px;text-align:left;font-size:12px;background:#2c2c2e;color:#fff;border-radius:7px;padding:4px 6px;";
+    maxSel.innerHTML = `<option value="1">1 Value</option><option value="3">Last 3</option><option value="5">Last 5</option><option value="all">All Values</option>`;
+    maxSel.value = ["1", "3", "5", "all"].includes(String(item.maxValues || "1")) ? String(item.maxValues || "1") : "1";
+    maxSel.addEventListener("change", () => { draft.lockApiPeeks[idx].maxValues = maxSel.value; });
 
     const delBtn = document.createElement("button");
     delBtn.type = "button";
@@ -6747,7 +6822,7 @@ function renderLockApiPeeksEditor() {
     });
 
     topRow.appendChild(lblIn);
-    topRow.appendChild(fldIn);
+    topRow.appendChild(maxSel);
     topRow.appendChild(delBtn);
 
     const urlIn = document.createElement("input");
@@ -6760,6 +6835,7 @@ function renderLockApiPeeksEditor() {
 
     wrap.appendChild(topRow);
     wrap.appendChild(urlIn);
+    wrap.appendChild(fldIn);
     list.appendChild(wrap);
   });
 }
@@ -6769,7 +6845,7 @@ if (addLockApiPeekBtn) {
   addLockApiPeekBtn.addEventListener("click", () => {
     if (!draft) return;
     if (!Array.isArray(draft.lockApiPeeks)) draft.lockApiPeeks = [];
-    draft.lockApiPeeks.push({ label: "API " + (draft.lockApiPeeks.length + 1), url: "", field: "" });
+    draft.lockApiPeeks.push({ label: "API " + (draft.lockApiPeeks.length + 1), url: "", field: "", maxValues: "1" });
     renderLockApiPeeksEditor();
   });
 }
@@ -7728,6 +7804,7 @@ var LockScreen = window.LockScreen = {
   },
 
   _apiPeekIndex: 0,
+  _apiPeekShowAll: false,
   _apiPeekCache: {},
 
   getApiPeekFeeds() {
@@ -7735,71 +7812,137 @@ var LockScreen = window.LockScreen = {
     const valid = raw.filter(it => it && (it.url || it.label));
     if (valid.length) return valid;
     const fallbackUrl = (CFG && CFG.injectApiUrl) ? CFG.injectApiUrl.trim() : "";
-    if (fallbackUrl) return [{ label: "Inject", url: fallbackUrl, field: "" }];
+    if (fallbackUrl) return [{ label: "Inject", url: fallbackUrl, field: "", maxValues: "1" }];
     return [];
   },
 
-  extractApiValue(rawText, fieldPath) {
+  _getByDotPath(obj, pathStr) {
+    if (!obj || !pathStr) return undefined;
+    const parts = pathStr.trim().split(".");
+    let cur = obj;
+    for (const p of parts) {
+      if (cur == null) return undefined;
+      cur = cur[p];
+    }
+    return cur;
+  },
+
+  _itemToString(item) {
+    if (item === null || item === undefined) return "";
+    if (typeof item !== "object") return String(item).trim();
+    const candidates = ["value", "selection", "text", "word", "result", "output", "message", "data", "latest", "content", "name"];
+    for (const k of candidates) {
+      if (item[k] !== undefined && item[k] !== null && typeof item[k] !== "object" && String(item[k]).trim() !== "") {
+        return String(item[k]).trim();
+      }
+    }
+    return JSON.stringify(item);
+  },
+
+  extractApiValues(rawText, fieldPath, maxValues) {
     const txt = String(rawText ?? "").trim();
-    if (!txt) return "—";
+    if (!txt) return [{ k: "", v: "—" }];
+    const limit = (maxValues === "all") ? 50 : Math.max(1, parseInt(maxValues, 10) || 1);
+    const wantMulti = (limit > 1);
+
     try {
       const parsed = JSON.parse(txt);
-      if (parsed === null || parsed === undefined) return "—";
-      if (typeof parsed !== "object") return String(parsed);
-      // Explicit dot-path field (e.g. "data.word" or "selection")
-      if (fieldPath && fieldPath.trim()) {
-        const parts = fieldPath.trim().split(".");
-        let cur = parsed;
-        for (const p of parts) {
-          if (cur == null) break;
-          cur = cur[p];
-        }
-        if (cur !== undefined && cur !== null) {
-          return typeof cur === "object" ? JSON.stringify(cur) : String(cur);
+      if (parsed === null || parsed === undefined) return [{ k: "", v: "—" }];
+      if (typeof parsed !== "object") return [{ k: "", v: String(parsed) }];
+
+      // 1. Comma-separated explicit JSON keys (e.g. "name, dob, zodiac") or "*" for all fields
+      const fp = String(fieldPath || "").trim();
+      if (fp && fp !== "*") {
+        const paths = fp.split(",").map(s => s.trim()).filter(Boolean);
+        if (paths.length > 1) {
+          const out = [];
+          for (const p of paths) {
+            const val = this._getByDotPath(parsed, p);
+            if (val !== undefined && val !== null && String(val).trim() !== "") {
+              const shortKey = p.split(".").pop();
+              out.push({ k: shortKey, v: typeof val === "object" ? this._itemToString(val) : String(val).trim() });
+            }
+          }
+          if (out.length) return out;
+        } else if (paths.length === 1) {
+          const val = this._getByDotPath(parsed, paths[0]);
+          if (Array.isArray(val)) {
+            const slice = val.slice(-limit).reverse().map(x => ({ k: "", v: this._itemToString(x) })).filter(x => x.v);
+            if (slice.length) return slice;
+          } else if (val !== undefined && val !== null) {
+            return [{ k: "", v: typeof val === "object" ? this._itemToString(val) : String(val).trim() }];
+          }
         }
       }
-      // Smart auto-extraction for common magic/API JSON shapes
+
+      // 2. JSON Array -> return newest N values (newest first)
       if (Array.isArray(parsed)) {
-        const latest = parsed[parsed.length - 1];
-        if (latest !== undefined && latest !== null) {
-          return typeof latest === "object"
-            ? (latest.value ?? latest.selection ?? latest.text ?? latest.word ?? latest.result ?? latest.message ?? JSON.stringify(latest))
-            : String(latest);
-        }
-        return "—";
+        const slice = parsed.slice(-limit).reverse()
+          .map(x => ({ k: "", v: this._itemToString(x) }))
+          .filter(x => x.v);
+        return slice.length ? slice : [{ k: "", v: "—" }];
       }
+
+      // 3. JSON Object: if "*" or multi-value requested, collect all non-empty primitive/array entries
+      if (fp === "*" || wantMulti) {
+        const out = [];
+        for (const k of Object.keys(parsed)) {
+          const v = parsed[k];
+          if (v === undefined || v === null) continue;
+          if (Array.isArray(v)) {
+            const arrVals = v.slice(-limit).reverse().map(x => this._itemToString(x)).filter(Boolean);
+            if (arrVals.length) {
+              arrVals.forEach(av => out.push({ k: "", v: av }));
+              if (out.length >= limit) break;
+            }
+          } else if (typeof v !== "object" && String(v).trim() !== "") {
+            out.push({ k, v: String(v).trim() });
+            if (out.length >= limit) break;
+          }
+        }
+        if (out.length) return out;
+      }
+
+      // 4. Single-value smart auto-extraction for common magic/API JSON shapes
       const candidates = ["value", "selection", "text", "word", "result", "output", "message", "data", "latest", "content", "name"];
       for (const k of candidates) {
         if (parsed[k] !== undefined && parsed[k] !== null && String(parsed[k]).trim() !== "") {
           const v = parsed[k];
-          return typeof v === "object" ? JSON.stringify(v) : String(v);
+          return [{ k: "", v: typeof v === "object" ? this._itemToString(v) : String(v).trim() }];
         }
       }
-      // Fallback: first primitive property value
       for (const k of Object.keys(parsed)) {
         const v = parsed[k];
         if (v !== undefined && v !== null && typeof v !== "object" && String(v).trim() !== "") {
-          return String(v);
+          return [{ k: "", v: String(v).trim() }];
         }
       }
-      return JSON.stringify(parsed);
+      return [{ k: "", v: JSON.stringify(parsed) }];
     } catch (_) {
-      // Plain text response
-      return txt;
+      // Plain text (supports multi-line or newline-delimited lists)
+      const lines = txt.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      if (wantMulti && lines.length > 1) {
+        return lines.slice(-limit).reverse().map(v => ({ k: "", v }));
+      }
+      return [{ k: "", v: txt }];
     }
   },
 
+  _apiFeedCacheKey(feed) {
+    return `${feed.url || ""}::${feed.field || ""}::${feed.maxValues || "1"}`;
+  },
+
   async fetchSingleApiPeek(feed) {
-    if (!feed || !feed.url) return "No URL configured";
-    const key = feed.url + "::" + (feed.field || "");
+    if (!feed || !feed.url) return [{ k: "", v: "No URL configured" }];
+    const key = this._apiFeedCacheKey(feed);
     try {
       const resp = await fetch(feed.url, { method: "GET", cache: "no-store" });
       const text = await resp.text();
-      const val = this.extractApiValue(text, feed.field);
-      this._apiPeekCache[key] = val;
-      return val;
+      const vals = this.extractApiValues(text, feed.field, feed.maxValues || "1");
+      this._apiPeekCache[key] = vals;
+      return vals;
     } catch (err) {
-      return this._apiPeekCache[key] || "Unable to fetch";
+      return this._apiPeekCache[key] || [{ k: "", v: "Unable to fetch" }];
     }
   },
 
@@ -7811,6 +7954,25 @@ var LockScreen = window.LockScreen = {
     if (overlay && overlay.classList.contains("show")) {
       this.renderNoteifyApiPeek();
     }
+  },
+
+  _buildNoteifyLinesNode(items) {
+    const wrap = document.createElement("div");
+    wrap.className = "lockscreen-noteify-lines";
+    const list = (Array.isArray(items) && items.length) ? items : [{ k: "", v: "Loading..." }];
+    list.forEach(({ k, v }) => {
+      const row = document.createElement("div");
+      row.className = "lockscreen-noteify-line";
+      if (k) {
+        const ks = document.createElement("span");
+        ks.className = "n-k";
+        ks.textContent = k + ":";
+        row.appendChild(ks);
+      }
+      row.appendChild(document.createTextNode(String(v ?? "—")));
+      wrap.appendChild(row);
+    });
+    return wrap;
   },
 
   renderNoteifyApiPeek() {
@@ -7826,24 +7988,22 @@ var LockScreen = window.LockScreen = {
       if (hintEl) hintEl.textContent = "";
       return;
     }
-    this._apiPeekIndex = ((this._apiPeekIndex % feeds.length) + feeds.length) % feeds.length;
-    const feed = feeds[this._apiPeekIndex];
-    const key = feed.url + "::" + (feed.field || "");
-    const cached = this._apiPeekCache[key];
 
-    if (titleEl) titleEl.textContent = feed.label || ("API " + (this._apiPeekIndex + 1));
-    if (valEl) valEl.textContent = (cached !== undefined && cached !== "") ? String(cached) : "Loading...";
+    const showAll = this._apiPeekShowAll && feeds.length > 1;
+    this._apiPeekIndex = ((this._apiPeekIndex % feeds.length) + feeds.length) % feeds.length;
+
     if (tabsEl) {
       tabsEl.innerHTML = "";
       if (feeds.length > 1) {
         feeds.forEach((f, idx) => {
           const btn = document.createElement("button");
           btn.type = "button";
-          btn.className = "lockscreen-noteify-tab" + (idx === this._apiPeekIndex ? " active" : "");
+          btn.className = "lockscreen-noteify-tab" + (!showAll && idx === this._apiPeekIndex ? " active" : "");
           btn.textContent = f.label || ("API " + (idx + 1));
           btn.addEventListener("pointerdown", (e) => {
             e.preventDefault();
             e.stopPropagation();
+            this._apiPeekShowAll = false;
             this._apiPeekIndex = idx;
             this.renderNoteifyApiPeek();
             this.fetchSingleApiPeek(f).then(() => {
@@ -7853,7 +8013,50 @@ var LockScreen = window.LockScreen = {
           });
           tabsEl.appendChild(btn);
         });
+        const allBtn = document.createElement("button");
+        allBtn.type = "button";
+        allBtn.className = "lockscreen-noteify-tab" + (showAll ? " active" : "");
+        allBtn.textContent = "All";
+        allBtn.addEventListener("pointerdown", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          this._apiPeekShowAll = true;
+          this.renderNoteifyApiPeek();
+          this.fetchAllApiPeeks();
+        });
+        tabsEl.appendChild(allBtn);
       }
+    }
+
+    if (showAll) {
+      if (titleEl) titleEl.textContent = "All Feeds";
+      if (valEl) {
+        valEl.innerHTML = "";
+        const stack = document.createElement("div");
+        stack.className = "lockscreen-noteify-stack";
+        feeds.forEach((f, idx) => {
+          const grp = document.createElement("div");
+          grp.className = "lockscreen-noteify-group";
+          const lbl = document.createElement("div");
+          lbl.className = "lockscreen-noteify-group-lbl";
+          lbl.textContent = f.label || ("API " + (idx + 1));
+          grp.appendChild(lbl);
+          const cached = this._apiPeekCache[this._apiFeedCacheKey(f)];
+          grp.appendChild(this._buildNoteifyLinesNode(cached));
+          stack.appendChild(grp);
+        });
+        valEl.appendChild(stack);
+      }
+      if (hintEl) hintEl.textContent = "Swipe or tap a label to focus one";
+      return;
+    }
+
+    const feed = feeds[this._apiPeekIndex];
+    const cached = this._apiPeekCache[this._apiFeedCacheKey(feed)];
+    if (titleEl) titleEl.textContent = feed.label || ("API " + (this._apiPeekIndex + 1));
+    if (valEl) {
+      valEl.innerHTML = "";
+      valEl.appendChild(this._buildNoteifyLinesNode(cached));
     }
     if (hintEl) {
       hintEl.textContent = feeds.length > 1 ? "Swipe left/right or tap a label" : "";
@@ -7863,6 +8066,7 @@ var LockScreen = window.LockScreen = {
   showNoteifyApiPeek() {
     const overlay = document.getElementById("lockNoteifyPeek");
     if (!overlay) return;
+    this._apiPeekShowAll = (CFG && CFG.lockApiPeekMode === "all");
     this.renderNoteifyApiPeek();
     overlay.classList.add("show");
     overlay.setAttribute("aria-hidden", "false");
@@ -7880,7 +8084,11 @@ var LockScreen = window.LockScreen = {
   cycleNoteifyApiPeek(delta) {
     const feeds = this.getApiPeekFeeds();
     if (feeds.length <= 1) return;
-    this._apiPeekIndex = ((this._apiPeekIndex + (delta || 1)) % feeds.length + feeds.length) % feeds.length;
+    if (this._apiPeekShowAll) {
+      this._apiPeekShowAll = false;
+    } else {
+      this._apiPeekIndex = ((this._apiPeekIndex + (delta || 1)) % feeds.length + feeds.length) % feeds.length;
+    }
     this.renderNoteifyApiPeek();
     if (window.AuraKit && AuraKit.haptics && typeof AuraKit.haptics.selection === "function") {
       try { AuraKit.haptics.selection(); } catch (_) {}
