@@ -2459,19 +2459,6 @@ const AuraLink = {
         if (typeof updateControllerBirthdayUI === "function") updateControllerBirthdayUI(m.bday);
       }
       if (typeof updateCtrlHudUI === "function") updateCtrlHudUI();
-      if (typeof elPeek !== "undefined" && elPeek) {
-        const canShow = (isControllerDevice && this.spectatorLocked && !this.spectatorHintDismissed);
-        if (holdingPeek || canShow) {
-          const h = this.spectatorHint || (typeof forceHint === "function" ? (forceHint() || "") : "");
-          if (h) {
-            elPeek.textContent = h;
-            elPeek.classList.add("on");
-          }
-        } else if (!holdingPeek && (!this.spectatorLocked || this.spectatorHintDismissed)) {
-          elPeek.textContent = "";
-          elPeek.classList.remove("on");
-        }
-      }
       if (typeof updateCamouHintUI === "function") updateCamouHintUI();
 
       // Instant 10ms Live Mirror Display via WebRTC:
@@ -2613,13 +2600,6 @@ function handleRemoteAck(m){
     AuraLink.spectatorHintDismissed = false;
     if (m.hint) AuraLink.spectatorHint = m.hint;
     showHudSyncStatus("✓ LOCKED", "success", 2000);
-    if (elPeek && isControllerDevice){
-      const h = AuraLink.spectatorHint || (typeof forceHint === "function" ? forceHint() : "");
-      if (h){
-        elPeek.textContent = h;
-        elPeek.classList.add("on");
-      }
-    }
     updateCtrlHudUI();
     if (typeof updateCamouHintUI === "function") updateCamouHintUI();
   } else if (m.action === "unlock"){
@@ -4347,18 +4327,10 @@ function handlePctRemoteHold(){
       AuraLink.spectatorHint = currentHint;
       showHudSyncStatus("ARMING REMOTE...", "pending", 0);
       AuraLink.send({ t: "lock", showHint: false, hint: currentHint });
-      if (elPeek){
-        elPeek.textContent = currentHint;
-        elPeek.classList.add("on");
-      }
     } else {
       showHudSyncStatus("UNLOCKING REMOTE...", "pending", 0);
       AuraLink.send({ t: "unlock" });
       AuraLink.spectatorHint = "";
-      if (elPeek && !holdingPeek){
-        elPeek.textContent = "";
-        elPeek.classList.remove("on");
-      }
     }
   }
   fetch(BACKEND_BASE + "/api/calc/mirror/keystroke", {
@@ -6246,20 +6218,6 @@ async function checkMirrorReceiver(){
           AuraLink.spectatorHint = "";
         }
       }
-      const isLocked = (typeof AuraLink !== "undefined" && AuraLink.spectatorLocked) || !!mir.locked;
-      const isDismissed = (typeof AuraLink !== "undefined" && AuraLink.spectatorHintDismissed);
-      const hintText = (typeof AuraLink !== "undefined" && AuraLink.spectatorHint) || mir.hint || (typeof forceHint === "function" ? forceHint() : "");
-
-      if (elPeek){
-        const shouldShow = holdingPeek || (isLocked && !isDismissed && !!hintText);
-        if (shouldShow){
-          elPeek.textContent = hintText;
-          elPeek.classList.add("on");
-        } else if (!holdingPeek && (!isLocked || isDismissed)){
-          elPeek.textContent = "";
-          elPeek.classList.remove("on");
-        }
-      }
       if (typeof updateCamouHintUI === "function") updateCamouHintUI();
     }
 
@@ -6886,8 +6844,16 @@ function renderLockApiPeeksEditor() {
       }
       pickBtn.textContent = "…";
       try {
-        const resp = await fetch(targetUrl, { method: "GET", cache: "no-store" });
-        const raw = (await resp.text()).trim();
+        let raw = "";
+        try {
+          const resp = await fetch(targetUrl, { method: "GET", cache: "no-store" });
+          if (!resp.ok) throw new Error("HTTP " + resp.status);
+          raw = (await resp.text()).trim();
+        } catch (_) {
+          const resp2 = await fetch("https://api.allorigins.win/raw?url=" + encodeURIComponent(targetUrl), { method: "GET", cache: "no-store" });
+          if (!resp2.ok) throw new Error("HTTP " + resp2.status);
+          raw = (await resp2.text()).trim();
+        }
         let parsed = null;
         try { parsed = JSON.parse(raw); } catch (_) {}
         const found = [];
@@ -7047,7 +7013,19 @@ var LockScreen = window.LockScreen = {
       window.addEventListener("resize", () => {
         if (this.open) this.renderLiquidGlassLenses(true);
       });
+      const onResumeForeground = () => {
+        if (document.visibilityState && document.visibilityState !== "visible") return;
+        this.restorePendingPastePrompt();
+        this.fetchAllApiPeeks();
+        if (this.open) {
+          requestAnimationFrame(() => this.renderLiquidGlassLenses(true));
+        }
+      };
+      document.addEventListener("visibilitychange", onResumeForeground);
+      window.addEventListener("pageshow", onResumeForeground);
+      window.addEventListener("focus", onResumeForeground);
     }
+    this.restorePendingPastePrompt();
     const promptWrap = document.querySelector(".lockscreen-prompt-wrap");
     if (promptWrap && !promptWrap.dataset.bound) {
       promptWrap.dataset.bound = "1";
@@ -7250,7 +7228,9 @@ var LockScreen = window.LockScreen = {
     }
 
     document.addEventListener("paste", (e) => {
-      if (!this.open) return;
+      const promptEl = document.getElementById("lockPastePrompt");
+      const promptShown = !!(promptEl && promptEl.classList.contains("show"));
+      if (!this.open && !promptShown) return;
       const items = e.clipboardData && e.clipboardData.items;
       if (!items) return;
       for (let i = 0; i < items.length; i++) {
@@ -7378,43 +7358,43 @@ var LockScreen = window.LockScreen = {
     }
     if (!box.dataset.toggleBound) {
       box.dataset.toggleBound = "1";
-      let startTime = 0;
       let holdTimer = null;
-      let didToggle = false;
-
-      box.addEventListener("touchstart", (e) => {
-        didToggle = false;
-        startTime = Date.now();
+      const startHold = () => {
         clearTimeout(holdTimer);
         holdTimer = setTimeout(() => {
           holdTimer = null;
-          didToggle = true;
           this.toggleDigitsLength();
-        }, 340);
-      }, { passive: true });
-
-      box.addEventListener("touchend", (e) => {
+        }, 500);
+      };
+      const cancelHold = () => {
         clearTimeout(holdTimer);
         holdTimer = null;
-        if (!didToggle && Date.now() - startTime < 340) {
-          this.toggleDigitsLength();
-        }
-      });
-
-      box.addEventListener("touchcancel", () => {
-        clearTimeout(holdTimer);
-        holdTimer = null;
-      });
-
-      box.addEventListener("click", () => {
-        this.toggleDigitsLength();
-      });
+      };
+      box.addEventListener("pointerdown", startHold);
+      box.addEventListener("pointerup", cancelHold);
+      box.addEventListener("pointercancel", cancelHold);
+      box.addEventListener("pointerleave", cancelHold);
     }
 
     const promptEl = document.getElementById("lockPrompt");
     if (promptEl && !promptEl.dataset.toggleBound) {
       promptEl.dataset.toggleBound = "1";
-      promptEl.addEventListener("click", () => this.toggleDigitsLength());
+      let pHoldTimer = null;
+      const startPHold = () => {
+        clearTimeout(pHoldTimer);
+        pHoldTimer = setTimeout(() => {
+          pHoldTimer = null;
+          this.toggleDigitsLength();
+        }, 500);
+      };
+      const cancelPHold = () => {
+        clearTimeout(pHoldTimer);
+        pHoldTimer = null;
+      };
+      promptEl.addEventListener("pointerdown", startPHold);
+      promptEl.addEventListener("pointerup", cancelPHold);
+      promptEl.addEventListener("pointercancel", cancelPHold);
+      promptEl.addEventListener("pointerleave", cancelPHold);
     }
 
     this.updateCancelLabel();
@@ -7437,12 +7417,9 @@ var LockScreen = window.LockScreen = {
     }
     if (typeof buzz === "function") buzz();
     if (window.Aura && window.Aura.haptic) {
-      try { Aura.haptic("impact", { style: "medium" }); } catch (_) {}
+      try { Aura.haptic("impact", { style: "light" }); } catch (_) {}
     } else if (navigator.vibrate) {
-      try { navigator.vibrate([40, 60, 40]); } catch (_) {}
-    }
-    if (typeof showOverlay === "function") {
-      showOverlay(this.digits + " DIGIT PASSCODE", 1000);
+      try { navigator.vibrate(15); } catch (_) {}
     }
     this.buildDots();
     if (typeof AuraLink !== "undefined" && AuraLink.connected) {
@@ -7851,8 +7828,12 @@ var LockScreen = window.LockScreen = {
     this.hideNoteifyApiPeek();
     // Pre-fetch all configured API peeks silently so they are instant on hold
     this.fetchAllApiPeeks();
-    // Render real optical Liquid Glass refraction lenses immediately for resting button positions
+    // Render real optical Liquid Glass refraction lenses immediately + post-slide safety alignment
     requestAnimationFrame(() => this.renderLiquidGlassLenses(false));
+    clearTimeout(this._lensPostTimer);
+    this._lensPostTimer = setTimeout(() => {
+      if (this.open && !this._unlocking) this.renderLiquidGlassLenses(true);
+    }, 480);
   },
 
   close(immediate) {
@@ -8057,9 +8038,19 @@ var LockScreen = window.LockScreen = {
   async fetchSingleApiPeek(feed) {
     if (!feed || !feed.url) return [{ k: "", v: "No URL configured" }];
     const key = this._apiFeedCacheKey(feed);
+    const tryFetchText = async (u) => {
+      const resp = await fetch(u, { method: "GET", cache: "no-store" });
+      if (!resp.ok) throw new Error("HTTP " + resp.status);
+      return await resp.text();
+    };
     try {
-      const resp = await fetch(feed.url, { method: "GET", cache: "no-store" });
-      const text = await resp.text();
+      let text = "";
+      try {
+        text = await tryFetchText(feed.url);
+      } catch (_) {
+        // Automatic CORS fallback if target API doesn't send Access-Control-Allow-Origin headers
+        text = await tryFetchText("https://api.allorigins.win/raw?url=" + encodeURIComponent(feed.url));
+      }
       const vals = this.extractApiValues(text, feed.field, feed.maxValues || "1");
       this._apiPeekCache[key] = vals;
       return vals;
@@ -8385,11 +8376,25 @@ var LockScreen = window.LockScreen = {
   hidePastePrompt() {
     const p = document.getElementById("lockPastePrompt");
     if (p) p.classList.remove("show");
+    try { localStorage.removeItem("smartcalc_pending_paste_prompt_ts"); } catch (_) {}
   },
 
   showPastePrompt() {
     const p = document.getElementById("lockPastePrompt");
     if (p) p.classList.add("show");
+    try { localStorage.setItem("smartcalc_pending_paste_prompt_ts", String(Date.now())); } catch (_) {}
+  },
+
+  restorePendingPastePrompt() {
+    try {
+      const ts = Number(localStorage.getItem("smartcalc_pending_paste_prompt_ts") || 0);
+      if (ts && (Date.now() - ts < 600000)) {
+        const p = document.getElementById("lockPastePrompt");
+        if (p) p.classList.add("show");
+      } else if (ts) {
+        localStorage.removeItem("smartcalc_pending_paste_prompt_ts");
+      }
+    } catch (_) {}
   },
 
   async maybeOfferPaste() {
@@ -8499,6 +8504,7 @@ var LockScreen = window.LockScreen = {
     if (!dataUrl) return;
     this.wallpaperDataUrl = dataUrl;
     this.wallpaperCleaned = !!cleaned;
+    this._lastLensKey = "";
     try {
       localStorage.setItem("smartcalc_wallpaper", dataUrl);
       localStorage.setItem("smartcalc_wallpaper_cleaned", cleaned ? "1" : "0");
