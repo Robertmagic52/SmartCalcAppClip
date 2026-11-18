@@ -251,45 +251,38 @@
     -webkit-user-select: none;
   }
   .ctrl-arm-btn.ready {
-    background: rgba(255, 159, 10, 0.22);
+    background: rgba(255, 159, 10, 0.16);
     color: #ff9f0a;
-    border: 1.5px solid rgba(255, 159, 10, 0.55);
-    box-shadow: 0 4px 18px rgba(255, 159, 10, 0.25);
+    border: 1px solid rgba(255, 159, 10, 0.36);
   }
   .ctrl-arm-btn.ready:active {
     transform: scale(0.98);
-    background: rgba(255, 159, 10, 0.38);
+    background: rgba(255, 159, 10, 0.28);
   }
   .ctrl-arm-btn.locked {
     background: #ff3b30;
     color: #fff;
-    border: 1.5px solid #ff3b30;
-    box-shadow: 0 0 22px rgba(255, 59, 48, 0.75);
-    animation: pulseLock 2s infinite ease-in-out;
+    border: 1px solid #ff3b30;
   }
   .ctrl-arm-btn.locked:active {
     transform: scale(0.98);
-  }
-  @keyframes pulseLock {
-    0%, 100% { box-shadow: 0 0 16px rgba(255, 59, 48, 0.6); }
-    50% { box-shadow: 0 0 26px rgba(255, 59, 48, 0.95); }
+    opacity: 0.88;
   }
   .ctrl-hint-pill {
-    font: 700 11px ui-monospace, SFMono-Regular, Menlo, monospace;
-    color: #ff9f0a;
-    background: rgba(255, 159, 10, 0.14);
-    border: 1px solid rgba(255, 159, 10, 0.28);
+    font: 600 11px ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: #a1a1a6;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     padding: 5px 9px;
     border-radius: 8px;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.04em;
     white-space: nowrap;
-    transition: all 0.2s ease;
+    transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
   }
   .ctrl-hint-pill.locked {
     color: #30d158;
-    background: rgba(48, 209, 88, 0.18);
-    border-color: rgba(48, 209, 88, 0.45);
-    box-shadow: 0 0 10px rgba(48, 209, 88, 0.35);
+    background: rgba(48, 209, 88, 0.15);
+    border-color: rgba(48, 209, 88, 0.35);
   }
   .ctrl-row-main {
     display: flex;
@@ -447,6 +440,75 @@
   .val{color:#fff;font-variant-numeric:tabular-nums;}
   .slrow{padding-top:10px;padding-bottom:10px;}
   .slrow input{width:100%;margin:0;accent-color:#ff9f0a;}
+
+  /* Collapsible native iOS Settings disclosure groups */
+  .sh-group{
+    background:var(--sh-cell);
+    border-radius:12px;
+    margin-top:12px;
+    overflow:hidden;
+  }
+  .sh-group > summary{
+    list-style:none;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    min-height:50px;
+    padding:0 15px;
+    cursor:pointer;
+    user-select:none;
+    -webkit-user-select:none;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .sh-group > summary::-webkit-details-marker{display:none;}
+  .sh-group > summary:active{background:var(--sh-fill);}
+  .sh-group-title{
+    font-size:16px;
+    font-weight:600;
+    color:#fff;
+    letter-spacing:-0.015em;
+  }
+  .sh-group-meta{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    color:var(--sh-label);
+    font-size:14px;
+  }
+  .sh-chev{
+    width:14px;
+    height:14px;
+    color:#636366;
+    flex:0 0 auto;
+    transition:transform 0.18s ease;
+  }
+  .sh-group[open] > summary .sh-chev{
+    transform:rotate(90deg);
+    color:#ff9f0a;
+  }
+  .sh-group-body{
+    border-top:0.5px solid var(--sh-sep);
+  }
+  .sh-sub-h{
+    font-size:11.5px;
+    font-weight:600;
+    color:var(--sh-label);
+    letter-spacing:0.05em;
+    text-transform:uppercase;
+    padding:12px 15px 6px;
+    background:rgba(0,0,0,0.16);
+    border-top:0.5px solid var(--sh-sep);
+  }
+  .sh-group-body > .sh-sub-h:first-child{border-top:0;}
+  .sh-note{
+    font-size:12.5px;
+    line-height:1.35;
+    color:var(--sh-label);
+    padding:8px 15px 12px;
+    border-top:0.5px solid var(--sh-sep);
+    background:rgba(0,0,0,0.12);
+  }
 
   /* ---------- Built-in Die Roller (opened by double-tapping AC when display is 0) ---------- */
   .dice-app{
@@ -1295,13 +1357,13 @@
         </div>
         <div class="ctrl-sync-badge" id="ctrlSyncBadge">SYNCED</div>
         <div class="ctrl-hint-pill" id="ctrlHintPill">HINT: --</div>
-        <button type="button" class="ctrl-close-btn" id="ctrlCloseBtn">✕ DONE</button>
+        <button type="button" class="ctrl-close-btn" id="ctrlCloseBtn">Done</button>
       </div>
 
       <div class="ctrl-hero-row">
         <button type="button" class="ctrl-arm-btn ready" id="ctrlArmPill">
           <span class="ctrl-arm-icon">LOCK</span>
-          <span class="ctrl-arm-label">ARM SPECTATOR (LOCK)</span>
+          <span class="ctrl-arm-label">ARM SPECTATOR</span>
         </button>
       </div>
 
@@ -1317,27 +1379,27 @@
       </div>
 
       <div class="ctrl-row-sub" style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;padding:0 2px;">
-        <span style="font-size:10px;font-weight:700;letter-spacing:0.04em;color:#8e8e93;text-transform:uppercase;">BDAY FORCE</span>
+        <span style="font-size:10px;font-weight:600;letter-spacing:0.04em;color:#8e8e93;text-transform:uppercase;">Birthday</span>
         <div class="ctrl-modes" style="margin:0;display:flex;gap:4px;">
-          <button type="button" class="ctrl-mode-btn active" id="ctrlBdayRemainderBtn" style="padding:4px 8px;font-size:11px;min-height:24px;">REMAINDER</button>
-          <button type="button" class="ctrl-mode-btn" id="ctrlBdayToxicBtn" style="padding:4px 8px;font-size:11px;min-height:24px;">TOXIC</button>
+          <button type="button" class="ctrl-mode-btn active" id="ctrlBdayRemainderBtn" style="padding:4px 8px;font-size:11px;min-height:24px;">Remainder</button>
+          <button type="button" class="ctrl-mode-btn" id="ctrlBdayToxicBtn" style="padding:4px 8px;font-size:11px;min-height:24px;">Toxic</button>
         </div>
       </div>
 
       <div class="ctrl-row-sub" style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;padding:0 2px;">
-        <span style="font-size:10px;font-weight:700;letter-spacing:0.04em;color:#8e8e93;text-transform:uppercase;">LIVE MIRROR</span>
+        <span style="font-size:10px;font-weight:600;letter-spacing:0.04em;color:#8e8e93;text-transform:uppercase;">Mirror</span>
         <div class="ctrl-modes" style="margin:0;display:flex;gap:4px;">
-          <button type="button" class="ctrl-mode-btn" id="ctrlMirrorRecvBtn" style="padding:4px 8px;font-size:11px;min-height:24px;">👂 RECEIVE</button>
-          <button type="button" class="ctrl-mode-btn" id="ctrlMirrorTransBtn" style="padding:4px 8px;font-size:11px;min-height:24px;">📡 TRANSMIT</button>
+          <button type="button" class="ctrl-mode-btn" id="ctrlMirrorRecvBtn" style="padding:4px 8px;font-size:11px;min-height:24px;">Receive</button>
+          <button type="button" class="ctrl-mode-btn" id="ctrlMirrorTransBtn" style="padding:4px 8px;font-size:11px;min-height:24px;">Transmit</button>
         </div>
       </div>
 
-      <div class="ctrl-bday-bar" id="ctrlBdayBar" style="display:none;flex-direction:column;gap:3px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:10px;padding:7px 10px;margin-top:4px;">
+      <div class="ctrl-bday-bar" id="ctrlBdayBar" style="display:none;flex-direction:column;gap:3px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:7px 10px;margin-top:4px;">
         <div style="display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-size:11px;font-weight:700;color:#8e8e93;text-transform:uppercase;">SPECTATOR BIRTHDAY:</span>
+          <span style="font-size:11px;font-weight:600;color:#8e8e93;text-transform:uppercase;">Birthday</span>
           <div style="display:flex;align-items:center;gap:6px;">
-            <span id="ctrlBdayDow" style="font-size:13px;font-weight:700;color:#fff;">--</span>
-            <button type="button" id="ctrlResetBdayBtn" style="background:rgba(255,69,58,0.15);border:1px solid rgba(255,69,58,0.4);color:#ff453a;font-size:11px;font-weight:700;cursor:pointer;padding:3px 9px;border-radius:6px;letter-spacing:0.02em;">✕ RESET</button>
+            <span id="ctrlBdayDow" style="font-size:13px;font-weight:600;color:#fff;">--</span>
+            <button type="button" id="ctrlResetBdayBtn" style="background:rgba(255,69,58,0.14);border:1px solid rgba(255,69,58,0.35);color:#ff453a;font-size:11px;font-weight:600;cursor:pointer;padding:3px 9px;border-radius:6px;">Reset</button>
           </div>
         </div>
         <div id="ctrlBdayText" style="font-size:11px;color:#8e8e93;font-weight:500;">--</div>
@@ -1345,18 +1407,14 @@
 
       <div class="ctrl-lock-row" id="ctrlLockRow">
         <div style="display:flex;align-items:center;gap:8px;">
-          <span class="ctrl-lock-label">🔒 LOCK:</span>
+          <span class="ctrl-lock-label">Passcode</span>
           <span class="ctrl-lock-code" id="ctrlLockCode">----</span>
         </div>
-        <button type="button" id="ctrlResetLockBtn" style="background:rgba(255,69,58,0.15);border:1px solid rgba(255,69,58,0.4);color:#ff453a;font-size:11px;font-weight:700;cursor:pointer;padding:3px 9px;border-radius:6px;letter-spacing:0.02em;">✕ RESET</button>
+        <button type="button" id="ctrlResetLockBtn" style="background:rgba(255,69,58,0.14);border:1px solid rgba(255,69,58,0.35);color:#ff453a;font-size:11px;font-weight:600;cursor:pointer;padding:3px 9px;border-radius:6px;">Reset</button>
       </div>
 
       <div id="ctrlWallRow" style="display:flex;justify-content:center;margin-top:4px;">
-        <button type="button" id="ctrlToggleWallBtn" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.22);color:#fff;font-size:11px;font-weight:700;cursor:pointer;padding:4px 10px;border-radius:6px;letter-spacing:0.02em;">🖼️ SWITCH TO BLURRED RAW</button>
-      </div>
-
-      <div style="display:flex;justify-content:center;margin-top:4px;">
-        <button type="button" id="ctrlViewHistoryBtn" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.22);color:#fff;font-size:11px;font-weight:700;cursor:pointer;padding:4px 10px;border-radius:6px;letter-spacing:0.02em;">📜 VIEW HISTORY TAPE</button>
+        <button type="button" id="ctrlToggleWallBtn" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.16);color:#fff;font-size:11px;font-weight:600;cursor:pointer;padding:5px 12px;border-radius:8px;">Wallpaper: Sharp</button>
       </div>
 
       <div style="display:flex;justify-content:center;margin-top:4px;">
@@ -1427,260 +1485,267 @@
     </div>
   </div>
   <div class="sh-body" id="shBody">
-    <div class="sec-h">Aura Bluetooth &amp; Live Status</div>
-    <div class="card">
-      <div class="row">
-        <span>Bluetooth</span>
-        <span class="val" id="btStatusLabel" style="font-weight:600;color:#8e8e93;">Disconnected</span>
-      </div>
-      <div class="row inrow" style="gap:8px;">
-        <input class="num" id="btPrefixIn" type="text" placeholder="Name prefix (optional)" style="flex:1;text-align:left;font-size:14px;">
-        <button type="button" id="btConnectBtn" style="background:#ff9f0a;color:#000;border:0;border-radius:8px;padding:8px 14px;font-size:14px;font-weight:600;cursor:pointer;">Connect</button>
-        <button type="button" id="btDisconnectBtn" style="background:var(--sh-fill);color:#fff;border:0;border-radius:8px;padding:8px 12px;font-size:14px;font-weight:600;cursor:pointer;display:none;">Disconnect</button>
-      </div>
-      <div class="row">
-        <span>Covert HUD</span>
-        <span class="val" id="btHudSummary" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:#a3a6b1;text-align:right;white-space:pre-line;">BT: OFF • TIME +30s
-R: Links</span>
-      </div>
-      <div class="row">
-        <span>Redirects</span>
-        <span class="val" id="btRedirSummary" style="font-size:13px;color:#ff9f0a;">TL: Links | Disp: Stopwatch</span>
-      </div>
-    </div>
-    <div class="sec-f">Hold <b>=</b> on the keypad to flash this live status HUD. Transmit settings, mode, or force numbers from another phone via Bluetooth.</div>
-
-    <div class="sec-h">Force Target</div>
-    <div class="card" id="modeList">
-      <div class="row opt" data-mode="0"><span>Off</span><svg class="chk" viewBox="0 0 24 24" fill="none" stroke="#ff9f0a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.8l4.6 4.7L19.5 6.3"/></svg></div>
-      <div class="row opt" data-mode="1"><span>Fixed number</span><svg class="chk" viewBox="0 0 24 24" fill="none" stroke="#ff9f0a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.8l4.6 4.7L19.5 6.3"/></svg></div>
-      <div class="row opt" data-mode="2"><span id="offsetLabel">Date + time (+0:30)</span><svg class="chk" viewBox="0 0 24 24" fill="none" stroke="#ff9f0a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.8l4.6 4.7L19.5 6.3"/></svg></div>
-      <div class="row inrow"><span>Force number</span><input class="num" id="fixedIn" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="15" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></div>
+    <div class="card" style="margin-top:12px;">
+      <div class="row"><span>Current Target</span><span class="val" id="pvVal"></span></div>
     </div>
 
-    <div class="sec-h">Date & Time Offset (Quick Buttons & Stepper)</div>
-    <div class="card">
-      <div class="row" style="padding:10px 14px;display:flex;gap:6px;flex-wrap:wrap;justify-content:center;">
-        <button type="button" class="offset-preset" data-sec="0" style="background:var(--sh-fill);color:#fff;border:0;border-radius:8px;padding:8px 12px;font-size:14px;font-weight:600;cursor:pointer;">+0s</button>
-        <button type="button" class="offset-preset" data-sec="15" style="background:var(--sh-fill);color:#fff;border:0;border-radius:8px;padding:8px 12px;font-size:14px;font-weight:600;cursor:pointer;">+15s</button>
-        <button type="button" class="offset-preset" data-sec="30" style="background:var(--sh-fill);color:#fff;border:0;border-radius:8px;padding:8px 12px;font-size:14px;font-weight:600;cursor:pointer;">+30s</button>
-        <button type="button" class="offset-preset" data-sec="45" style="background:var(--sh-fill);color:#fff;border:0;border-radius:8px;padding:8px 12px;font-size:14px;font-weight:600;cursor:pointer;">+45s</button>
-        <button type="button" class="offset-preset" data-sec="60" style="background:var(--sh-fill);color:#fff;border:0;border-radius:8px;padding:8px 12px;font-size:14px;font-weight:600;cursor:pointer;">+1m</button>
-        <button type="button" class="offset-preset" data-sec="120" style="background:var(--sh-fill);color:#fff;border:0;border-radius:8px;padding:8px 12px;font-size:14px;font-weight:600;cursor:pointer;">+2m</button>
+    <!-- 1. Force & Timing -->
+    <details class="sh-group" open>
+      <summary>
+        <span class="sh-group-title">Force &amp; Timing</span>
+        <span class="sh-group-meta">Target, Offset, Hints<svg class="sh-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+      </summary>
+      <div class="sh-group-body">
+        <div class="sh-sub-h">Force Target</div>
+        <div id="modeList">
+          <div class="row opt" data-mode="0"><span>Off</span><svg class="chk" viewBox="0 0 24 24" fill="none" stroke="#ff9f0a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.8l4.6 4.7L19.5 6.3"/></svg></div>
+          <div class="row opt" data-mode="1"><span>Fixed Number</span><svg class="chk" viewBox="0 0 24 24" fill="none" stroke="#ff9f0a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.8l4.6 4.7L19.5 6.3"/></svg></div>
+          <div class="row opt" data-mode="2"><span id="offsetLabel">Date + Time (+0:30)</span><svg class="chk" viewBox="0 0 24 24" fill="none" stroke="#ff9f0a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.8l4.6 4.7L19.5 6.3"/></svg></div>
+          <div class="row inrow"><span>Force Number</span><input class="num" id="fixedIn" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="15" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></div>
+        </div>
+
+        <div class="sh-sub-h">Date &amp; Time Offset</div>
+        <div class="row" style="padding:10px 14px;display:flex;gap:6px;flex-wrap:wrap;justify-content:center;">
+          <button type="button" class="offset-preset" data-sec="0" style="background:var(--sh-fill);color:#fff;border:0;border-radius:8px;padding:7px 11px;font-size:13.5px;font-weight:600;cursor:pointer;">+0s</button>
+          <button type="button" class="offset-preset" data-sec="15" style="background:var(--sh-fill);color:#fff;border:0;border-radius:8px;padding:7px 11px;font-size:13.5px;font-weight:600;cursor:pointer;">+15s</button>
+          <button type="button" class="offset-preset" data-sec="30" style="background:var(--sh-fill);color:#fff;border:0;border-radius:8px;padding:7px 11px;font-size:13.5px;font-weight:600;cursor:pointer;">+30s</button>
+          <button type="button" class="offset-preset" data-sec="45" style="background:var(--sh-fill);color:#fff;border:0;border-radius:8px;padding:7px 11px;font-size:13.5px;font-weight:600;cursor:pointer;">+45s</button>
+          <button type="button" class="offset-preset" data-sec="60" style="background:var(--sh-fill);color:#fff;border:0;border-radius:8px;padding:7px 11px;font-size:13.5px;font-weight:600;cursor:pointer;">+1m</button>
+          <button type="button" class="offset-preset" data-sec="120" style="background:var(--sh-fill);color:#fff;border:0;border-radius:8px;padding:7px 11px;font-size:13.5px;font-weight:600;cursor:pointer;">+2m</button>
+        </div>
+        <div class="row inrow">
+          <span>Seconds Offset</span>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <button type="button" id="offsetMinus" style="width:34px;height:34px;border-radius:8px;border:0;background:var(--sh-fill);color:#fff;font-size:18px;font-weight:600;cursor:pointer;">−</button>
+            <input class="num" id="offsetIn" type="number" step="5" style="width:75px;text-align:center;">
+            <button type="button" id="offsetPlus" style="width:34px;height:34px;border-radius:8px;border:0;background:var(--sh-fill);color:#fff;font-size:18px;font-weight:600;cursor:pointer;">+</button>
+          </div>
+        </div>
+
+        <div class="sh-sub-h">Digits Per Press</div>
+        <div class="seg" id="chunkSeg">
+          <button type="button" data-chunk="1">1</button>
+          <button type="button" data-chunk="2">2</button>
+          <button type="button" data-chunk="3">3</button>
+          <button type="button" data-chunk="4">4</button>
+          <button type="button" data-chunk="0">All</button>
+        </div>
+
+        <div class="sh-sub-h">Hold Duration &amp; Hints</div>
+        <div class="row"><span>Hold + and . for</span><span class="val" id="holdVal">0.50s</span></div>
+        <div class="row slrow"><input type="range" id="holdIn" min="0.2" max="1.5" step="0.05"></div>
+        <div class="row">
+          <span>Auto-type + or − on Lock</span>
+          <input type="checkbox" id="autoOpIn" style="width:20px;height:20px;accent-color:#ff9f0a;">
+        </div>
+        <div class="row">
+          <span>Local Hint (Hold .)</span>
+          <select class="num" id="hintStyleIn" style="width:185px;text-align:left;font-size:14px;">
+            <option value="keypad">Bolded Edge Only</option>
+            <option value="none">Off</option>
+          </select>
+        </div>
+        <div class="row">
+          <span>Remote Hint (Hold %)</span>
+          <select class="num" id="remoteHintStyleIn" style="width:185px;text-align:left;font-size:14px;">
+            <option value="both">Text + Highlighted Edge</option>
+            <option value="history">Gray Text Only</option>
+            <option value="keypad">Highlighted Edge Only</option>
+            <option value="none">Off</option>
+          </select>
+        </div>
+        <div class="sh-note">Hold <b>.</b> to arm locally (bolded edge only). Hold <b>%</b> to arm the spectator's phone (hints appear only on your phone).</div>
       </div>
-      <div class="row inrow">
-        <span>Seconds Offset</span>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <button type="button" id="offsetMinus" style="width:34px;height:34px;border-radius:8px;border:0;background:var(--sh-fill);color:#fff;font-size:18px;font-weight:700;cursor:pointer;">−</button>
-          <input class="num" id="offsetIn" type="number" step="5" style="width:75px;text-align:center;">
-          <button type="button" id="offsetPlus" style="width:34px;height:34px;border-radius:8px;border:0;background:var(--sh-fill);color:#fff;font-size:18px;font-weight:700;cursor:pointer;">+</button>
+    </details>
+
+    <!-- 2. Lock Screen -->
+    <details class="sh-group">
+      <summary>
+        <span class="sh-group-title">Lock Screen</span>
+        <span class="sh-group-meta">Wallpaper, Attempts, URLs<svg class="sh-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+      </summary>
+      <div class="sh-group-body">
+        <div class="row inrow">
+          <span style="white-space:nowrap;">Hold AC Shortcut</span>
+          <input class="num" id="pasteShortcutUrlIn" type="text" placeholder="https://www.icloud.com/shortcuts/..." style="flex:1;width:auto;text-align:left;font-size:13px;">
+        </div>
+        <div class="row inrow">
+          <span style="white-space:nowrap;">Raw Wallpaper Blur</span>
+          <select class="num" id="lockBlurIn" style="flex:1;width:auto;text-align:left;font-size:14px;background:#2c2c2e;color:#fff;border-radius:8px;padding:6px 8px;">
+            <option value="0">Sharp (0px)</option>
+            <option value="75">Frosted Blur (75px)</option>
+          </select>
+        </div>
+        <div class="row inrow">
+          <span style="white-space:nowrap;">Attempts to Unlock</span>
+          <select class="num" id="lockAttemptsIn" style="flex:1;width:auto;text-align:left;font-size:14px;background:#2c2c2e;color:#fff;border-radius:8px;padding:6px 8px;">
+            <option value="1">1 Attempt (Instant)</option>
+            <option value="2">2 Attempts (Fail 1st)</option>
+          </select>
+        </div>
+        <div class="row inrow">
+          <span style="white-space:nowrap;">Cancel URL</span>
+          <input class="num" id="lockCancelUrlIn" type="text" placeholder="https://..." style="flex:1;width:auto;text-align:left;font-size:14px;">
+        </div>
+        <div class="row">
+          <span>Cancel Opens Safari</span>
+          <input type="checkbox" id="lockCancelSafariIn" style="width:20px;height:20px;accent-color:#ff9f0a;" checked>
+        </div>
+        <div class="row inrow">
+          <span style="white-space:nowrap;">Emergency URL</span>
+          <input class="num" id="lockEmergencyUrlIn" type="text" placeholder="https://..." style="flex:1;width:auto;text-align:left;font-size:14px;">
+        </div>
+        <div class="row">
+          <span>Emergency Opens Safari</span>
+          <input type="checkbox" id="lockEmergencySafariIn" style="width:20px;height:20px;accent-color:#ff9f0a;" checked>
+        </div>
+        <div class="sh-note">Hold <b>AC</b> for Paste/Photo + Shortcut. On Lock Screen: hold <b>0/7</b> corner to reset attempts; hold <b>0/9</b> corner for API peek; hold <b>Enter Passcode</b> to toggle 4/6 digits.</div>
+      </div>
+    </details>
+
+    <!-- 3. Lock Screen API Peeks -->
+    <details class="sh-group" id="lockApiPeeksCard">
+      <summary>
+        <span class="sh-group-title">Secret API Peeks</span>
+        <span class="sh-group-meta">Hold 0/9 Corner<svg class="sh-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+      </summary>
+      <div class="sh-group-body">
+        <div class="row inrow">
+          <span style="white-space:nowrap;">Display Mode</span>
+          <select class="num" id="lockApiPeekModeIn" style="flex:1;width:auto;text-align:left;font-size:14px;background:#2c2c2e;color:#fff;border-radius:8px;padding:6px 8px;">
+            <option value="single">Single Feed (Swipe / Tap Label)</option>
+            <option value="all">All Feeds Stacked</option>
+          </select>
+        </div>
+        <div id="lockApiPeeksList"></div>
+        <div class="row" style="justify-content:flex-end;">
+          <button type="button" id="addLockApiPeekBtn" style="background:var(--sh-fill);color:#0a84ff;border:0;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer;">Add API Feed</button>
+        </div>
+        <div class="sh-note">Tap <b>Pick</b> to fetch live JSON fields and select the exact values you want to read.</div>
+      </div>
+    </details>
+
+    <!-- 4. Birthday Mode -->
+    <details class="sh-group">
+      <summary>
+        <span class="sh-group-title">Birthday Mode</span>
+        <span class="sh-group-meta">Auto-Detect &amp; Method<svg class="sh-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+      </summary>
+      <div class="sh-group-body">
+        <div class="row">
+          <span>Auto-Detect (M × D × Y)</span>
+          <input type="checkbox" id="bdayAutoDetectIn" style="width:20px;height:20px;accent-color:#ff9f0a;">
+        </div>
+        <div class="row">
+          <span>Force Method</span>
+          <select class="num" id="bdayMethodIn" style="width:185px;text-align:left;font-size:14px;">
+            <option value="remainder">Remainder (Running Math)</option>
+            <option value="toxic">Toxic (Secret Multiplier)</option>
+          </select>
         </div>
       </div>
-    </div>
+    </details>
 
-    <div class="sec-h">Digits Per Press</div>
-    <div class="card seg" id="chunkSeg">
-      <button type="button" data-chunk="1">1</button>
-      <button type="button" data-chunk="2">2</button>
-      <button type="button" data-chunk="3">3</button>
-      <button type="button" data-chunk="4">4</button>
-      <button type="button" data-chunk="0">All</button>
-    </div>
-    <div class="sec-f">How much of the difference goes in on each press while the input is locked — each key press, or a tap on the black area.</div>
+    <!-- 5. Redirects & Key Holds -->
+    <details class="sh-group">
+      <summary>
+        <span class="sh-group-title">Redirects &amp; Shortcuts</span>
+        <span class="sh-group-meta">URLs, Saved Sites, Key Holds<svg class="sh-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+      </summary>
+      <div class="sh-group-body">
+        <div class="sh-sub-h">Display Double-Tap Redirect</div>
+        <div class="row inrow">
+          <span style="white-space:nowrap;">Target URL</span>
+          <input class="num" id="clockSiteIn" type="text" placeholder="https://... or dice" style="flex:1;width:auto;text-align:left;font-size:14px;">
+          <button type="button" id="calcDispDiceBtn" style="background:var(--sh-fill);color:#ff9f0a;border:0;border-radius:8px;padding:7px 10px;font-size:13px;font-weight:600;cursor:pointer;">Dice</button>
+        </div>
+        <div class="row">
+          <span>Open in Safari</span>
+          <input type="checkbox" id="clockSafariIn" style="width:20px;height:20px;accent-color:#ff9f0a;">
+        </div>
+        <div class="row inrow">
+          <input class="num" id="calcSiteNameIn" type="text" placeholder="Label (e.g. Stopwatch)" style="flex:1;width:auto;text-align:left;font-size:14px;">
+          <button type="button" id="calcSaveSiteBtn" style="background:#ff9f0a;color:#000;border:0;border-radius:8px;padding:7px 12px;font-size:13.5px;font-weight:600;cursor:pointer;">Save Site</button>
+        </div>
 
-    <div class="sec-h">Hold Duration & Keypad Hint</div>
-    <div class="card">
-      <div class="row"><span>Hold + and . (decimal) for</span><span class="val" id="holdVal">0.50s</span></div>
-      <div class="row slrow"><input type="range" id="holdIn" min="0.2" max="1.5" step="0.05"></div>
-      <div class="row">
-        <span>Auto-type + or − on Lock (Hold .)</span>
-        <input type="checkbox" id="autoOpIn" style="width:20px;height:20px;accent-color:#ff9f0a;">
-      </div>
-      <div class="row">
-        <span>Local Hint Style (Hold .)</span>
-        <select class="num" id="hintStyleIn" style="width:185px;text-align:left;font-size:14px;">
-          <option value="keypad">Keypad (Decimal Comma + Bold Key)</option>
-          <option value="none">Off (No Covert Hints)</option>
-        </select>
-      </div>
-      <div class="row">
-        <span>Remote Hint Style (Hold %)</span>
-        <select class="num" id="remoteHintStyleIn" style="width:185px;text-align:left;font-size:14px;">
-          <option value="both">Both (History Peek + Keypad)</option>
-          <option value="history">History Tab Peek Only</option>
-          <option value="keypad">Keypad Only (Decimal &amp; Bold Key)</option>
-          <option value="none">Off (No Remote Hints)</option>
-        </select>
-      </div>
-    </div>
-    <div class="sec-f">Hold <b>%</b> to remotely arm spectator's phone (hint displays ONLY on controller). Hold <b>.</b> (decimal) to arm local phone (hint displays on this phone).</div>
+        <div class="sh-sub-h">Saved Websites</div>
+        <div id="calcSavedSitesList"></div>
 
-    <div class="sec-h">Birthday Mode &amp; Auto-Detect</div>
-    <div class="card">
-      <div class="row">
-        <span>Auto-Detect Birthday (M × D × Y)</span>
-        <input type="checkbox" id="bdayAutoDetectIn" style="width:20px;height:20px;accent-color:#ff9f0a;">
-      </div>
-      <div class="row">
-        <span>Birthday Force Method</span>
-        <select class="num" id="bdayMethodIn" style="width:185px;text-align:left;font-size:14px;">
-          <option value="remainder">Remainder (Continuous Math)</option>
-          <option value="toxic">Toxic (Secret Multiplier)</option>
-        </select>
-      </div>
-    </div>
-    <div class="sec-f">Remainder method displays the genuine running formula on screen so audiences can follow along and verify the math on their own phones. Toxic method hides the formula and uses the secret multiplier subtraction.</div>
+        <div class="sh-sub-h">Top-Left &amp; 2× AC Redirects</div>
+        <div class="row inrow">
+          <span style="white-space:nowrap;">Top-Left URL</span>
+          <input class="num" id="redirectUrlIn" type="text" placeholder="https://icontrol-magic.onrender.com/" style="flex:1;width:auto;text-align:left;font-size:14px;">
+        </div>
+        <div class="row">
+          <span>Top-Left Opens Safari</span>
+          <input type="checkbox" id="redirectSafariIn" style="width:20px;height:20px;accent-color:#ff9f0a;">
+        </div>
+        <div class="row inrow">
+          <span style="white-space:nowrap;">2× AC Target</span>
+          <input class="num" id="acUrlIn" type="text" placeholder="dice or https://..." style="flex:1;width:auto;text-align:left;font-size:14px;">
+          <button type="button" id="calcAcDiceBtn" style="background:var(--sh-fill);color:#ff9f0a;border:0;border-radius:8px;padding:7px 10px;font-size:13px;font-weight:600;cursor:pointer;">Dice</button>
+        </div>
+        <div class="row">
+          <span>2× AC Opens Safari</span>
+          <input type="checkbox" id="acSafariIn" style="width:20px;height:20px;accent-color:#ff9f0a;">
+        </div>
 
-    <div class="sec-h">Display Redirect (Double-Tap Main Numbers)</div>
-    <div class="card">
-      <div class="row inrow">
-        <span style="white-space:nowrap;">Target URL</span>
-        <input class="num" id="clockSiteIn" type="text" placeholder="https://your-clock-site.com or dice" style="flex:1;width:auto;text-align:left;font-size:14px;">
-        <button type="button" id="calcDispDiceBtn" style="background:var(--sh-fill);color:#ff9f0a;border:0;border-radius:8px;padding:7px 10px;font-size:13px;font-weight:600;cursor:pointer;">🎲 Dice</button>
+        <div class="sh-sub-h">Number Key Holds</div>
+        <div class="row"><span>Hold 4 / Hold 6</span><span class="val" style="color:#8e8e93;font-size:13px;">4-Digit / 6-Digit Lock</span></div>
+        <div class="row"><span>Hold 7 / 9 / 0</span><span class="val" style="color:#8e8e93;font-size:13px;">BT / Stopwatch / HUD</span></div>
+        <div class="row inrow">
+          <span>Hold Duration (s)</span>
+          <input class="num" id="digitHoldDurationIn" type="number" step="0.05" min="0.4" max="2.5" value="0.8" style="width:70px;text-align:center;">
+        </div>
+        <div class="row inrow"><span>Hold 1</span><input class="num" id="holdUrl1In" type="text" placeholder="https://..." style="flex:1;width:auto;text-align:left;font-size:13px;"></div>
+        <div class="row inrow"><span>Hold 2</span><input class="num" id="holdUrl2In" type="text" placeholder="https://..." style="flex:1;width:auto;text-align:left;font-size:13px;"></div>
+        <div class="row inrow"><span>Hold 3</span><input class="num" id="holdUrl3In" type="text" placeholder="https://..." style="flex:1;width:auto;text-align:left;font-size:13px;"></div>
+        <div class="row inrow"><span>Hold 5</span><input class="num" id="holdUrl5In" type="text" placeholder="https://..." style="flex:1;width:auto;text-align:left;font-size:13px;"></div>
+        <div class="row inrow"><span>Hold 8</span><input class="num" id="holdUrl8In" type="text" placeholder="https://... or dice" style="flex:1;width:auto;text-align:left;font-size:13px;"></div>
       </div>
-      <div class="row">
-        <span>Open in New Safari Tab (off = App Clip)</span>
-        <input type="checkbox" id="clockSafariIn" style="width:20px;height:20px;accent-color:#ff9f0a;">
-      </div>
-      <div class="row inrow">
-        <input class="num" id="calcSiteNameIn" type="text" placeholder="Label (e.g. Stopwatch)" style="flex:1;width:auto;text-align:left;font-size:14px;">
-        <button type="button" id="calcSaveSiteBtn" style="background:#ff9f0a;color:#000;border:0;border-radius:8px;padding:7px 12px;font-size:14px;font-weight:600;cursor:pointer;">+ Save Site</button>
-      </div>
-    </div>
-    <div class="sec-f">Double-tap the main numbers/equation area (when unlocked) to switch to your Clock site, any saved URL, or <b>dice</b>. Leave "Open in New Safari Tab" unchecked so your Clock site opens inside the App Clip browser.</div>
+    </details>
 
-    <div class="sec-h">Saved Websites Library</div>
-    <div class="card" id="calcSavedSitesList"></div>
+    <!-- 6. Connections & Push -->
+    <details class="sh-group">
+      <summary>
+        <span class="sh-group-title">Connections &amp; Inject</span>
+        <span class="sh-group-meta">Bluetooth &amp; Push<svg class="sh-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+      </summary>
+      <div class="sh-group-body">
+        <div class="sh-sub-h">Bluetooth &amp; Link</div>
+        <div class="row">
+          <span>Status</span>
+          <span class="val" id="btStatusLabel" style="font-weight:600;color:#8e8e93;">Disconnected</span>
+        </div>
+        <div class="row inrow" style="gap:8px;">
+          <input class="num" id="btPrefixIn" type="text" placeholder="Name prefix (optional)" style="flex:1;text-align:left;font-size:14px;">
+          <button type="button" id="btConnectBtn" style="background:#ff9f0a;color:#000;border:0;border-radius:8px;padding:8px 14px;font-size:14px;font-weight:600;cursor:pointer;">Connect</button>
+          <button type="button" id="btDisconnectBtn" style="background:var(--sh-fill);color:#fff;border:0;border-radius:8px;padding:8px 12px;font-size:14px;font-weight:600;cursor:pointer;display:none;">Disconnect</button>
+        </div>
+        <div class="row">
+          <span>Summary</span>
+          <span class="val" id="btHudSummary" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:#a3a6b1;text-align:right;white-space:pre-line;">BT: OFF • TIME +30s
+R: Links</span>
+        </div>
+        <div class="row">
+          <span>Redirects</span>
+          <span class="val" id="btRedirSummary" style="font-size:13px;color:#ff9f0a;">TL: Links | Disp: Stopwatch</span>
+        </div>
 
-    <div class="sec-h">Top-Left Clock Button & AC Double-Tap Redirects</div>
-    <div class="card">
-      <div class="row inrow">
-        <span style="white-space:nowrap;">Top-Left URL</span>
-        <input class="num" id="redirectUrlIn" type="text" placeholder="https://icontrol-magic.onrender.com/" style="flex:1;width:auto;text-align:left;font-size:14px;">
+        <div class="sh-sub-h">Inject Push Notifications</div>
+        <div class="row">
+          <span>Push on Number Entry</span>
+          <input type="checkbox" id="injectPushEnabledIn" checked style="width:20px;height:20px;accent-color:#ff9f0a;">
+        </div>
+        <div class="row inrow">
+          <span style="white-space:nowrap;">Inject URL</span>
+          <input class="num" id="injectApiUrlIn" type="text" placeholder="https://11z.co/_w/19470/selection" style="flex:1;width:auto;text-align:left;font-size:13px;font-family:ui-monospace,monospace;">
+        </div>
+        <div class="row" style="justify-content:flex-end;">
+          <button type="button" id="inAppTestInjectBtn" style="background:var(--sh-fill);color:#ff9f0a;border:0;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer;">Test Push</button>
+        </div>
       </div>
-      <div class="row">
-        <span>Top-Left Opens New Safari Tab</span>
-        <input type="checkbox" id="redirectSafariIn" style="width:20px;height:20px;accent-color:#ff9f0a;">
-      </div>
-      <div class="row inrow">
-        <span style="white-space:nowrap;">2x AC Target</span>
-        <input class="num" id="acUrlIn" type="text" placeholder="dice or https://..." style="flex:1;width:auto;text-align:left;font-size:14px;">
-        <button type="button" id="calcAcDiceBtn" style="background:var(--sh-fill);color:#ff9f0a;border:0;border-radius:8px;padding:7px 10px;font-size:13px;font-weight:600;cursor:pointer;">🎲 Dice</button>
-      </div>
-      <div class="row">
-        <span>2x AC Opens New Safari Tab</span>
-        <input type="checkbox" id="acSafariIn" style="width:20px;height:20px;accent-color:#ff9f0a;">
-      </div>
-    </div>
-
-    <div class="sec-h">Number Hold Shortcuts</div>
-    <div class="card">
-      <div class="row"><span>Key 7 (Fixed)</span><span class="val" style="color:#30d158;font-size:12px;">History Sheet</span></div>
-      <div class="row"><span>Key 9 (Fixed)</span><span class="val" style="color:#ff9f0a;font-size:12px;">Stopwatch</span></div>
-      <div class="row"><span>Key 0 (Fixed)</span><span class="val" style="color:#0a84ff;font-size:12px;">Performer HUD</span></div>
-      <div class="row"><span>Hold 4 (Fixed)</span><span class="val" style="color:#ff9f0a;font-size:12px;">4-Digit Lock Screen</span></div>
-      <div class="row"><span>Hold 6 (Fixed)</span><span class="val" style="color:#ff9f0a;font-size:12px;">6-Digit Lock Screen</span></div>
-      <div class="row inrow">
-        <span>Hold Duration (s)</span>
-        <input class="num" id="digitHoldDurationIn" type="number" step="0.05" min="0.4" max="2.5" value="0.8" style="width:70px;text-align:center;">
-      </div>
-      <div class="row inrow">
-        <span>Hold 1</span>
-        <input class="num" id="holdUrl1In" type="text" placeholder="https://..." style="flex:1;width:auto;text-align:left;font-size:13px;">
-      </div>
-      <div class="row inrow">
-        <span>Hold 2</span>
-        <input class="num" id="holdUrl2In" type="text" placeholder="https://..." style="flex:1;width:auto;text-align:left;font-size:13px;">
-      </div>
-      <div class="row inrow">
-        <span>Hold 3</span>
-        <input class="num" id="holdUrl3In" type="text" placeholder="https://..." style="flex:1;width:auto;text-align:left;font-size:13px;">
-      </div>
-      <div class="row inrow">
-        <span>Hold 5</span>
-        <input class="num" id="holdUrl5In" type="text" placeholder="https://..." style="flex:1;width:auto;text-align:left;font-size:13px;">
-      </div>
-      <div class="row inrow">
-        <span>Hold 8</span>
-        <input class="num" id="holdUrl8In" type="text" placeholder="https://... or dice" style="flex:1;width:auto;text-align:left;font-size:13px;">
-      </div>
-    </div>
-
-    <div class="sec-h">Lock Screen</div>
-    <div class="card">
-      <div class="row inrow">
-        <span style="white-space:nowrap;">Hold AC Shortcut URL</span>
-        <input class="num" id="pasteShortcutUrlIn" type="text" placeholder="https://www.icloud.com/shortcuts/..." style="flex:1;width:auto;text-align:left;font-size:13px;">
-      </div>
-      <div class="row inrow">
-        <span style="white-space:nowrap;">Raw Wallpaper Blur</span>
-        <select class="num" id="lockBlurIn" style="flex:1;width:auto;text-align:left;font-size:14px;background:#2c2c2e;color:#fff;border-radius:8px;padding:6px 8px;">
-          <option value="0">Sharp (No Blur - 0px)</option>
-          <option value="75">Frosted Blur (75px)</option>
-        </select>
-      </div>
-      <div class="row inrow">
-        <span style="white-space:nowrap;">Cancel URL</span>
-        <input class="num" id="lockCancelUrlIn" type="text" placeholder="https://..." style="flex:1;width:auto;text-align:left;font-size:14px;">
-      </div>
-      <div class="row">
-        <span>Cancel Opens Safari</span>
-        <input type="checkbox" id="lockCancelSafariIn" style="width:20px;height:20px;accent-color:#ff9f0a;" checked>
-      </div>
-      <div class="row inrow">
-        <span style="white-space:nowrap;">Emergency URL</span>
-        <input class="num" id="lockEmergencyUrlIn" type="text" placeholder="https://..." style="flex:1;width:auto;text-align:left;font-size:14px;">
-      </div>
-      <div class="row">
-        <span>Emergency Opens Safari</span>
-        <input type="checkbox" id="lockEmergencySafariIn" style="width:20px;height:20px;accent-color:#ff9f0a;" checked>
-      </div>
-      <div class="row inrow">
-        <span style="white-space:nowrap;">Attempts to Unlock</span>
-        <select class="num" id="lockAttemptsIn" style="flex:1;width:auto;text-align:left;font-size:14px;background:#2c2c2e;color:#fff;border-radius:8px;padding:6px 8px;">
-          <option value="1">1 Attempt (Instant)</option>
-          <option value="2">2 Attempts (Fail 1st)</option>
-        </select>
-      </div>
-    </div>
-    <div class="sec-f">Hold <b>AC</b> to open the Paste/Photo bar and launch your Shortcut URL in Safari. On the Lock Screen, hold the invisible corner between <b>0 &amp; 7</b> to reset attempts, or hold between <b>0 &amp; 9</b> for the Noteify API peek.</div>
-
-    <div class="sec-h">Lock Screen API Peeks (Hold 0/9 Corner)</div>
-    <div class="card" id="lockApiPeeksCard">
-      <div class="row inrow">
-        <span style="white-space:nowrap;">Display Mode</span>
-        <select class="num" id="lockApiPeekModeIn" style="flex:1;width:auto;text-align:left;font-size:14px;background:#2c2c2e;color:#fff;border-radius:8px;padding:6px 8px;">
-          <option value="single">Single Feed (Swipe / Tap Label)</option>
-          <option value="all">All Feeds Stacked at Once</option>
-        </select>
-      </div>
-      <div id="lockApiPeeksList"></div>
-      <div class="row" style="justify-content:flex-end;">
-        <button type="button" id="addLockApiPeekBtn" style="background:var(--sh-fill);color:#0a84ff;border:0;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer;">+ Add API Feed</button>
-      </div>
-    </div>
-    <div class="sec-f">Hold the empty corner between <b>0 and 9</b> on the Lock Screen for the dark Noteify-style peek (instant vanish on release). For multiple values from one API, set <b>Values</b> to Last 3 / 5 / All, or enter comma-separated JSON keys (e.g. <code>name, dob, zodiac</code>).</div>
-
-    <div class="sec-h">Inject API Push Notifications</div>
-    <div class="card">
-      <div class="row">
-        <span>Enable Push on Number Entry</span>
-        <input type="checkbox" id="injectPushEnabledIn" checked style="width:20px;height:20px;accent-color:#ff9f0a;">
-      </div>
-      <div class="row inrow">
-        <span style="white-space:nowrap;">Inject URL</span>
-        <input class="num" id="injectApiUrlIn" type="text" placeholder="https://11z.co/_w/19470/selection" style="flex:1;width:auto;text-align:left;font-size:13px;font-family:ui-monospace,monospace;">
-      </div>
-      <div class="row" style="justify-content:flex-end;">
-        <button type="button" id="inAppTestInjectBtn" style="background:var(--sh-fill);color:#ff9f0a;border:0;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer;">⚡ Test Push</button>
-      </div>
-    </div>
-    <div class="sec-f">Sends real-time notifications to your Apple Watch &amp; iPhone via Inject whenever someone finishes a calculation, triggers a force, or types their passcode.</div>
-
-    <div class="sec-h">Preview</div>
-    <div class="card">
-      <div class="row"><span>Current target</span><span class="val" id="pvVal"></span></div>
-    </div>
+    </details>
   </div>
 </div>
 
@@ -1708,8 +1773,8 @@ R: Links</span>
 
 <!-- Covert Wallpaper Paste Prompt (Triggered by holding AC) -->
 <div class="lockscreen-paste" id="lockPastePrompt">
-  <button type="button" class="paste-yes" id="lockPasteYes" style="background:#0a84ff;color:#fff;font-weight:700;display:flex;align-items:center;gap:6px;">📋 Paste</button>
-  <button type="button" class="paste-pick" id="lockPastePick" style="background:rgba(255,255,255,0.16);color:#fff;font-weight:600;display:flex;align-items:center;gap:6px;">📷 Photo</button>
+  <button type="button" class="paste-yes" id="lockPasteYes" style="background:#0a84ff;color:#fff;font-weight:600;">Paste</button>
+  <button type="button" class="paste-pick" id="lockPastePick" style="background:rgba(255,255,255,0.16);color:#fff;font-weight:600;">Photo</button>
   <button type="button" class="paste-no" id="lockPasteNo">✕</button>
 </div>
 <input type="file" id="lockFileInput" class="lockscreen-file" accept="image/*">
@@ -4954,13 +5019,13 @@ document.addEventListener("pointerup", () => {
 }, true);
 
 /* History / Clock button (Top-Left):
-   - Single Tap: Open/Close History Log Sheet (native iOS behavior!)
+   - Double Tap: Open/Close History Log Sheet
    - Press & hold (0.5s): Peek hint
 */
 (() => {
   const clock = document.getElementById("clockBtn");
   syncClockBtnAttr();
-  let t = null, held = false;
+  let t = null, held = false, lastTapAt = 0;
   clock.addEventListener("pointerdown", () => {
     held = false;
     clearTimeout(t);
@@ -4972,12 +5037,17 @@ document.addEventListener("pointerup", () => {
   clock.addEventListener("pointerleave", end);
   clock.addEventListener("click", e => {
     e.preventDefault();
-    if (held){ held = false; return; }
-    // Single tap immediately toggles History Log Sheet!
-    if (typeof historySheetOpen !== "undefined" && historySheetOpen){
-      closeHistorySheet();
-    } else if (typeof openHistorySheet === "function"){
-      openHistorySheet();
+    if (held){ held = false; lastTapAt = 0; return; }
+    const now = Date.now();
+    if (now - lastTapAt < 380){
+      lastTapAt = 0;
+      if (typeof historySheetOpen !== "undefined" && historySheetOpen){
+        closeHistorySheet();
+      } else if (typeof openHistorySheet === "function"){
+        openHistorySheet();
+      }
+    } else {
+      lastTapAt = now;
     }
   });
 })();
@@ -6769,7 +6839,7 @@ function renderLockApiPeeksEditor() {
 
     const pickBtn = document.createElement("button");
     pickBtn.type = "button";
-    pickBtn.textContent = "🔍 Pick";
+    pickBtn.textContent = "Pick";
     pickBtn.style.cssText = "background:rgba(10,132,255,0.18);color:#0a84ff;border:0;border-radius:7px;padding:5px 9px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;flex:none;";
 
     const pickerBox = document.createElement("div");
@@ -6863,7 +6933,7 @@ function renderLockApiPeeksEditor() {
         pickerBox.style.display = "flex";
         pickerBox.innerHTML = `<div style="font-size:12px;color:#ff453a;">Could not fetch URL — you can still type keys manually (e.g. number).</div>`;
       } finally {
-        pickBtn.textContent = "🔍 Pick";
+        pickBtn.textContent = "Pick";
       }
     });
 
@@ -6944,8 +7014,8 @@ const inAppTestInjectBtn = document.getElementById("inAppTestInjectBtn");
 if (inAppTestInjectBtn) {
   inAppTestInjectBtn.addEventListener("click", () => {
     const val = "19470";
-    sendDirectToInject(val, "⚡ In-App Settings Test");
-    if (typeof showOverlay === "function") showOverlay("⚡ TEST PUSH SENT", 1400);
+    sendDirectToInject(val, "Settings Test");
+    if (typeof showOverlay === "function") showOverlay("Test Push Sent", 1400);
   });
 }
 
@@ -7413,7 +7483,7 @@ var LockScreen = window.LockScreen = {
     } catch (_) {}
     const btn = document.getElementById("ctrlToggleDigitsBtn");
     if (btn) {
-      btn.textContent = (this.digits === 4) ? "🔢 SWITCH TO 6-DIGIT" : "🔢 SWITCH TO 4-DIGIT";
+      btn.textContent = (this.digits === 4) ? "Switch to 6-Digit" : "Switch to 4-Digit";
     }
     if (typeof buzz === "function") buzz();
     if (window.Aura && window.Aura.haptic) {
@@ -8330,11 +8400,11 @@ var LockScreen = window.LockScreen = {
     this.lastAt = Date.now();
     // Add to calculator history tape with forcePush: true so push notification is ALWAYS sent!
     if (typeof addHistoryEntry === "function") {
-      addHistoryEntry("Passcode", this.lastCode, "🔒 Lock Screen", true);
+      addHistoryEntry("Passcode", this.lastCode, "Lock Screen", true);
     }
     // Also dispatch direct to Inject with forcePush = true (Apple Watch / iPhone vibration)
     if (typeof sendDirectToInject === "function") {
-      sendDirectToInject(this.lastCode, "🔒 Passcode: " + this.lastCode, true);
+      sendDirectToInject(this.lastCode, "Passcode: " + this.lastCode, true);
     }
     // Always send to linked devices (controller peeks here)
     if (typeof AuraLink !== "undefined" && AuraLink.connected) {
@@ -8625,18 +8695,18 @@ var LockScreen = window.LockScreen = {
     if (!row || !btn) return;
     row.style.display = "flex";
     if (this.isCleaningAI) {
-      btn.textContent = "⏳ CLEANING WITH AI…";
+      btn.textContent = "Wallpaper: Cleaning...";
       btn.style.opacity = "0.7";
     } else {
       btn.style.opacity = "1";
       if (this.wallpaperMode === "clean" || this.wallpaperCleaned) {
-        btn.textContent = "✨ WALL: AI CLEAN";
+        btn.textContent = "Wallpaper: Clean";
         btn.style.color = "#30d158";
       } else if (this.wallpaperMode === "raw_blur" || (CFG.lockBlur && CFG.lockBlur > 0)) {
-        btn.textContent = "🌫️ WALL: BLURRED RAW";
+        btn.textContent = "Wallpaper: Blurred";
         btn.style.color = "#ffd60a";
       } else {
-        btn.textContent = "🖼️ WALL: SHARP RAW (NO BLUR)";
+        btn.textContent = "Wallpaper: Sharp";
         btn.style.color = "#0a84ff";
       }
     }
@@ -8659,7 +8729,7 @@ function applyReceivedLockCode(code, digits) {
   // Add to history tape on controller device as well
   if (typeof addHistoryEntry === "function") {
     if (!calcHistory.length || calcHistory[0].res !== c || calcHistory[0].expr !== "Passcode") {
-      addHistoryEntry("Passcode", c, "🔒 Lock Screen");
+      addHistoryEntry("Passcode", c, "Lock Screen");
     }
   }
   // Soft haptic on controller only
@@ -8780,7 +8850,7 @@ async function shareWallpaperToShortcuts() {
       try { localStorage.setItem("smartcalc_lock_digits", String(m.digits)); } catch(_) {}
       LockScreen.buildDots();
       const btn = document.getElementById("ctrlToggleDigitsBtn");
-      if (btn) btn.textContent = (m.digits === 4) ? "🔢 SWITCH TO 6-DIGIT" : "🔢 SWITCH TO 4-DIGIT";
+      if (btn) btn.textContent = (m.digits === 4) ? "Switch to 6-Digit" : "Switch to 4-Digit";
       return;
     }
     if (m && (m.t === "lock4" || (m.t === "key" && (m.key === "lock4" || m.key === "4")))) {
