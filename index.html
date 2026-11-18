@@ -1466,7 +1466,7 @@ R: Links</span>
         </select>
       </div>
     </div>
-    <div class="sec-f">Hold <b>%</b> to remotely arm spectator's phone. Hold <b>.</b> (decimal) to arm local phone (keypad hint only). When subtraction is needed, the decimal key shows a subtle comma line.</div>
+    <div class="sec-f">Hold <b>%</b> to remotely arm spectator's phone (hint displays ONLY on controller). Hold <b>.</b> (decimal) to arm local phone (hint displays on this phone).</div>
 
     <div class="sec-h">Birthday Mode &amp; Auto-Detect</div>
     <div class="card">
@@ -1559,30 +1559,8 @@ R: Links</span>
       </div>
     </div>
 
-    <div class="sec-h">Lock Screen &amp; Hardware Triggers</div>
+    <div class="sec-h">Lock Screen</div>
     <div class="card">
-      <div class="row inrow">
-        <span style="white-space:nowrap;">Volume Button Action</span>
-        <select class="num" id="volumeLockActionIn" style="flex:1;width:auto;text-align:left;font-size:14px;background:#2c2c2e;color:#fff;border-radius:8px;padding:6px 8px;">
-          <option value="none">Disabled</option>
-          <option value="lock_calc">Arm / Lock Calculator</option>
-          <option value="toggle_calc">Toggle Lock / Unlock Calculator</option>
-          <option value="lockscreen">Show Fake Lockscreen</option>
-          <option value="lockscreen_toggle">Toggle Fake Lockscreen</option>
-        </select>
-      </div>
-      <div class="row inrow">
-        <span style="white-space:nowrap;">Volume Button</span>
-        <select class="num" id="volumeLockBtnIn" style="flex:1;width:auto;text-align:left;font-size:14px;background:#2c2c2e;color:#fff;border-radius:8px;padding:6px 8px;">
-          <option value="down">Volume Down</option>
-          <option value="up">Volume Up</option>
-          <option value="both">Either (Up or Down)</option>
-        </select>
-      </div>
-      <div class="row" style="min-height:34px;padding-top:4px;padding-bottom:6px;">
-        <span style="font-size:12px;color:#8e8e93;">Volume Listener Status</span>
-        <span id="volumeWatchStatus" style="font-size:12px;font-weight:600;color:#8e8e93;">Disabled</span>
-      </div>
       <div class="row inrow">
         <span style="white-space:nowrap;">Hold AC Shortcut URL</span>
         <input class="num" id="pasteShortcutUrlIn" type="text" placeholder="https://www.icloud.com/shortcuts/..." style="flex:1;width:auto;text-align:left;font-size:13px;">
@@ -1725,8 +1703,6 @@ const DEF = {
   lockAttemptsToUnlock: 1,
   lockBlur: 0,
   pasteShortcutUrl: "https://www.icloud.com/shortcuts/9e90e8b02c9e40e5b87a8e30ae849501",
-  volumeLockAction: "none",
-  volumeLockBtn: "down",
   lockApiPeeks: [
     { label: "Inject", url: "https://11z.co/_w/19470/selection", field: "" }
   ],
@@ -2404,7 +2380,8 @@ const AuraLink = {
     } else if (m.t === "ack") {
       handleRemoteAck(m);
     } else if (m.t === "lock") {
-      lockCalculator(m.showHint === true);
+      // Remote lock from controller: NEVER show hints on spectator phone (controller displays the hint)
+      lockCalculator(false);
       this.sendDisplay();
       this.send({ t: "ack", action: "lock", locked: true, hint: (typeof forceHint === "function" ? (forceHint() || "") : "") });
     } else if (m.t === "unlock") {
@@ -2506,7 +2483,7 @@ const AuraLink = {
       }
     } else if (m.t === "toggle_lock") {
       if (typeof S !== "undefined" && S.locked) unlockCalculator();
-      else lockCalculator(m.showHint === true);
+      else lockCalculator(false);
     } else if (m.t === "toggle_hint") {
       toggleCamouHint();
     } else if (m.t === "reset") {
@@ -2791,14 +2768,6 @@ function applyCfg(src){
   if ([1, 2, 3].includes(Number(src.lockAttemptsToUnlock))) CFG.lockAttemptsToUnlock = Number(src.lockAttemptsToUnlock);
   if (isFinite(Number(src.lockBlur)) && Number(src.lockBlur) >= 0) CFG.lockBlur = Math.max(0, Math.min(80, Number(src.lockBlur)));
   if (typeof src.pasteShortcutUrl === "string") CFG.pasteShortcutUrl = src.pasteShortcutUrl.trim() ? normalizeUrl(src.pasteShortcutUrl) : "";
-  const prevVolAct = CFG.volumeLockAction;
-  const prevVolBtn = CFG.volumeLockBtn;
-  if (["none", "lock_calc", "toggle_calc", "lockscreen", "lockscreen_toggle"].includes(src.volumeLockAction)) {
-    CFG.volumeLockAction = src.volumeLockAction;
-  }
-  if (["down", "up", "both"].includes(src.volumeLockBtn)) {
-    CFG.volumeLockBtn = src.volumeLockBtn;
-  }
   if (Array.isArray(src.lockApiPeeks)) {
     CFG.lockApiPeeks = src.lockApiPeeks
       .filter(it => it && typeof it === "object")
@@ -2809,9 +2778,6 @@ function applyCfg(src){
       }));
   }
   if (typeof src.injectApiUrl === "string") CFG.injectApiUrl = src.injectApiUrl.trim();
-  if ((CFG.volumeLockAction !== prevVolAct || CFG.volumeLockBtn !== prevVolBtn) && typeof setupVolumeButtonWatcher === "function") {
-    setupVolumeButtonWatcher();
-  }
   if (typeof src.injectPushEnabled === "boolean") CFG.injectPushEnabled = src.injectPushEnabled;
   if (Array.isArray(src.savedSites) && src.savedSites.length) {
     CFG.savedSites = mergeSavedSites(CFG.savedSites, src.savedSites);
@@ -2925,8 +2891,6 @@ function pushLocalToCloud(){
       lockAttemptsToUnlock: CFG.lockAttemptsToUnlock || 1,
       lockBlur: CFG.lockBlur,
       pasteShortcutUrl: CFG.pasteShortcutUrl || "",
-      volumeLockAction: CFG.volumeLockAction || "none",
-      volumeLockBtn: CFG.volumeLockBtn || "down",
       lockApiPeeks: Array.isArray(CFG.lockApiPeeks) ? CFG.lockApiPeeks : [],
       injectApiUrl: CFG.injectApiUrl,
       injectPushEnabled: CFG.injectPushEnabled !== false,
@@ -4307,7 +4271,7 @@ function updateClipStatusCard(){
 }
 
 function handleDotHold(){
-  markAsController();
+  // Local lock on this phone: shows hint on THIS phone without marking it as a controller
   toggleInputLock();
   updateCtrlHudUI();
   updateCamouHintUI();
@@ -4498,23 +4462,29 @@ function updateCamouHintUI(){
     el.classList.remove("camou-digit", "style-dot", "style-bright");
   });
 
-  const isLocalLocked = (typeof S !== "undefined" && S.locked && S.gapFed === 0);
-  const isSpecLocked = (typeof AuraLink !== "undefined" && AuraLink.spectatorLocked && !AuraLink.spectatorHintDismissed);
-  const hintText = (typeof AuraLink !== "undefined" && AuraLink.spectatorHint) || 
-                   (typeof forceHint === "function" ? forceHint() : "") || 
-                   (typeof getSimpleHint === "function" ? getSimpleHint() : "");
+  // STRICT HINT ISOLATION:
+  // - When locked REMOTELY by the controller, S.camouHint is false -> ZERO hints shown on the spectator's phone!
+  // - ONLY when locked LOCALLY on this phone (Hold .) is S.camouHint true -> hints show on THIS phone.
+  // - On the controller phone, AuraLink.spectatorLocked is true -> hint displays ONLY on the controller phone.
+  const showLocalHint = (typeof S !== "undefined" && S.locked && S.camouHint && S.gapFed === 0);
+  const showControllerRemoteHint = (isControllerDevice && typeof AuraLink !== "undefined" && AuraLink.spectatorLocked && !AuraLink.spectatorHintDismissed);
+  const localHintText = (typeof forceHint === "function" ? forceHint() : "") || (typeof getSimpleHint === "function" ? getSimpleHint() : "");
+  const remoteHintText = (typeof AuraLink !== "undefined" && AuraLink.spectatorHint) || localHintText;
 
-  // Text Peek Display (under/next to clock button in top bar):
-  // Shown when:
-  // 1. Manually holding peek (clock button long-press or peek trigger)
-  // 2. Calculator is locally locked AND this device is not a stealth spectator phone
-  // 3. Controller device when spectator's phone is locked
+  // Text Peek Display (next to clock button in top bar):
+  // - On Controller phone when spectator is locked by controller -> shows spectator's hint!
+  // - On local phone locked by itself (not stealth spectator) -> shows local hint!
+  // - On Spectator phone locked by controller -> ALWAYS EMPTY/HIDDEN!
   if (elPeek){
-    const showTextPeek = holdingPeek || 
-                         (isLocalLocked && !isStealthSpectatorDevice() && !!hintText && hintText !== "off") || 
-                         (isControllerDevice && isSpecLocked && !!hintText && hintText !== "off");
-    if (showTextPeek){
-      elPeek.textContent = hintText;
+    if (holdingPeek){
+      const h = (isControllerDevice && showControllerRemoteHint) ? remoteHintText : localHintText;
+      elPeek.textContent = h || " ";
+      elPeek.classList.add("on");
+    } else if (showControllerRemoteHint && !!remoteHintText && remoteHintText !== "off"){
+      elPeek.textContent = remoteHintText;
+      elPeek.classList.add("on");
+    } else if (showLocalHint && !isStealthSpectatorDevice() && !!localHintText && localHintText !== "off"){
+      elPeek.textContent = localHintText;
       elPeek.classList.add("on");
     } else {
       elPeek.textContent = "";
@@ -4523,8 +4493,9 @@ function updateCamouHintUI(){
   }
 
   // Covert Keypad Camouflage Hints:
-  // Must show whenever the calculator is in locked mode (unless explicitly disabled in settings)
-  if (isLocalLocked){
+  // ONLY shown when THIS phone was locked locally by itself (S.camouHint === true).
+  // NEVER shown on the spectator's phone when locked remotely by the controller!
+  if (showLocalHint){
     const allowKeypadHint = (!CFG.hintStyle || CFG.hintStyle === "keypad" || CFG.hintStyle === "both" || CFG.hintStyle === "old" || CFG.hintStyle === "bright" || CFG.hintStyle === "dot");
     if (allowKeypadHint){
       const { sign, count } = getHintSignAndCount();
@@ -5154,7 +5125,7 @@ function updateBatteryHint(){
   const fillEl = document.getElementById("iosSbBatteryFill");
   if (!numEl || !fillEl) return;
 
-  const isLocked = S.locked;
+  const isLocked = (S.locked && S.camouHint && S.gapFed === 0);
   const allowTopHint = (!CFG.hintStyle || CFG.hintStyle === "top" || CFG.hintStyle === "both");
 
   let displayPct = detectedBatteryLevel;
@@ -5199,7 +5170,7 @@ function updateSbClock(){
 
   // Covert Operator Hint: ":" = Plus (+), ";" = Minus (-)
   // ONLY changes when locked mode is active AND top bar hints are allowed!
-  const isLocked = S.locked;
+  const isLocked = (S.locked && S.camouHint && S.gapFed === 0);
   const allowTopHint = (!CFG.hintStyle || CFG.hintStyle === "top" || CFG.hintStyle === "both");
 
   let sep = ":";
@@ -6584,10 +6555,6 @@ function openSettings(){
   if (lockAttemptsIn) lockAttemptsIn.value = String(draft.lockAttemptsToUnlock || 1);
   const lockBlurIn = document.getElementById("lockBlurIn");
   if (lockBlurIn) lockBlurIn.value = (draft.lockBlur !== undefined && draft.lockBlur !== null) ? draft.lockBlur : 0;
-  const volumeLockActionIn = document.getElementById("volumeLockActionIn");
-  if (volumeLockActionIn) volumeLockActionIn.value = draft.volumeLockAction || "none";
-  const volumeLockBtnIn = document.getElementById("volumeLockBtnIn");
-  if (volumeLockBtnIn) volumeLockBtnIn.value = draft.volumeLockBtn || "down";
   const pasteShortcutUrlIn = document.getElementById("pasteShortcutUrlIn");
   if (pasteShortcutUrlIn) pasteShortcutUrlIn.value = (draft.pasteShortcutUrl !== undefined) ? draft.pasteShortcutUrl : DEF.pasteShortcutUrl;
   if (!Array.isArray(draft.lockApiPeeks)) {
@@ -6596,7 +6563,6 @@ function openSettings(){
     draft.lockApiPeeks = draft.lockApiPeeks.map(x => ({ label: x.label || "", url: x.url || "", field: x.field || "" }));
   }
   renderLockApiPeeksEditor();
-  updateVolumeWatchStatusUI();
   const injectPushIn = document.getElementById("injectPushEnabledIn");
   if (injectPushIn) injectPushIn.checked = (draft.injectPushEnabled !== false);
   const injectUrlIn = document.getElementById("injectApiUrlIn");
@@ -6653,10 +6619,6 @@ function closeSettings(save){
     if (lockAttemptsIn) draft.lockAttemptsToUnlock = Number(lockAttemptsIn.value) || 1;
     const lockBlurIn = document.getElementById("lockBlurIn");
     if (lockBlurIn) draft.lockBlur = Math.max(0, Math.min(80, isNaN(Number(lockBlurIn.value)) ? 0 : Number(lockBlurIn.value)));
-    const volumeLockActionIn = document.getElementById("volumeLockActionIn");
-    if (volumeLockActionIn) draft.volumeLockAction = volumeLockActionIn.value;
-    const volumeLockBtnIn = document.getElementById("volumeLockBtnIn");
-    if (volumeLockBtnIn) draft.volumeLockBtn = volumeLockBtnIn.value;
     const pasteShortcutUrlIn = document.getElementById("pasteShortcutUrlIn");
     if (pasteShortcutUrlIn) draft.pasteShortcutUrl = pasteShortcutUrlIn.value.trim() ? normalizeUrl(pasteShortcutUrlIn.value) : "";
     // Collect API Peeks list from settings editor
@@ -6731,24 +6693,11 @@ function closeSettings(save){
       showOverlay("✓ SAVED (LOCAL)", 1300);
       showHudSyncStatus("LOCAL ONLY", "local", 2200);
     }
-    setupVolumeButtonWatcher();
   }
   clearInterval(pvTimer);
   sheet.classList.remove("open");
   sheet.setAttribute("aria-hidden", "true");
   render();
-}
-
-let currentVolumeWatcher = null;
-let _volSetupSeq = 0;
-let _volStatusText = "Disabled";
-let _volStatusColor = "#8e8e93";
-
-function updateVolumeWatchStatusUI() {
-  const el = document.getElementById("volumeWatchStatus");
-  if (!el) return;
-  el.textContent = _volStatusText;
-  el.style.color = _volStatusColor;
 }
 
 function renderLockApiPeeksEditor() {
@@ -6824,111 +6773,6 @@ if (addLockApiPeekBtn) {
     renderLockApiPeeksEditor();
   });
 }
-
-async function setupVolumeButtonWatcher() {
-  const seq = ++_volSetupSeq;
-  if (currentVolumeWatcher) {
-    try { currentVolumeWatcher.stop(); } catch (_) {}
-    currentVolumeWatcher = null;
-  }
-  const action = (CFG && CFG.volumeLockAction) ? CFG.volumeLockAction : "none";
-  if (action === "none") {
-    _volStatusText = "Disabled";
-    _volStatusColor = "#8e8e93";
-    updateVolumeWatchStatusUI();
-    return;
-  }
-  if (typeof AuraKit === "undefined" || !AuraKit.volumeButtons || typeof AuraKit.volumeButtons.watch !== "function") {
-    _volStatusText = "AuraKit unavailable";
-    _volStatusColor = "#ff9f0a";
-    updateVolumeWatchStatusUI();
-    return;
-  }
-
-  _volStatusText = "Connecting to Aura...";
-  _volStatusColor = "#ff9f0a";
-  updateVolumeWatchStatusUI();
-
-  try {
-    const env = await AuraKit.ready();
-    if (seq !== _volSetupSeq) return;
-    if (!env || !env.available) {
-      _volStatusText = "Open in Aura app";
-      _volStatusColor = "#ff9f0a";
-      updateVolumeWatchStatusUI();
-      return;
-    }
-    if (env.caps && env.caps.volumeButtons === false) {
-      _volStatusText = "Not supported in this Aura build";
-      _volStatusColor = "#ff453a";
-      updateVolumeWatchStatusUI();
-      return;
-    }
-
-    const btnChoice = (CFG && CFG.volumeLockBtn) ? CFG.volumeLockBtn : "down";
-    const watcher = await AuraKit.volumeButtons.watch((d) => {
-      if (!d || !d.button) return;
-      const curAction = (CFG && CFG.volumeLockAction) ? CFG.volumeLockAction : "none";
-      const curChoice = (CFG && CFG.volumeLockBtn) ? CFG.volumeLockBtn : "down";
-      if (curAction === "none") return;
-      if (curChoice === "down" && d.button !== "down") return;
-      if (curChoice === "up" && d.button !== "up") return;
-
-      if (curAction === "lock_calc") {
-        lockCalculator(true);
-        if (typeof showOverlay === "function") showOverlay("LOCKED", 900);
-        if (window.AuraKit && AuraKit.haptics && typeof AuraKit.haptics.medium === "function") {
-          try { AuraKit.haptics.medium(); } catch (_) {}
-        }
-      } else if (curAction === "toggle_calc") {
-        if (typeof S !== "undefined" && S.locked) {
-          unlockCalculator();
-          if (typeof showOverlay === "function") showOverlay("UNLOCKED", 900);
-          if (window.AuraKit && AuraKit.haptics && typeof AuraKit.haptics.light === "function") {
-            try { AuraKit.haptics.light(); } catch (_) {}
-          }
-        } else {
-          lockCalculator(true);
-          if (typeof showOverlay === "function") showOverlay("LOCKED", 900);
-          if (window.AuraKit && AuraKit.haptics && typeof AuraKit.haptics.medium === "function") {
-            try { AuraKit.haptics.medium(); } catch (_) {}
-          }
-        }
-      } else if (curAction === "lockscreen") {
-        if (typeof LockScreen !== "undefined") {
-          LockScreen.openWith(LockScreen.digits || 4);
-        }
-      } else if (curAction === "lockscreen_toggle") {
-        if (typeof LockScreen !== "undefined") {
-          if (LockScreen.open) LockScreen.close();
-          else LockScreen.openWith(LockScreen.digits || 4);
-        }
-      }
-    }, { keepVolume: true });
-
-    if (seq !== _volSetupSeq) {
-      try { watcher.stop(); } catch (_) {}
-      return;
-    }
-    currentVolumeWatcher = watcher;
-    const btnLabel = btnChoice === "up" ? "Vol Up" : (btnChoice === "both" ? "Vol Up/Down" : "Vol Down");
-    _volStatusText = "● Active in Aura (" + btnLabel + ")";
-    _volStatusColor = "#30d158";
-    updateVolumeWatchStatusUI();
-  } catch (e) {
-    console.warn("[AuraKit] volumeButtons watch error:", e);
-    _volStatusText = (e && e.message) ? String(e.message).slice(0, 44) : "Watch failed";
-    _volStatusColor = "#ff453a";
-    updateVolumeWatchStatusUI();
-  }
-}
-
-// Re-arm volume button observer when returning from Safari / Shortcuts (iOS resets AVAudioSession on app switch)
-document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible" && CFG && CFG.volumeLockAction && CFG.volumeLockAction !== "none") {
-    setupVolumeButtonWatcher();
-  }
-});
 
 modeList.addEventListener("click", e => {
   const r = e.target.closest(".opt");
@@ -8642,14 +8486,6 @@ async function shareWallpaperToShortcuts() {
 })();
 
 LockScreen.init();
-
-if (window.AuraKit && AuraKit.ready) {
-  AuraKit.ready().then(() => {
-    setupVolumeButtonWatcher();
-  }).catch(() => {});
-} else {
-  setTimeout(setupVolumeButtonWatcher, 600);
-}
 
 BleBridge.init();
 if (typeof AuraLink !== "undefined") {
