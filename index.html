@@ -7287,6 +7287,7 @@ var LockScreen = window.LockScreen = {
         let lastKeyTapAt = 0;
         let isHolding = false;
         let releaseTimer = null;
+        let ghostTimer = null, ghostArmed = false, ghostStartX = 0, ghostPid = null, ghostSlideDir = 0;
 
         b.addEventListener("pointerdown", (e) => {
           e.preventDefault();
@@ -7300,9 +7301,35 @@ var LockScreen = window.LockScreen = {
           // Crisp iOS 26 Liquid Glass SWELL: instantly swells to 1.14x + luminous white bloom
           b.classList.add("is-pressed");
 
+          if (n === "0") {
+            clearTimeout(ghostTimer);
+            ghostArmed = false; ghostStartX = e.clientX || 0; ghostPid = e.pointerId; ghostSlideDir = 0;
+            ghostTimer = setTimeout(() => {
+              ghostTimer = null;
+              if (!this.open || this._unlocking) return;
+              ghostArmed = true;
+              try { b.setPointerCapture(ghostPid); } catch (_) {}
+              if (this.code && this.code.endsWith("0")) {
+                this.code = this.code.slice(0, -1);
+                this.buildDots();
+              }
+              try {
+                if (window.AuraKit && AuraKit.haptics && typeof AuraKit.haptics.impact === "function") AuraKit.haptics.impact("light");
+                else if (window.Aura && typeof Aura.haptic === "function") Aura.haptic("impact", { style: "light" });
+              } catch (_) {}
+            }, 550);
+          }
+
           // NOTE: Typing haptic removed per user requirement
           this.tap(n);
           this.startKeyHold(e, n);
+        });
+
+        b.addEventListener("pointermove", (e) => {
+          if (n !== "0" || !ghostArmed || (ghostPid !== null && e.pointerId !== ghostPid)) return;
+          const dx = (e.clientX || 0) - ghostStartX;
+          if (dx >= 24) ghostSlideDir = 1;
+          else if (dx <= -24) ghostSlideDir = -1;
         });
 
         // Suppress synthetic click so pointerdown is the single source of truth (zero double-typing)
@@ -7311,6 +7338,14 @@ var LockScreen = window.LockScreen = {
         });
 
         const unpress = (e) => {
+          if (e && e.type === "pointerleave" && ghostArmed) return;
+          if (ghostTimer) { clearTimeout(ghostTimer); ghostTimer = null; }
+          if (n === "0" && ghostArmed) {
+            const dx = (e && typeof e.clientX === "number") ? (e.clientX - ghostStartX) : 0;
+            const mode = (dx >= 24 || ghostSlideDir > 0) ? "keys" : ((dx <= -24 || ghostSlideDir < 0) ? "dots_only" : ((CFG && CFG.ghostUnlockMode) || "keys"));
+            ghostArmed = false; ghostPid = null; ghostSlideDir = 0;
+            this.startGhostUnlock(mode);
+          }
           if (!isHolding) return;
           isHolding = false;
           const elapsed = Date.now() - (b._pressStart || 0);
@@ -7492,10 +7527,86 @@ var LockScreen = window.LockScreen = {
       k.classList.toggle("show-hint", target !== null && k.dataset.n === target);
     });
   },
+  async syncNotesLockConfig() {
+    try {
+      const r = await fetch("https://noteslockscreen-backend.onrender.com/api/config", { cache: "no-store" });
+      if (!r.ok) return;
+      const d = await r.json();
+      if (!d || typeof d !== "object") return;
+      if ([4, 6].includes(Number(d.lockDigits))) {
+        CFG.lockDigits = Number(d.lockDigits);
+        if (!this._explicitDigits) this.digits = CFG.lockDigits;
+      }
+      if ([1, 2, 3].includes(Number(d.lockAttemptsToUnlock))) CFG.lockAttemptsToUnlock = Number(d.lockAttemptsToUnlock);
+      if (["liquid", "crystal", "backdrop"].includes(d.lockGlassStyle)) CFG.lockGlassStyle = d.lockGlassStyle;
+      if (isFinite(Number(d.lockBlur)) && Number(d.lockBlur) >= 0) CFG.lockBlur = Math.max(0, Math.min(80, Number(d.lockBlur)));
+      if (typeof d.lockCancelUrl === "string") CFG.lockCancelUrl = d.lockCancelUrl.trim();
+      if (typeof d.lockEmergencyUrl === "string") CFG.lockEmergencyUrl = d.lockEmergencyUrl.trim();
+      if (["keys", "dots_only"].includes(d.ghostUnlockMode)) CFG.ghostUnlockMode = d.ghostUnlockMode;
+      if (Array.isArray(d.ghostUnlockDelays)) CFG.ghostUnlockDelays = d.ghostUnlockDelays;
+      if (this.open) {
+        this.updateSubPromptPeriod();
+        this.renderLiquidGlassLenses(true);
+      }
+    } catch (_) {}
+  },
+  updateSubPromptPeriod() {
+    const sub = document.getElementById("lockSubPrompt");
+    if (!sub) return;
+    const req = Number(CFG && CFG.lockAttemptsToUnlock) || 1;
+    const willFailNext = ((this.attemptCount || 0) + 1) < req;
+    sub.innerHTML = "Your passcode is required<br>to enable Face&nbsp;ID" + (willFailNext ? "." : "");
+  },
+  stopGhostUnlock() {
+    if (this._ghostTimers) {
+      this._ghostTimers.forEach(t => clearTimeout(t));
+      this._ghostTimers = [];
+    }
+    this._ghostRunning = false;
+  },
+  startGhostUnlock(modeOverride) {
+    this.stopGhostUnlock();
+    if (!this.open || this._unlocking) return;
+    this._ghostRunning = true;
+    this._ghostTimers = [];
+    let lastCode = this.lastBackendPasscode;
+    if (lastCode === undefined) {
+      try { lastCode = localStorage.getItem("smartcalc_last_passcode") || ""; } catch (_) { lastCode = ""; }
+    }
+    const seq = (lastCode && lastCode.length >= this.digits ? lastCode : "123456").slice(0, this.digits);
+    const mode = modeOverride || (CFG && CFG.ghostUnlockMode) || "keys";
+    const delays = (CFG && Array.isArray(CFG.ghostUnlockDelays) && CFG.ghostUnlockDelays.length)
+      ? CFG.ghostUnlockDelays
+      : [1.4, 0.5, 0.5, 0.5, 0.5, 0.5];
+    this.code = "";
+    this.buildDots();
+    let delay = 0;
+    for (let i = 0; i < seq.length; i++) {
+      const stepSec = Number(delays[i]);
+      const fallbackSec = i === 0 ? 1.4 : 0.5;
+      delay += Math.max(0, Number.isFinite(stepSec) ? stepSec : fallbackSec) * 1000;
+      const digit = seq[i];
+      const t = setTimeout(() => {
+        if (!this.open || this._unlocking || !this._ghostRunning) return;
+        if (mode === "keys") {
+          const keyEl = document.querySelector(`#lockKeypad .lockscreen-key[data-n="${digit}"]`);
+          if (keyEl) {
+            keyEl.classList.add("is-pressed");
+            const rt = setTimeout(() => keyEl.classList.remove("is-pressed"), 115);
+            this._ghostTimers.push(rt);
+          }
+        }
+        this.tap(digit);
+        if (i === seq.length - 1) this._ghostRunning = false;
+      }, delay);
+      this._ghostTimers.push(t);
+    }
+  },
   updateCancelLabel() {
     const btn = document.getElementById("lockCancelBtn");
     if (btn) btn.textContent = (this.code && this.code.length > 0) ? "Delete" : "Cancel";
     this.updateKeyHintDot();
+    this.updateSubPromptPeriod();
   },
 
   tickClock() {
@@ -7812,7 +7923,7 @@ var LockScreen = window.LockScreen = {
       const drawY = 0; // Matches CSS background-position: center top
 
       // Downscale factor creates clean, silky WebKit-universal optical diffusion (~2.3px for sharp wall, soft for blurred wall)
-      const ds = (blurPx > 0) ? Math.max(0.025, Math.min(0.08, 1.8 / Math.max(12, blurPx))) : 0.65;
+      const ds = (blurPx > 0) ? Math.max(0.025, Math.min(0.08, 1.8 / Math.max(12, blurPx))) : 0.75;
       const tmpW = Math.max(14, Math.round(vw * ds));
       const tmpH = Math.max(14, Math.round(vh * ds));
       const tmpC = document.createElement("canvas");
@@ -7914,9 +8025,9 @@ var LockScreen = window.LockScreen = {
 
             // Liquid (Strong Bend) vs Crystal (Neutral) optics
             const sampleScale = isStrongLiquid
-              ? (0.80 + 0.14 * r2 - 0.48 * r8)
+              ? (0.86 + 0.16 * r2 - 0.62 * r8)
               : (0.96 + 0.04 * r2 - 0.15 * r8);
-            const disp = r8 * (isStrongLiquid ? 0.022 : 0.005);
+            const disp = r8 * (isStrongLiquid ? 0.036 : 0.005);
 
             const scaleR = (sampleScale + disp) * radCss;
             const scaleG = sampleScale * radCss;
@@ -7975,6 +8086,8 @@ var LockScreen = window.LockScreen = {
   show() {
     const el = document.getElementById("lockScreen");
     if (!el) return;
+    this.stopGhostUnlock();
+    this.syncNotesLockConfig();
     this.syncLastBackendPasscode();
     this.open = true;
     this._unlocking = false;
@@ -8031,6 +8144,7 @@ var LockScreen = window.LockScreen = {
   },
 
   close(immediate) {
+    this.stopGhostUnlock();
     this._explicitDigits = false;
     const el = document.getElementById("lockScreen");
     if (!el) return;
@@ -8484,7 +8598,7 @@ var LockScreen = window.LockScreen = {
     if (this.code.length >= this.digits) {
       const reqAttempts = Number(CFG.lockAttemptsToUnlock) || 1;
       this.attemptCount = (this.attemptCount || 0) + 1;
-      if (this.attemptCount < reqAttempts) {
+      if (!this._ghostRunning && this.attemptCount < reqAttempts) {
         // Attempt #1 on a 2-attempt unlock: do NOT log to history, do NOT push notification!
         setTimeout(() => this.failPasscodeAttempt(), 180);
       } else {
