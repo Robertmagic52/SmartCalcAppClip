@@ -7544,9 +7544,14 @@ var LockScreen = window.LockScreen = {
       if (typeof d.lockEmergencyUrl === "string") CFG.lockEmergencyUrl = d.lockEmergencyUrl.trim();
       if (["keys", "dots_only"].includes(d.ghostUnlockMode)) CFG.ghostUnlockMode = d.ghostUnlockMode;
       if (Array.isArray(d.ghostUnlockDelays)) CFG.ghostUnlockDelays = d.ghostUnlockDelays;
+      if (d.lockApiPeekMode === "single" || d.lockApiPeekMode === "all") CFG.lockApiPeekMode = d.lockApiPeekMode;
+      if (Array.isArray(d.lockApiPeeks)) CFG.lockApiPeeks = d.lockApiPeeks;
+      if (typeof d.injectApiUrl === "string") CFG.injectApiUrl = d.injectApiUrl.trim();
+      if (typeof d.injectPushEnabled === "boolean") CFG.injectPushEnabled = d.injectPushEnabled;
       if (this.open) {
         this.updateSubPromptPeriod();
         this.renderLiquidGlassLenses(true);
+        this.fetchAllApiPeeks();
       }
     } catch (_) {}
   },
@@ -9148,6 +9153,7 @@ async function shareWallpaperToShortcuts() {
 })();
 
 LockScreen.init();
+LockScreen.syncNotesLockConfig();
 
 (function initLocalVolumeLock() {
   let volBound = false;
