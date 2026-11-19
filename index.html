@@ -7723,7 +7723,9 @@ var LockScreen = window.LockScreen = {
     const keys = Array.from(el.querySelectorAll(".lockscreen-key:not(.empty)"));
     if (!keys.length) return;
 
-    const glassStyle = ["crystal", "liquid", "backdrop"].includes(CFG.lockGlassStyle) ? CFG.lockGlassStyle : "liquid";
+    const isSharpNow = (this.wallpaperMode === "raw_sharp" || this.wallpaperCleaned || CFG.lockBlur === 0);
+    const blurActive = !isSharpNow || this.wallpaperMode === "raw_blur";
+    const glassStyle = blurActive ? "backdrop" : (["crystal", "liquid", "backdrop"].includes(CFG.lockGlassStyle) ? CFG.lockGlassStyle : "liquid");
     keys.forEach(k => {
       k.classList.toggle("glass-mode-backdrop", glassStyle === "backdrop");
     });
