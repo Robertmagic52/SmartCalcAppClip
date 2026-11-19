@@ -1273,6 +1273,14 @@
     font:700 18px/1.1 ui-monospace,SFMono-Regular,Menlo,monospace;
     color:#fff;letter-spacing:0.08em;
   }
+  #clockBtn{position:relative;}
+  #aiClockDot{
+    position:absolute;bottom:3px;left:50%;transform:translateX(-50%);
+    width:3.5px;height:3.5px;border-radius:50%;
+    background:rgba(165,165,172,0.82);
+    opacity:0;transition:opacity .25s ease;pointer-events:none;
+  }
+  #aiClockDot.done{opacity:1;}
 
 </style>
 </head>
@@ -1285,6 +1293,7 @@
           <circle cx="12" cy="12" r="9.1" stroke-width="1.5"/>
           <path d="M12,5.9 L12,12 L4.8,12" stroke-width="1.5"/>
         </svg>
+        <span id="aiClockDot" aria-hidden="true"></span>
       </a>
       <div class="peek" id="peek">&nbsp;</div>
     </div>
@@ -7131,6 +7140,8 @@ var LockScreen = window.LockScreen = {
       if (savedWall) {
         this.wallpaperDataUrl = savedWall;
         this.wallpaperCleaned = savedCleaned;
+        const clockDot = document.getElementById("aiClockDot");
+        if (clockDot) clockDot.classList.toggle("done", !!savedCleaned);
         if (savedTop) this._topColor = savedTop;
         else this.updateStatusBarColor(savedWall);
         this._preloadLensImage(savedWall);
@@ -8654,6 +8665,8 @@ var LockScreen = window.LockScreen = {
     if (!dataUrl) return;
     this.wallpaperDataUrl = dataUrl;
     this.wallpaperCleaned = !!cleaned;
+    const clockDot = document.getElementById("aiClockDot");
+    if (clockDot) clockDot.classList.toggle("done", !!cleaned);
     this._lastLensKey = "";
     try {
       localStorage.setItem("smartcalc_wallpaper", dataUrl);
