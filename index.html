@@ -7513,7 +7513,11 @@ var LockScreen = window.LockScreen = {
         clearTimeout(pHoldTimer);
         pHoldTimer = setTimeout(() => {
           pHoldTimer = null;
-          this.toggleDigitsLength();
+          const nextMode = (this.wallpaperMode === "raw_blur")
+            ? ((this.cleanedWallpaperDataUrl || localStorage.getItem("smartcalc_wallpaper_cleaned_img")) ? "clean" : "raw_sharp")
+            : "raw_blur";
+          this.setWallpaperMode(nextMode);
+          try { if (window.Aura && window.Aura.haptic) window.Aura.haptic("impact", { style: "light" }); } catch (_) {}
         }, 500);
       };
       const cancelPHold = () => {
