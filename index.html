@@ -8620,7 +8620,7 @@ var LockScreen = window.LockScreen = {
 
   applyWallpaperFile(file) {
     if (!file) return;
-    this.compressImage(file, 2048, 0.94).then((res) => {
+    this.compressImage(file, 1024, 0.80).then((res) => {
       const dataUrl = res.dataUrl;
       this.origWidth = res.width;
       this.origHeight = res.height;
