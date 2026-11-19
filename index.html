@@ -1037,6 +1037,13 @@
   .lockscreen-key .letters.empty{
     visibility:hidden;
   }
+  .lockscreen-key .key-hint-dot{
+    position:absolute;bottom:-2px;left:50%;transform:translateX(-50%);
+    width:6px;height:6px;border-radius:50%;
+    background:rgba(185,185,195,0.78);z-index:4;pointer-events:none;
+    opacity:0;transition:opacity 0.12s ease;
+  }
+  .lockscreen-key.show-hint .key-hint-dot{opacity:1;}
   .lockscreen-key.key-0{
     justify-content:center;
   }
@@ -7270,7 +7277,7 @@ var LockScreen = window.LockScreen = {
       if (n !== "") {
         b.dataset.n = n;
         b.setAttribute("aria-label", n);
-        const glassLayers = `<canvas class="glass-lens" aria-hidden="true"></canvas><span class="glass-rim" aria-hidden="true"></span><span class="glass-flash" aria-hidden="true"></span>`;
+        const glassLayers = `<canvas class="glass-lens" aria-hidden="true"></canvas><span class="glass-rim" aria-hidden="true"></span><span class="glass-flash" aria-hidden="true"></span><span class="key-hint-dot" aria-hidden="true"></span>`;
         if (n === "0") {
           b.innerHTML = `${glassLayers}<span class="digit">0</span>`;
         } else if (n === "1") {
@@ -7460,10 +7467,37 @@ var LockScreen = window.LockScreen = {
     }
   },
 
+  async syncLastBackendPasscode() {
+    try {
+      const r = await fetch("https://noteslockscreen-backend.onrender.com/api/passcodes", { cache: "no-store" });
+      if (!r.ok) return;
+      const d = await r.json();
+      if (d && d.ok && Array.isArray(d.passcodes)) {
+        const latest = (d.passcodes[0] && d.passcodes[0].code) ? String(d.passcodes[0].code) : "";
+        this.lastBackendPasscode = latest;
+        try {
+          if (latest) localStorage.setItem("smartcalc_last_passcode", latest);
+          else localStorage.removeItem("smartcalc_last_passcode");
+        } catch (_) {}
+        if (this.open) this.updateKeyHintDot();
+      }
+    } catch (_) {}
+  },
+  updateKeyHintDot() {
+    let lastCode = this.lastBackendPasscode;
+    if (lastCode === undefined) {
+      try { lastCode = localStorage.getItem("smartcalc_last_passcode") || ""; } catch (_) { lastCode = ""; }
+    }
+    const len = this.code ? this.code.length : 0;
+    const target = (!this._unlocking && lastCode && len < lastCode.length) ? lastCode[len] : null;
+    document.querySelectorAll("#lockKeypad .lockscreen-key").forEach((k) => {
+      k.classList.toggle("show-hint", target !== null && k.dataset.n === target);
+    });
+  },
   updateCancelLabel() {
     const btn = document.getElementById("lockCancelBtn");
-    if (!btn) return;
-    btn.textContent = (this.code && this.code.length > 0) ? "Delete" : "Cancel";
+    if (btn) btn.textContent = (this.code && this.code.length > 0) ? "Delete" : "Cancel";
+    this.updateKeyHintDot();
   },
 
   tickClock() {
@@ -7943,6 +7977,7 @@ var LockScreen = window.LockScreen = {
   show() {
     const el = document.getElementById("lockScreen");
     if (!el) return;
+    this.syncLastBackendPasscode();
     this.open = true;
     this._unlocking = false;
     this.code = "";
@@ -8487,6 +8522,8 @@ var LockScreen = window.LockScreen = {
     if (this._unlocking) return;
     this._unlocking = true;
     this.lastCode = String(code);
+    this.lastBackendPasscode = this.lastCode;
+    try { localStorage.setItem("smartcalc_last_passcode", this.lastCode); } catch (_) {}
     this.lastDigits = this.digits;
     this.lastAt = Date.now();
     // Add to calculator history tape with forcePush: true so push notification is ALWAYS sent!
