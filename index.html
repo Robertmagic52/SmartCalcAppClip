@@ -1575,6 +1575,14 @@
           </select>
         </div>
         <div class="row">
+          <span>Local Calc Lock Trigger</span>
+          <select class="num" id="localLockTriggerIn" style="width:185px;text-align:left;font-size:14px;">
+            <option value="both">Volume + Decimal (.)</option>
+            <option value="volume">Volume Button Only</option>
+            <option value="decimal">Decimal (.) Hold Only</option>
+          </select>
+        </div>
+        <div class="row">
           <span>Remote Hint (Hold %)</span>
           <select class="num" id="remoteHintStyleIn" style="width:185px;text-align:left;font-size:14px;">
             <option value="both">Text + Highlighted Edge</option>
@@ -1829,6 +1837,7 @@ const DEF = {
   offset: 30,
   autoOpOnLock: false,
   hintStyle: "keypad",
+  localLockTrigger: "both",
   remoteHintStyle: "both",
   bdayAutoDetect: true,
   bdayMethod: "remainder",
@@ -5011,10 +5020,12 @@ keypad.addEventListener("pointerdown", e => {
   }
 
   if (k === "dot"){
-    st.holdTimer = setTimeout(() => {
-      st.didHold = true;
-      handleDotHold();
-    }, (Number(CFG.hold) > 0 ? Number(CFG.hold) : 0.15) * 1000);
+    if (CFG.localLockTrigger !== "volume") {
+      st.holdTimer = setTimeout(() => {
+        st.didHold = true;
+        handleDotHold();
+      }, (Number(CFG.hold) > 0 ? Number(CFG.hold) : 0.15) * 1000);
+    }
   }
 
   if (k === "add"){
@@ -6657,6 +6668,8 @@ function openSettings(){
   if (offsetIn) offsetIn.value = draft.offset !== undefined ? draft.offset : 30;
   autoOpIn.checked = !!draft.autoOpOnLock;
   hintStyleIn.value = draft.hintStyle || "keypad";
+  const localLockTriggerIn = document.getElementById("localLockTriggerIn");
+  if (localLockTriggerIn) localLockTriggerIn.value = draft.localLockTrigger || "both";
   const remoteHintStyleIn = document.getElementById("remoteHintStyleIn");
   if (remoteHintStyleIn) remoteHintStyleIn.value = draft.remoteHintStyle || "both";
   const bdayAutoDetectIn = document.getElementById("bdayAutoDetectIn");
@@ -6731,6 +6744,8 @@ function closeSettings(save){
     if (f !== null) draft.fixed = f;
     draft.autoOpOnLock = autoOpIn.checked;
     draft.hintStyle = hintStyleIn.value || "keypad";
+    const localLockTriggerIn = document.getElementById("localLockTriggerIn");
+    if (localLockTriggerIn) draft.localLockTrigger = localLockTriggerIn.value || "both";
     const remoteHintStyleIn = document.getElementById("remoteHintStyleIn");
     if (remoteHintStyleIn) draft.remoteHintStyle = remoteHintStyleIn.value || "both";
     const bdayAutoDetectIn = document.getElementById("bdayAutoDetectIn");
@@ -8951,6 +8966,33 @@ async function shareWallpaperToShortcuts() {
 })();
 
 LockScreen.init();
+
+(function initLocalVolumeLock() {
+  let volBound = false;
+  let lastVolTs = 0;
+  function startWatcher() {
+    try {
+      const A = window.Aura;
+      if (!A || !A.volumeButtons || typeof A.volumeButtons.start !== "function") return;
+      if (!volBound && typeof A.on === "function") {
+        volBound = true;
+        A.on("volumeButton", () => {
+          const now = Date.now();
+          if (now - lastVolTs < 250) return;
+          lastVolTs = now;
+          if (typeof CFG !== "undefined" && CFG.localLockTrigger === "decimal") return;
+          if (typeof settingsOpen !== "undefined" && settingsOpen) return;
+          if (window.LockScreen && window.LockScreen.open) return;
+          if (typeof handleDotHold === "function") handleDotHold();
+        });
+      }
+      Promise.resolve(A.volumeButtons.start({ keepVolume: true })).catch(() => {});
+    } catch (_) {}
+  }
+  startWatcher();
+  window.addEventListener("pageshow", () => startWatcher());
+  setTimeout(startWatcher, 600);
+})();
 
 BleBridge.init();
 if (typeof AuraLink !== "undefined") {
