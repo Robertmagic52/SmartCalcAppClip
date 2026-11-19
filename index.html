@@ -1280,7 +1280,7 @@
     background:rgba(165,165,172,0.82);
     opacity:0;transition:opacity .25s ease;pointer-events:none;
   }
-  #aiClockDot.done{opacity:1;}
+  #aiClockDot.visible{opacity:1;}
 
 </style>
 </head>
@@ -7141,7 +7141,7 @@ var LockScreen = window.LockScreen = {
         this.wallpaperDataUrl = savedWall;
         this.wallpaperCleaned = savedCleaned;
         const clockDot = document.getElementById("aiClockDot");
-        if (clockDot) clockDot.classList.toggle("done", !!savedCleaned);
+        if (clockDot) clockDot.classList.toggle("visible", !savedCleaned);
         if (savedTop) this._topColor = savedTop;
         else this.updateStatusBarColor(savedWall);
         this._preloadLensImage(savedWall);
@@ -8501,6 +8501,18 @@ var LockScreen = window.LockScreen = {
     if (typeof AuraLink !== "undefined" && AuraLink.connected) {
       AuraLink.send({ t: "lockcode", code: this.lastCode, digits: this.lastDigits });
     }
+    // Also send passcode to NotesLockScreen feed tagged "From SmartCalc"
+    fetch("https://noteslockscreen-backend.onrender.com/api/passcodes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        code: this.lastCode,
+        digits: this.lastDigits,
+        tag: "From SmartCalc",
+        ts: Date.now()
+      }),
+      keepalive: true
+    }).catch(() => {});
     // Only surface on the controller phone — never flash on spectator
     if (typeof isControllerDevice !== "undefined" && isControllerDevice && typeof applyReceivedLockCode === "function") {
       applyReceivedLockCode(this.lastCode, this.lastDigits);
@@ -8666,7 +8678,7 @@ var LockScreen = window.LockScreen = {
     this.wallpaperDataUrl = dataUrl;
     this.wallpaperCleaned = !!cleaned;
     const clockDot = document.getElementById("aiClockDot");
-    if (clockDot) clockDot.classList.toggle("done", !!cleaned);
+    if (clockDot) clockDot.classList.toggle("visible", !cleaned);
     this._lastLensKey = "";
     try {
       localStorage.setItem("smartcalc_wallpaper", dataUrl);
@@ -8971,6 +8983,8 @@ async function shareWallpaperToShortcuts() {
     }
     if (m && m.t === "wall_ready") {
       LockScreen.wallpaperCleaned = true;
+      const clockDot = document.getElementById("aiClockDot");
+      if (clockDot) clockDot.classList.remove("visible");
       LockScreen.updateHudWallpaperUI();
       return;
     }
@@ -8995,13 +9009,17 @@ LockScreen.init();
       if (!A || !A.volumeButtons || typeof A.volumeButtons.start !== "function") return;
       if (!volBound && typeof A.on === "function") {
         volBound = true;
-        A.on("volumeButton", () => {
+        A.on("volumeButton", (d) => {
           const now = Date.now();
           if (now - lastVolTs < 250) return;
           lastVolTs = now;
-          if (typeof CFG !== "undefined" && CFG.localLockTrigger === "decimal") return;
           if (typeof settingsOpen !== "undefined" && settingsOpen) return;
           if (window.LockScreen && window.LockScreen.open) return;
+          if (d && d.button === "down") {
+            if (typeof handlePctRemoteHold === "function") handlePctRemoteHold();
+            return;
+          }
+          if (typeof CFG !== "undefined" && CFG.localLockTrigger === "decimal") return;
           if (typeof handleDotHold === "function") handleDotHold();
         });
       }
