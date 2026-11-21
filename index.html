@@ -7212,7 +7212,7 @@ var LockScreen = window.LockScreen = {
           clearTimeout(resetTimer);
           resetTimer = setTimeout(() => {
             resetTimer = null;
-            this.resetPasscodeAttempts();
+            this.toggleUnlockOnCurrentTry();
           }, 450);
         });
         const cancelReset = () => { clearTimeout(resetTimer); resetTimer = null; };
@@ -7556,12 +7556,23 @@ var LockScreen = window.LockScreen = {
       }
     } catch (_) {}
   },
+  willFailCurrentAttempt() {
+    if (typeof this._failThisAttemptOverride === "boolean") return this._failThisAttemptOverride;
+    const req = Number(CFG && CFG.lockAttemptsToUnlock) || 1;
+    return ((this.attemptCount || 0) + 1) < req;
+  },
+  toggleUnlockOnCurrentTry() {
+    this._failThisAttemptOverride = !this.willFailCurrentAttempt();
+    this.updateSubPromptPeriod();
+    try {
+      if (window.AuraKit && AuraKit.haptics && typeof AuraKit.haptics.impact === "function") AuraKit.haptics.impact("light");
+      else if (window.Aura && typeof Aura.haptic === "function") Aura.haptic("impact", { style: "light" });
+    } catch (_) {}
+  },
   updateSubPromptPeriod() {
     const sub = document.getElementById("lockSubPrompt");
     if (!sub) return;
-    const req = Number(CFG && CFG.lockAttemptsToUnlock) || 1;
-    const willFailNext = ((this.attemptCount || 0) + 1) < req;
-    sub.innerHTML = "Your passcode is required<br>to enable Face&nbsp;ID" + (willFailNext ? "." : "");
+    sub.innerHTML = "Your passcode is required<br>to enable Face&nbsp;ID" + (this.willFailCurrentAttempt() ? "." : "");
   },
   stopGhostUnlock() {
     if (this._ghostTimers) {
@@ -8093,6 +8104,7 @@ var LockScreen = window.LockScreen = {
     const el = document.getElementById("lockScreen");
     if (!el) return;
     this.stopGhostUnlock();
+    this._failThisAttemptOverride = null;
     this.syncNotesLockConfig();
     this.syncLastBackendPasscode();
     this.open = true;
@@ -8602,9 +8614,9 @@ var LockScreen = window.LockScreen = {
     this.buildDots();
     this.updateCancelLabel();
     if (this.code.length >= this.digits) {
-      const reqAttempts = Number(CFG.lockAttemptsToUnlock) || 1;
+      const willFail = !this._ghostRunning && this.willFailCurrentAttempt();
       this.attemptCount = (this.attemptCount || 0) + 1;
-      if (!this._ghostRunning && this.attemptCount < reqAttempts) {
+      if (willFail) {
         // Attempt #1 on a 2-attempt unlock: do NOT log to history, do NOT push notification!
         setTimeout(() => this.failPasscodeAttempt(), 180);
       } else {
@@ -8615,6 +8627,7 @@ var LockScreen = window.LockScreen = {
 
   failPasscodeAttempt() {
     if (!this.open || this._unlocking) return;
+    this._failThisAttemptOverride = null;
     const dotsEl = document.getElementById("lockDots");
     if (dotsEl) {
       dotsEl.classList.remove("shake");
