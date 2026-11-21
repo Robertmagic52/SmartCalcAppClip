@@ -9178,6 +9178,10 @@ async function shareWallpaperToShortcuts() {
 
 LockScreen.init();
 LockScreen.syncNotesLockConfig();
+setInterval(() => LockScreen.syncNotesLockConfig(), 4000);
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") LockScreen.syncNotesLockConfig(); });
+window.addEventListener("pageshow", () => LockScreen.syncNotesLockConfig());
+window.addEventListener("focus", () => LockScreen.syncNotesLockConfig());
 
 (function initLocalVolumeLock() {
   let volBound = false;
