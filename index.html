@@ -8075,9 +8075,9 @@ var LockScreen = window.LockScreen = {
 
             // Liquid (Strong Bend) vs Crystal (Neutral) optics
             const sampleScale = isStrongLiquid
-              ? (0.86 + 0.16 * r2 - 0.62 * r8)
-              : (0.96 + 0.04 * r2 - 0.15 * r8);
-            const disp = r8 * (isStrongLiquid ? 0.036 : 0.005);
+              ? (0.94 + 0.05 * r2 - 0.18 * r8)
+              : (0.97 + 0.03 * r2 - 0.08 * r8);
+            const disp = r8 * (isStrongLiquid ? 0.012 : 0.004);
 
             const scaleR = (sampleScale + disp) * radCss;
             const scaleG = sampleScale * radCss;
@@ -8100,14 +8100,14 @@ var LockScreen = window.LockScreen = {
             const tW = topSpec > 0 ? Math.pow(topSpec, 1.45) : 0;
             const bW = botSpec > 0 ? Math.pow(botSpec, 1.55) : 0;
             const dirW = isStrongLiquid
-              ? (0.20 + 0.78 * tW + 0.60 * bW)
-              : (0.16 + 0.72 * tW + 0.54 * bW);
+              ? (0.16 + 0.68 * tW + 0.50 * bW)
+              : (0.14 + 0.62 * tW + 0.44 * bW);
 
             // Pure neutral-white glass alpha-blend (no hue/orange shift)
-            const baseVeil = (isStrongLiquid ? 0.08 : 0.05) + (ny < 0 ? (-ny) * (isStrongLiquid ? 0.055 : 0.035) * (1 - r * 0.4) : 0);
-            const wallAlpha = r4 * r * (isStrongLiquid ? 0.10 : 0.065) * dirW;
-            const edgeAlpha = r8 * r8 * (isStrongLiquid ? 0.42 : 0.30) * dirW;
-            const whiteAlpha = Math.min(0.68, baseVeil + wallAlpha + edgeAlpha);
+            const baseVeil = (isStrongLiquid ? 0.06 : 0.04) + (ny < 0 ? (-ny) * (isStrongLiquid ? 0.035 : 0.025) * (1 - r * 0.4) : 0);
+            const wallAlpha = r4 * r * (isStrongLiquid ? 0.055 : 0.04) * dirW;
+            const edgeAlpha = r8 * r8 * (isStrongLiquid ? 0.24 : 0.18) * dirW;
+            const whiteAlpha = Math.min(0.45, baseVeil + wallAlpha + edgeAlpha);
             const invAlpha = 1 - whiteAlpha;
 
             sr = sr * invAlpha + 255 * whiteAlpha;
