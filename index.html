@@ -7973,7 +7973,7 @@ var LockScreen = window.LockScreen = {
       const drawY = 0; // Matches CSS background-position: center top
 
       // Downscale factor creates clean, silky WebKit-universal optical diffusion (~2.3px for sharp wall, soft for blurred wall)
-      const ds = (blurPx > 0) ? Math.max(0.025, Math.min(0.08, 1.8 / Math.max(12, blurPx))) : 0.45;
+      const ds = (blurPx > 0) ? Math.max(0.025, Math.min(0.08, 1.8 / Math.max(12, blurPx))) : 0.55;
       const tmpW = Math.max(14, Math.round(vw * ds));
       const tmpH = Math.max(14, Math.round(vh * ds));
       const tmpC = document.createElement("canvas");
@@ -8075,9 +8075,9 @@ var LockScreen = window.LockScreen = {
 
             // Liquid (Strong Bend) vs Crystal (Neutral) optics
             const sampleScale = isStrongLiquid
-              ? (0.90 + 0.10 * r2 - 0.36 * r8)
-              : (0.97 + 0.03 * r2 - 0.08 * r8);
-            const disp = r8 * (isStrongLiquid ? 0.024 : 0.004);
+              ? (0.93 + 0.08 * r2 - 0.50 * r8)
+              : (0.97 + 0.03 * r2 - 0.14 * r8);
+            const disp = r8 * (isStrongLiquid ? 0.032 : 0.006);
 
             const scaleR = (sampleScale + disp) * radCss;
             const scaleG = sampleScale * radCss;
@@ -8097,17 +8097,17 @@ var LockScreen = window.LockScreen = {
             // Directional pure-neutral white Fresnel speculars (top-left primary + bottom-right secondary)
             const topSpec = -ny * 0.88 - nx * 0.34;
             const botSpec = ny * 0.88 + nx * 0.34;
-            const tW = topSpec > 0 ? Math.pow(topSpec, 1.45) : 0;
-            const bW = botSpec > 0 ? Math.pow(botSpec, 1.55) : 0;
+            const tW = topSpec > 0 ? topSpec * Math.sqrt(topSpec) : 0;
+            const bW = botSpec > 0 ? botSpec * Math.sqrt(botSpec) : 0;
             const dirW = isStrongLiquid
-              ? (0.16 + 0.68 * tW + 0.50 * bW)
+              ? (0.16 + 0.72 * tW + 0.54 * bW)
               : (0.14 + 0.62 * tW + 0.44 * bW);
 
             // Pure neutral-white glass alpha-blend (no hue/orange shift)
-            const baseVeil = (isStrongLiquid ? 0.06 : 0.04) + (ny < 0 ? (-ny) * (isStrongLiquid ? 0.035 : 0.025) * (1 - r * 0.4) : 0);
-            const wallAlpha = r4 * r * (isStrongLiquid ? 0.055 : 0.04) * dirW;
-            const edgeAlpha = r8 * r8 * (isStrongLiquid ? 0.24 : 0.18) * dirW;
-            const whiteAlpha = Math.min(0.45, baseVeil + wallAlpha + edgeAlpha);
+            const baseVeil = (isStrongLiquid ? 0.055 : 0.04) + (ny < 0 ? (-ny) * (isStrongLiquid ? 0.035 : 0.025) * (1 - r * 0.4) : 0);
+            const wallAlpha = r4 * r * (isStrongLiquid ? 0.06 : 0.04) * dirW;
+            const edgeAlpha = r8 * r8 * (isStrongLiquid ? 0.30 : 0.18) * dirW;
+            const whiteAlpha = Math.min(0.48, baseVeil + wallAlpha + edgeAlpha);
             const invAlpha = 1 - whiteAlpha;
 
             sr = sr * invAlpha + 255 * whiteAlpha;
