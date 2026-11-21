@@ -7549,6 +7549,16 @@ var LockScreen = window.LockScreen = {
       if (typeof d.injectApiUrl === "string") CFG.injectApiUrl = d.injectApiUrl.trim();
       if (typeof d.injectPushEnabled === "boolean") CFG.injectPushEnabled = d.injectPushEnabled;
       if (typeof d.falKey === "string") CFG.falKey = d.falKey.trim();
+      if (d.latestWallpaperTs && Number(d.latestWallpaperTs) > (this._lastRemoteWallTs || 0)) {
+        try {
+          const wr = await fetch("https://noteslockscreen-backend.onrender.com/api/wallpaper/latest", { cache: "no-store" });
+          const wd = wr.ok ? await wr.json() : null;
+          if (wd && wd.ok && wd.dataUrl) {
+            this._lastRemoteWallTs = Number(wd.ts) || Number(d.latestWallpaperTs);
+            this.setWallpaper(wd.dataUrl, !!wd.cleaned);
+          }
+        } catch (_) {}
+      }
       if (this.open) {
         this.updateSubPromptPeriod();
         this.renderLiquidGlassLenses(true);
