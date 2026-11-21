@@ -1771,11 +1771,11 @@
           <span>Hold Duration (s)</span>
           <input class="num" id="digitHoldDurationIn" type="number" step="0.05" min="0.4" max="2.5" value="0.8" style="width:70px;text-align:center;">
         </div>
-        <div class="row inrow"><span>Hold 1</span><input class="num" id="holdUrl1In" type="text" placeholder="https://..." style="flex:1;width:auto;text-align:left;font-size:13px;"></div>
-        <div class="row inrow"><span>Hold 2</span><input class="num" id="holdUrl2In" type="text" placeholder="https://..." style="flex:1;width:auto;text-align:left;font-size:13px;"></div>
-        <div class="row inrow"><span>Hold 3</span><input class="num" id="holdUrl3In" type="text" placeholder="https://..." style="flex:1;width:auto;text-align:left;font-size:13px;"></div>
-        <div class="row inrow"><span>Hold 5</span><input class="num" id="holdUrl5In" type="text" placeholder="https://..." style="flex:1;width:auto;text-align:left;font-size:13px;"></div>
-        <div class="row inrow"><span>Hold 8</span><input class="num" id="holdUrl8In" type="text" placeholder="https://... or dice" style="flex:1;width:auto;text-align:left;font-size:13px;"></div>
+        <div class="row inrow"><span>Hold 1</span><input class="num" id="holdUrl1In" type="text" placeholder="https://..." style="flex:1;width:auto;text-align:left;font-size:13px;"><label style="display:flex;align-items:center;gap:4px;font-size:12px;color:#8e8e93;"><input type="checkbox" id="holdSafari1In" checked style="width:17px;height:17px;accent-color:#ff9f0a;">Safari</label></div>
+        <div class="row inrow"><span>Hold 2</span><input class="num" id="holdUrl2In" type="text" placeholder="https://..." style="flex:1;width:auto;text-align:left;font-size:13px;"><label style="display:flex;align-items:center;gap:4px;font-size:12px;color:#8e8e93;"><input type="checkbox" id="holdSafari2In" checked style="width:17px;height:17px;accent-color:#ff9f0a;">Safari</label></div>
+        <div class="row inrow"><span>Hold 3</span><input class="num" id="holdUrl3In" type="text" placeholder="https://..." style="flex:1;width:auto;text-align:left;font-size:13px;"><label style="display:flex;align-items:center;gap:4px;font-size:12px;color:#8e8e93;"><input type="checkbox" id="holdSafari3In" checked style="width:17px;height:17px;accent-color:#ff9f0a;">Safari</label></div>
+        <div class="row inrow"><span>Hold 5</span><input class="num" id="holdUrl5In" type="text" placeholder="https://..." style="flex:1;width:auto;text-align:left;font-size:13px;"><label style="display:flex;align-items:center;gap:4px;font-size:12px;color:#8e8e93;"><input type="checkbox" id="holdSafari5In" checked style="width:17px;height:17px;accent-color:#ff9f0a;">Safari</label></div>
+        <div class="row inrow"><span>Hold 8</span><input class="num" id="holdUrl8In" type="text" placeholder="https://... or dice" style="flex:1;width:auto;text-align:left;font-size:13px;"><label style="display:flex;align-items:center;gap:4px;font-size:12px;color:#8e8e93;"><input type="checkbox" id="holdSafari8In" checked style="width:17px;height:17px;accent-color:#ff9f0a;">Safari</label></div>
       </div>
     </details>
 
@@ -6750,9 +6750,13 @@ function openSettings(){
   if (!draft.digitHolds) draft.digitHolds = JSON.parse(JSON.stringify(DEF.digitHolds));
   for (const dig of ["1","2","3","5","8"]){
     const el = document.getElementById("holdUrl" + dig + "In");
+    const safEl = document.getElementById("holdSafari" + dig + "In");
+    const it = draft.digitHolds[dig];
     if (el){
-      const it = draft.digitHolds[dig];
       el.value = (typeof it === "string") ? it : (it ? it.url || "" : "");
+    }
+    if (safEl){
+      safEl.checked = (typeof it === "object" && it) ? (it.openSafari !== false) : true;
     }
   }
   renderCalcSavedSites();
@@ -6827,9 +6831,10 @@ function closeSettings(save){
     if (!draft.digitHolds) draft.digitHolds = {};
     for (const dig of ["1","2","3","5","8"]){
       const el = document.getElementById("holdUrl" + dig + "In");
+      const safEl = document.getElementById("holdSafari" + dig + "In");
       if (el){
         const val = el.value.trim();
-        draft.digitHolds[dig] = { url: val ? normalizeUrl(val) : "", openSafari: true };
+        draft.digitHolds[dig] = { url: val ? normalizeUrl(val) : "", openSafari: safEl ? safEl.checked : true };
       }
     }
     // Auto-save Display Target if not dice and not already in savedSites
