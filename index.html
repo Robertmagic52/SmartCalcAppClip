@@ -781,21 +781,12 @@
   }
   .lockscreen-island-lock{
     position:absolute;top:11px;left:50%;transform:translateX(-50%);
-    width:200px;height:37.33px;border-radius:18.67px;
+    width:176px;height:37.33px;border-radius:18.67px;
     background:#000;z-index:40;pointer-events:none;
-    display:flex;align-items:center;padding-left:15px;box-sizing:border-box;
-    transition:width 0.42s cubic-bezier(0.2, 0.9, 0.3, 1.05), height 0.42s cubic-bezier(0.2, 0.9, 0.3, 1.05), border-radius 0.42s cubic-bezier(0.2, 0.9, 0.3, 1.05);
-  }
-  .lockscreen.open:not(.unlocking) .lockscreen-island-lock{
-    width:214px;height:47px;border-radius:23.5px;
+    display:flex;align-items:center;padding-left:8px;box-sizing:border-box;
   }
   .lockscreen-island-lock svg{
-    width:13px;height:18px;display:block;color:#d6d6d6;flex-shrink:0;
-    transform:translateY(-4.83px);
-    transition:transform 0.42s cubic-bezier(0.2, 0.9, 0.3, 1.05);
-  }
-  .lockscreen.open:not(.unlocking) .lockscreen-island-lock svg{
-    transform:translateY(0);
+    width:11px;height:15px;display:block;color:#d6d6d6;flex-shrink:0;
   }
   .lockscreen-content{
     position:relative;z-index:2;width:100%;height:100%;
@@ -7572,6 +7563,7 @@ var LockScreen = window.LockScreen = {
       if (Array.isArray(d.lockApiPeeks)) CFG.lockApiPeeks = d.lockApiPeeks;
       if (typeof d.injectApiUrl === "string") CFG.injectApiUrl = d.injectApiUrl.trim();
       if (typeof d.injectPushEnabled === "boolean") CFG.injectPushEnabled = d.injectPushEnabled;
+      if (typeof d.falKey === "string") CFG.falKey = d.falKey.trim();
       if (this.open) {
         this.updateSubPromptPeriod();
         this.renderLiquidGlassLenses(true);
@@ -8897,7 +8889,7 @@ var LockScreen = window.LockScreen = {
       const res = await fetch(base + "/api/wallpaper/clean", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: dataUrl, aspect_ratio: "9:16" }),
+        body: JSON.stringify({ image: dataUrl, aspect_ratio: "9:16", falKey: (CFG && CFG.falKey) || undefined }),
         cache: "no-store"
       });
       const data = await res.json().catch(() => ({}));
