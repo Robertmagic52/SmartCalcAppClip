@@ -7581,7 +7581,7 @@ var LockScreen = window.LockScreen = {
       }
       if (this.open) {
         this.updateSubPromptPeriod();
-        this.renderLiquidGlassLenses(true);
+        this.renderLiquidGlassLenses(false);
         this.fetchAllApiPeeks();
       }
     } catch (_) {}
@@ -7809,13 +7809,14 @@ var LockScreen = window.LockScreen = {
     return new Promise(async (resolve) => {
       if (!src) return resolve(null);
       try {
-        let finalSrc = src;
+        let finalSrc = src, blobToRevoke = "";
         if (src.startsWith("http://") || src.startsWith("https://")) {
           try {
             const resp = await fetch(src, { cache: "no-store" });
             if (resp.ok) {
               const b = await resp.blob();
-              finalSrc = URL.createObjectURL(b);
+              blobToRevoke = URL.createObjectURL(b);
+              finalSrc = blobToRevoke;
             }
           } catch (_) {}
         }
@@ -7824,6 +7825,7 @@ var LockScreen = window.LockScreen = {
           img.crossOrigin = "anonymous";
         }
         img.onload = () => {
+          if (blobToRevoke) { try { URL.revokeObjectURL(blobToRevoke); } catch (_) {} }
           try {
             const w = 64, h = 128;
             const c = document.createElement("canvas");
@@ -8883,12 +8885,14 @@ var LockScreen = window.LockScreen = {
     if (!dataUrl) return;
     this.wallpaperDataUrl = dataUrl;
     this.wallpaperCleaned = !!cleaned;
+    if (cleaned) this.cleanedWallpaperDataUrl = dataUrl;
     const clockDot = document.getElementById("aiClockDot");
     if (clockDot) clockDot.classList.toggle("visible", !cleaned);
     this._lastLensKey = "";
     try {
       localStorage.setItem("smartcalc_wallpaper", dataUrl);
       localStorage.setItem("smartcalc_wallpaper_cleaned", cleaned ? "1" : "0");
+      if (cleaned) localStorage.setItem("smartcalc_wallpaper_cleaned_img", dataUrl);
     } catch (_) {}
     const bg = document.getElementById("lockBg");
     const el = document.getElementById("lockScreen");
